@@ -1,9 +1,5 @@
-// Catálogo de nichos preset.
-// Cada nicho define un TEMA (colores/tipografía) y un CONTENIDO de ejemplo
-// para que, al crear un negocio, el admin ya arranque con algo editable
-// en vez de un formulario en blanco. Todo esto vive dentro de "contenido"
-// y "tema" en la fila del tenant, así que se puede seguir personalizando
-// libremente después sin tocar este archivo.
+// Catálogo de nichos preset — igual que antes, solo cambia de carpeta
+// (de functions/_niches.js a src/niches.js) para que el Worker lo importe.
 
 export const NICHOS = {
   granizados: {

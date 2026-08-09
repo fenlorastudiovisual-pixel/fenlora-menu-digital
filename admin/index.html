@@ -32,6 +32,18 @@
   .empty{color:var(--muted);font-size:14px;padding:8px 0;}
   .msg{font-size:13px;margin-top:4px;min-height:16px;}
   .msg.ok{color:var(--accent);} .msg.err{color:var(--danger);}
+  select#producto-tenant{margin-bottom:4px;}
+  .prod-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px;}
+  .checkbox-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);}
+  .checkbox-row input{width:auto;}
+  .upload-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+  .upload-row input[type="file"]{flex:1;min-width:180px;padding:8px;}
+  .thumb-preview{width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--line);display:none;background:#0f1215;}
+  .btn-secondary{background:transparent;border:1px solid var(--line);color:var(--text);}
+  .btn-danger{background:transparent;border:1px solid var(--danger);color:var(--danger);padding:6px 10px;font-size:12px;}
+  .btn-mini{padding:6px 10px;font-size:12px;border-radius:7px;}
+  td.acciones{display:flex;gap:6px;}
+  .badge-destacado{background:var(--accent-dim);color:var(--accent);border-radius:99px;padding:2px 8px;font-size:11px;}
 </style>
 </head>
 <body>
@@ -58,6 +70,21 @@
         <label for="nicho">Nicho / plantilla base</label>
         <select id="nicho" required></select>
       </div>
+      <div class="row">
+        <div>
+          <label for="pago_url">Link de pago (Wompi, Bold, etc. — opcional)</label>
+          <input id="pago_url" placeholder="https://checkout.wompi.co/l/xxxxx">
+        </div>
+        <div>
+          <label for="moneda">Moneda</label>
+          <select id="moneda">
+            <option value="COP">COP — Peso colombiano</option>
+            <option value="PEN">PEN — Sol peruano</option>
+            <option value="MXN">MXN — Peso mexicano</option>
+            <option value="USD">USD — Dólar</option>
+          </select>
+        </div>
+      </div>
       <div>
         <button type="submit">Crear negocio</button>
         <div class="msg" id="msg"></div>
@@ -66,8 +93,101 @@
   </section>
 
   <section class="panel">
+    <h2>Configurar pago de un negocio</h2>
+    <div>
+      <label for="pago-tenant">Negocio</label>
+      <select id="pago-tenant"></select>
+    </div>
+    <form id="form-pago" style="margin-top:14px;">
+      <div class="row">
+        <div>
+          <label for="pago-url-edit">Link de pago</label>
+          <input id="pago-url-edit" placeholder="https://checkout.wompi.co/l/xxxxx">
+        </div>
+        <div>
+          <label for="pago-moneda-edit">Moneda</label>
+          <select id="pago-moneda-edit">
+            <option value="COP">COP — Peso colombiano</option>
+            <option value="PEN">PEN — Sol peruano</option>
+            <option value="MXN">MXN — Peso mexicano</option>
+            <option value="USD">USD — Dólar</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <button type="submit">Guardar</button>
+        <div class="msg" id="pago-msg"></div>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Pedidos</h2>
+    <div>
+      <label for="pedidos-tenant">Negocio</label>
+      <select id="pedidos-tenant"></select>
+    </div>
+    <div id="pedidos-wrap" style="margin-top:14px;"><p class="empty">Elige un negocio para ver sus pedidos.</p></div>
+  </section>
+
+  <section class="panel">
     <h2>Negocios creados</h2>
     <div id="tabla-wrap"><p class="empty">Cargando…</p></div>
+  </section>
+
+  <section class="panel">
+    <h2>Gestionar productos</h2>
+    <div>
+      <label for="producto-tenant">Negocio</label>
+      <select id="producto-tenant"></select>
+    </div>
+
+    <form id="form-producto" style="margin-top:14px;">
+      <div class="row">
+        <div>
+          <label for="p-categoria">Categoría</label>
+          <input id="p-categoria" required placeholder="Ej: Granizados">
+        </div>
+        <div>
+          <label for="p-nombre">Nombre del producto</label>
+          <input id="p-nombre" required placeholder="Ej: Granizado Tropical">
+        </div>
+      </div>
+      <div>
+        <label for="p-descripcion">Descripción</label>
+        <input id="p-descripcion" placeholder="Ej: Fresa, piña y coco.">
+      </div>
+      <div class="row">
+        <div>
+          <label for="p-precio">Precio</label>
+          <input id="p-precio" type="number" step="0.01" min="0" required placeholder="Ej: 12.90">
+        </div>
+        <div>
+          <label for="p-imagen-url">URL de la foto (opcional si subes archivo)</label>
+          <input id="p-imagen-url" placeholder="https://pub-xxxx.r2.dev/negocio/productos/foto.jpg">
+        </div>
+      </div>
+      <div>
+        <label>O sube la foto directo (se guarda en R2 automáticamente)</label>
+        <div class="upload-row">
+          <input id="p-imagen-file" type="file" accept="image/*">
+          <img id="p-imagen-preview" class="thumb-preview">
+          <span class="msg" id="upload-msg"></span>
+        </div>
+      </div>
+      <div class="checkbox-row">
+        <input id="p-destacado" type="checkbox">
+        <label for="p-destacado" style="margin:0;">Mostrar en "Nuestros Favoritos" del home</label>
+      </div>
+      <div class="prod-toolbar">
+        <button type="submit" id="p-submit-btn">Agregar producto</button>
+        <button type="button" class="btn-secondary btn-mini" id="p-cancelar-edicion" style="display:none;">Cancelar edición</button>
+        <div class="msg" id="p-msg"></div>
+      </div>
+      <input type="hidden" id="p-editando-id">
+    </form>
+
+    <div id="productos-wrap" style="margin-top:18px;"><p class="empty">Elige un negocio para ver sus productos.</p></div>
   </section>
 
 </main>
@@ -88,7 +208,7 @@ async function cargarTenants() {
   if (!tenants.length) { wrap.innerHTML = '<p class="empty">Todavía no has creado ningún negocio.</p>'; return; }
   wrap.innerHTML = `
     <table>
-      <thead><tr><th>Negocio</th><th>Nicho</th><th>WhatsApp</th><th>Estado</th><th>Link</th></tr></thead>
+      <thead><tr><th>Negocio</th><th>Nicho</th><th>WhatsApp</th><th>Estado</th><th>Link</th><th>Productos</th></tr></thead>
       <tbody>
         ${tenants.map(t => `
           <tr>
@@ -96,10 +216,37 @@ async function cargarTenants() {
             <td>${t.nicho}</td>
             <td>${t.whatsapp || '—'}</td>
             <td><span class="pill">${t.activo ? 'Activo' : 'Inactivo'}</span></td>
-            <td><a class="link" href="/menu/${t.id}" target="_blank">/menu/${t.id}</a></td>
+            <td><a class="link" href="/t/${t.id}" target="_blank">/t/${t.id}</a></td>
+            <td><a href="#gestionar-productos" class="link" data-tenant="${t.id}" onclick="seleccionarTenantProductos('${t.id}')">Gestionar →</a></td>
           </tr>`).join('')}
       </tbody>
     </table>`;
+
+  const selectorProductos = $('#producto-tenant');
+  const tenantSeleccionado = selectorProductos.value;
+  const opciones = tenants.map(t => `<option value="${t.id}">${t.nombre}</option>`).join('');
+  selectorProductos.innerHTML = opciones;
+  if (tenantSeleccionado && tenants.some(t => t.id === tenantSeleccionado)) {
+    selectorProductos.value = tenantSeleccionado;
+  }
+  if (selectorProductos.value) cargarProductos(selectorProductos.value);
+
+  const selectorPago = $('#pago-tenant');
+  const pagoSeleccionado = selectorPago.value;
+  selectorPago.innerHTML = opciones;
+  if (pagoSeleccionado && tenants.some(t => t.id === pagoSeleccionado)) selectorPago.value = pagoSeleccionado;
+  if (selectorPago.value) cargarPagoTenant(selectorPago.value);
+
+  const selectorPedidos = $('#pedidos-tenant');
+  const pedidosSeleccionado = selectorPedidos.value;
+  selectorPedidos.innerHTML = opciones;
+  if (pedidosSeleccionado && tenants.some(t => t.id === pedidosSeleccionado)) selectorPedidos.value = pedidosSeleccionado;
+  if (selectorPedidos.value) cargarPedidos(selectorPedidos.value);
+}
+
+function seleccionarTenantProductos(id) {
+  $('#producto-tenant').value = id;
+  cargarProductos(id);
 }
 
 $('#form-nuevo').addEventListener('submit', async (e) => {
@@ -109,7 +256,9 @@ $('#form-nuevo').addEventListener('submit', async (e) => {
   const payload = {
     nombre: $('#nombre').value.trim(),
     whatsapp: $('#whatsapp').value.trim(),
-    nicho: $('#nicho').value
+    nicho: $('#nicho').value,
+    pago_url: $('#pago_url').value.trim() || null,
+    moneda: $('#moneda').value
   };
   const r = await fetch('/admin/api/tenants', {
     method: 'POST',
@@ -118,14 +267,210 @@ $('#form-nuevo').addEventListener('submit', async (e) => {
   });
   const data = await r.json();
   if (!r.ok) { msg.textContent = data.error || 'Error al crear el negocio'; msg.className = 'msg err'; return; }
-  msg.textContent = `Creado — link: /menu/${data.id}`;
+  msg.textContent = `Creado — link: /t/${data.id}`;
   msg.className = 'msg ok';
   e.target.reset();
   cargarTenants();
 });
 
+// ================== PRODUCTOS ==================
+
+async function cargarProductos(tenantId) {
+  const wrap = $('#productos-wrap');
+  if (!tenantId) { wrap.innerHTML = '<p class="empty">Elige un negocio para ver sus productos.</p>'; return; }
+  wrap.innerHTML = '<p class="empty">Cargando productos…</p>';
+  const r = await fetch(`/admin/api/tenants/${encodeURIComponent(tenantId)}/products`);
+  const { productos } = await r.json();
+  if (!productos.length) { wrap.innerHTML = '<p class="empty">Este negocio todavía no tiene productos.</p>'; return; }
+  wrap.innerHTML = `
+    <table>
+      <thead><tr><th>Foto</th><th>Categoría</th><th>Nombre</th><th>Precio</th><th>Destacado</th><th>Acciones</th></tr></thead>
+      <tbody>
+        ${productos.map(p => `
+          <tr>
+            <td>${p.imagen_url ? `<img src="${p.imagen_url}" class="thumb-preview" style="display:block;">` : '—'}</td>
+            <td>${p.categoria}</td>
+            <td>${p.nombre}</td>
+            <td>S/ ${Number(p.precio).toFixed(2)}</td>
+            <td>${p.destacado ? '<span class="badge-destacado">Sí</span>' : '—'}</td>
+            <td class="acciones">
+              <button type="button" class="btn-secondary btn-mini" onclick='editarProducto(${JSON.stringify(p)})'>Editar</button>
+              <button type="button" class="btn-danger btn-mini" onclick="borrarProducto(${p.id}, '${tenantId}')">Borrar</button>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+$('#producto-tenant').addEventListener('change', (e) => cargarProductos(e.target.value));
+
+// Subir foto a R2 apenas se elige el archivo
+$('#p-imagen-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  const uploadMsg = $('#upload-msg');
+  const tenantId = $('#producto-tenant').value;
+  if (!file) return;
+  if (!tenantId) { uploadMsg.textContent = 'Elige primero un negocio'; uploadMsg.className = 'msg err'; return; }
+
+  uploadMsg.textContent = 'Subiendo…'; uploadMsg.className = 'msg';
+  const form = new FormData();
+  form.append('file', file);
+  form.append('tenant_id', tenantId);
+  form.append('carpeta', 'productos');
+
+  try {
+    const r = await fetch('/admin/api/upload', { method: 'POST', body: form });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Error al subir la imagen');
+    $('#p-imagen-url').value = data.url;
+    $('#p-imagen-preview').src = data.url;
+    $('#p-imagen-preview').style.display = 'block';
+    uploadMsg.textContent = 'Foto subida ✓'; uploadMsg.className = 'msg ok';
+  } catch (err) {
+    uploadMsg.textContent = err.message; uploadMsg.className = 'msg err';
+  }
+});
+
+function editarProducto(p) {
+  $('#p-editando-id').value = p.id;
+  $('#p-categoria').value = p.categoria;
+  $('#p-nombre').value = p.nombre;
+  $('#p-descripcion').value = p.descripcion || '';
+  $('#p-precio').value = p.precio;
+  $('#p-imagen-url').value = p.imagen_url || '';
+  $('#p-destacado').checked = !!p.destacado;
+  if (p.imagen_url) { $('#p-imagen-preview').src = p.imagen_url; $('#p-imagen-preview').style.display = 'block'; }
+  $('#p-submit-btn').textContent = 'Guardar cambios';
+  $('#p-cancelar-edicion').style.display = 'inline-block';
+  document.getElementById('form-producto').scrollIntoView({ behavior: 'smooth' });
+}
+
+function cancelarEdicionProducto() {
+  $('#form-producto').reset();
+  $('#p-editando-id').value = '';
+  $('#p-imagen-preview').style.display = 'none';
+  $('#p-submit-btn').textContent = 'Agregar producto';
+  $('#p-cancelar-edicion').style.display = 'none';
+}
+$('#p-cancelar-edicion').addEventListener('click', cancelarEdicionProducto);
+
+async function borrarProducto(id, tenantId) {
+  if (!confirm('¿Borrar este producto? No se puede deshacer.')) return;
+  await fetch(`/admin/api/products/${id}`, { method: 'DELETE' });
+  cargarProductos(tenantId);
+}
+
+$('#form-producto').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const tenantId = $('#producto-tenant').value;
+  const msg = $('#p-msg');
+  msg.textContent = ''; msg.className = 'msg';
+  if (!tenantId) { msg.textContent = 'Elige un negocio primero'; msg.className = 'msg err'; return; }
+
+  const payload = {
+    categoria: $('#p-categoria').value.trim(),
+    nombre: $('#p-nombre').value.trim(),
+    descripcion: $('#p-descripcion').value.trim(),
+    precio: parseFloat($('#p-precio').value),
+    imagen_url: $('#p-imagen-url').value.trim() || null,
+    destacado: $('#p-destacado').checked
+  };
+
+  const editandoId = $('#p-editando-id').value;
+  const url = editandoId ? `/admin/api/products/${editandoId}` : `/admin/api/tenants/${encodeURIComponent(tenantId)}/products`;
+  const method = editandoId ? 'PUT' : 'POST';
+
+  const r = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const data = await r.json();
+  if (!r.ok) { msg.textContent = data.error || 'Error al guardar el producto'; msg.className = 'msg err'; return; }
+
+  msg.textContent = editandoId ? 'Producto actualizado ✓' : 'Producto agregado ✓';
+  msg.className = 'msg ok';
+  cancelarEdicionProducto();
+  cargarProductos(tenantId);
+});
+
 cargarNichos();
 cargarTenants();
+
+// ================== CONFIGURAR PAGO ==================
+
+async function cargarPagoTenant(tenantId) {
+  if (!tenantId) return;
+  const r = await fetch(`/admin/api/tenants/${encodeURIComponent(tenantId)}`);
+  const t = await r.json();
+  $('#pago-url-edit').value = t.pago_url || '';
+  $('#pago-moneda-edit').value = t.moneda || 'COP';
+}
+
+$('#pago-tenant').addEventListener('change', (e) => cargarPagoTenant(e.target.value));
+
+$('#form-pago').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const tenantId = $('#pago-tenant').value;
+  const msg = $('#pago-msg');
+  msg.textContent = ''; msg.className = 'msg';
+  if (!tenantId) { msg.textContent = 'Elige un negocio primero'; msg.className = 'msg err'; return; }
+
+  const r = await fetch(`/admin/api/tenants/${encodeURIComponent(tenantId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      pago_url: $('#pago-url-edit').value.trim() || null,
+      moneda: $('#pago-moneda-edit').value
+    })
+  });
+  const data = await r.json();
+  if (!r.ok) { msg.textContent = data.error || 'Error al guardar'; msg.className = 'msg err'; return; }
+  msg.textContent = 'Guardado ✓'; msg.className = 'msg ok';
+});
+
+// ================== PEDIDOS ==================
+
+const ESTADOS_PEDIDO = ['pendiente_pago', 'pagado', 'cancelado'];
+
+async function cargarPedidos(tenantId) {
+  const wrap = $('#pedidos-wrap');
+  if (!tenantId) { wrap.innerHTML = '<p class="empty">Elige un negocio para ver sus pedidos.</p>'; return; }
+  wrap.innerHTML = '<p class="empty">Cargando pedidos…</p>';
+  const r = await fetch(`/admin/api/tenants/${encodeURIComponent(tenantId)}/pedidos`);
+  const { pedidos } = await r.json();
+  if (!pedidos.length) { wrap.innerHTML = '<p class="empty">Este negocio todavía no tiene pedidos.</p>'; return; }
+  wrap.innerHTML = `
+    <table>
+      <thead><tr><th>#</th><th>Items</th><th>Total</th><th>Nota</th><th>Fecha</th><th>Estado</th></tr></thead>
+      <tbody>
+        ${pedidos.map(p => `
+          <tr>
+            <td>${p.id}</td>
+            <td>${p.items.map(i => `${i.cantidad}× ${i.nombre}`).join('<br>')}</td>
+            <td>${Number(p.total).toFixed(2)}</td>
+            <td>${p.cliente_nota || '—'}</td>
+            <td>${p.creado_en}</td>
+            <td>
+              <select onchange="actualizarEstadoPedido(${p.id}, this.value, '${tenantId}')">
+                ${ESTADOS_PEDIDO.map(e => `<option value="${e}" ${e === p.estado ? 'selected' : ''}>${e}</option>`).join('')}
+              </select>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+$('#pedidos-tenant').addEventListener('change', (e) => cargarPedidos(e.target.value));
+
+async function actualizarEstadoPedido(id, estado, tenantId) {
+  await fetch(`/admin/api/pedidos/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ estado })
+  });
+  cargarPedidos(tenantId);
+}
 </script>
 </body>
 </html>
