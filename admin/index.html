@@ -83,7 +83,10 @@
   <div class="tabs">
     <button class="tab-btn active" data-tab="resumen">Resumen</button>
     <button class="tab-btn" data-tab="negocios">Negocios</button>
+    <button class="tab-btn" data-tab="metricas">Métricas</button>
+    <button class="tab-btn" data-tab="cobranza">Cobranza</button>
     <button class="tab-btn" data-tab="demos">Demos</button>
+    <button class="tab-btn" data-tab="config">Config</button>
   </div>
 </header>
 
@@ -163,6 +166,10 @@
               </select>
             </div>
           </div>
+          <div class="row">
+            <div><label>Precio mensual del servicio (cobranza — opcional)</label><input id="d-precio-mensual" type="number" step="0.01" placeholder="Ej: 30000"></div>
+            <div><label>Día de cobro (1-28)</label><input id="d-dia-cobro" type="number" min="1" max="28" placeholder="Ej: 5"></div>
+          </div>
           <div><button type="submit">Guardar cambios</button> <div class="msg" id="d-msg"></div></div>
         </form>
       </div>
@@ -206,6 +213,67 @@
     <div id="grid-demos" class="grid-negocios"><p class="empty">Cargando…</p></div>
   </section>
 
+  <!-- ===================== MÉTRICAS ===================== -->
+  <section id="tab-metricas" class="tab-panel">
+    <div class="panel">
+      <h2>Pedidos por día (últimos 14 días)</h2>
+      <div id="metricas-pedidos-dia"><p class="empty">Cargando…</p></div>
+    </div>
+    <div class="row" style="align-items:stretch;">
+      <div class="panel">
+        <h2>Negocios con más pedidos</h2>
+        <div id="metricas-top-negocios"><p class="empty">Cargando…</p></div>
+      </div>
+      <div class="panel">
+        <h2>Productos más pedidos</h2>
+        <div id="metricas-top-productos"><p class="empty">Cargando…</p></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Negocios por nicho</h2>
+      <div id="metricas-por-nicho"><p class="empty">Cargando…</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== COBRANZA ===================== -->
+  <section id="tab-cobranza" class="tab-panel">
+    <div class="stats" id="cobranza-stats"><p class="empty">Cargando…</p></div>
+    <div class="panel">
+      <h2>Negocios con cobranza configurada</h2>
+      <p class="empty" style="margin-bottom:10px;">
+        Configura precio mensual y día de cobro desde la ficha de cada negocio (pestaña Negocios → Datos).
+      </p>
+      <div id="cobranza-wrap"><p class="empty">Cargando…</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== CONFIG ===================== -->
+  <section id="tab-config" class="tab-panel">
+    <div class="panel">
+      <h2>Configuración general</h2>
+      <form id="form-config">
+        <div>
+          <label>Moneda por defecto para negocios nuevos</label>
+          <select id="c-moneda-default">
+            <option value="COP">COP — Peso colombiano</option>
+            <option value="PEN">PEN — Sol peruano</option>
+            <option value="MXN">MXN — Peso mexicano</option>
+            <option value="USD">USD — Dólar</option>
+          </select>
+        </div>
+        <div>
+          <label>Mensaje de WhatsApp por defecto (al enviar el link a un negocio)</label>
+          <textarea id="c-whatsapp-default" rows="3" placeholder="Hola {nombre}! Aquí tienes el link de tu menú digital: {link}"></textarea>
+        </div>
+        <div>
+          <label>URL pública del bucket R2 (referencia — para cambiarla de verdad hay que editarla también en src/worker.js)</label>
+          <input id="c-r2-url" placeholder="https://pub-xxxxx.r2.dev">
+        </div>
+        <div><button type="submit">Guardar configuración</button> <div class="msg" id="c-msg"></div></div>
+      </form>
+    </div>
+  </section>
+
 </main>
 
 <script>
@@ -222,6 +290,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     $('#tab-' + btn.dataset.tab).classList.add('active');
     if (btn.dataset.tab === 'resumen') cargarResumen();
     if (btn.dataset.tab === 'demos') cargarDemos();
+    if (btn.dataset.tab === 'metricas') cargarMetricas();
+    if (btn.dataset.tab === 'cobranza') cargarCobranza();
+    if (btn.dataset.tab === 'config') cargarConfig();
   });
 });
 
@@ -337,6 +408,8 @@ async function seleccionarNegocio(id) {
   $('#d-whatsapp').value = t.whatsapp || '';
   $('#d-pago-url').value = t.pago_url || '';
   $('#d-moneda').value = t.moneda || 'COP';
+  $('#d-precio-mensual').value = t.precio_mensual || '';
+  $('#d-dia-cobro').value = t.dia_cobro || '';
 
   $('#panel-detalle').scrollIntoView({ behavior: 'smooth', block: 'start' });
   cargarProductos(id);
@@ -384,7 +457,9 @@ $('#form-datos').addEventListener('submit', async (e) => {
       nombre: $('#d-nombre').value.trim(),
       whatsapp: $('#d-whatsapp').value.trim(),
       pago_url: $('#d-pago-url').value.trim() || null,
-      moneda: $('#d-moneda').value
+      moneda: $('#d-moneda').value,
+      precio_mensual: $('#d-precio-mensual').value ? Number($('#d-precio-mensual').value) : null,
+      dia_cobro: $('#d-dia-cobro').value ? Number($('#d-dia-cobro').value) : null
     })
   });
   const data = await r.json();
@@ -544,6 +619,103 @@ function compartirDemoWhatsapp(id, nombre) {
   const mensaje = encodeURIComponent(`Hola! Mira cómo se vería tu menú digital: ${link}`);
   window.open(`https://wa.me/${numero}?text=${mensaje}`, '_blank');
 }
+
+// ---------------- MÉTRICAS ----------------
+async function cargarMetricas() {
+  const r = await fetch('/admin/api/metricas');
+  const d = await r.json();
+
+  const dias = $('#metricas-pedidos-dia');
+  if (!d.pedidosPorDia.length) {
+    dias.innerHTML = '<p class="empty">Todavía no hay pedidos en los últimos 14 días.</p>';
+  } else {
+    const max = Math.max(...d.pedidosPorDia.map(x => x.total));
+    dias.innerHTML = d.pedidosPorDia.map(x => `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <span style="width:80px;font-size:12px;color:var(--muted);">${x.dia}</span>
+        <div style="flex:1;background:var(--panel2);border-radius:6px;overflow:hidden;">
+          <div style="width:${(x.total/max*100)}%;background:var(--accent);height:16px;"></div>
+        </div>
+        <span style="width:24px;text-align:right;font-size:12px;">${x.total}</span>
+      </div>`).join('');
+  }
+
+  $('#metricas-top-negocios').innerHTML = d.topNegocios.length
+    ? d.topNegocios.map(n => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line);"><span>${n.nombre}</span><b>${n.total_pedidos}</b></div>`).join('')
+    : '<p class="empty">Sin pedidos todavía.</p>';
+
+  $('#metricas-top-productos').innerHTML = d.topProductos.length
+    ? d.topProductos.map(p => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line);"><span>${p.nombre}</span><b>${p.cantidad}</b></div>`).join('')
+    : '<p class="empty">Sin pedidos todavía.</p>';
+
+  $('#metricas-por-nicho').innerHTML = d.porNicho.length
+    ? d.porNicho.map(n => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line);"><span>${n.nicho}</span><b>${n.total}</b></div>`).join('')
+    : '<p class="empty">Sin negocios todavía.</p>';
+}
+
+// ---------------- COBRANZA ----------------
+async function cargarCobranza() {
+  const r = await fetch('/admin/api/cobranza');
+  const d = await r.json();
+
+  const vencidos = d.negocios.filter(n => n.vencido).length;
+  $('#cobranza-stats').innerHTML = `
+    <div class="stat-card"><div class="num">${formatoMoneda(d.ingreso_recurrente)}</div><div class="label">Ingreso recurrente configurado</div></div>
+    <div class="stat-card"><div class="num">${d.negocios.length}</div><div class="label">Negocios con cobranza</div></div>
+    <div class="stat-card"><div class="num">${vencidos}</div><div class="label">Vencidos</div></div>`;
+
+  const wrap = $('#cobranza-wrap');
+  if (!d.negocios.length) { wrap.innerHTML = '<p class="empty">Ningún negocio tiene precio mensual configurado todavía.</p>'; return; }
+  wrap.innerHTML = `
+    <table>
+      <thead><tr><th>Negocio</th><th>Precio</th><th>Día de cobro</th><th>Último pago</th><th>Estado</th><th></th></tr></thead>
+      <tbody>
+        ${d.negocios.map(n => `
+          <tr>
+            <td>${n.nombre}</td>
+            <td>${formatoMoneda(n.precio_mensual, n.moneda)}</td>
+            <td>${n.dia_cobro}</td>
+            <td>${n.fecha_ultimo_pago || '—'}</td>
+            <td><span class="pill ${n.vencido ? 'off' : 'on'}">${n.vencido ? `Vencido (${n.dias_vencido}d)` : 'Al día'}</span></td>
+            <td><button class="secondary small" onclick="marcarPagado('${n.id}')">Marcar pagado</button></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function formatoMoneda(valor, moneda) {
+  const simbolos = { COP: '$', PEN: 'S/', USD: '$', MXN: '$' };
+  return `${simbolos[moneda] || '$'} ${Number(valor || 0).toLocaleString('es-CO')}`;
+}
+
+async function marcarPagado(id) {
+  await fetch(`/admin/api/tenants/${encodeURIComponent(id)}/pago`, { method: 'POST' });
+  cargarCobranza();
+}
+
+// ---------------- CONFIG ----------------
+async function cargarConfig() {
+  const r = await fetch('/admin/api/config');
+  const c = await r.json();
+  $('#c-moneda-default').value = c.moneda_default || 'COP';
+  $('#c-whatsapp-default').value = c.whatsapp_mensaje_default || '';
+  $('#c-r2-url').value = c.url_publica_r2 || '';
+}
+
+$('#form-config').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = $('#c-msg'); msg.textContent = ''; msg.className = 'msg';
+  const r = await fetch('/admin/api/config', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      moneda_default: $('#c-moneda-default').value,
+      whatsapp_mensaje_default: $('#c-whatsapp-default').value.trim(),
+      url_publica_r2: $('#c-r2-url').value.trim()
+    })
+  });
+  if (!r.ok) { msg.textContent = 'Error al guardar'; msg.className = 'msg err'; return; }
+  msg.textContent = 'Guardado ✓'; msg.className = 'msg ok';
+});
 
 // ---------------- INIT ----------------
 cargarResumen();
