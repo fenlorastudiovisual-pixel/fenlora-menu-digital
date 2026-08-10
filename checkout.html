@@ -164,8 +164,18 @@
       }
       bar.innerHTML = `
         <div class="resumen-total"><span>Total (${n})</span><span>${formatearPrecio(total, moneda)}</span></div>
-        <button class="btn-confirmar" id="btnConfirmar">CONFIRMAR PEDIDO</button>`;
+        <button class="btn-confirmar" id="btnConfirmar">${TENANT?.whatsapp ? 'ENVIAR PEDIDO POR WHATSAPP' : 'CONFIRMAR PEDIDO'}</button>`;
       document.getElementById('btnConfirmar').addEventListener('click', confirmarPedido);
+    }
+
+    function construirMensajeWhatsapp(items, total, nota, pedidoId, moneda) {
+      let texto = `Hola *${TENANT.nombre}* 👋, quiero hacer este pedido (#${pedidoId}):\n\n`;
+      items.forEach(it => {
+        texto += `• ${it.cantidad}x ${it.nombre} — ${formatearPrecio(it.precio * it.cantidad, moneda)}\n`;
+      });
+      texto += `\n*Total: ${formatearPrecio(total, moneda)}*`;
+      if (nota) texto += `\nNota: ${nota}`;
+      return encodeURIComponent(texto);
     }
 
     async function confirmarPedido() {
@@ -177,6 +187,7 @@
 
       const nota = document.getElementById('notaInput')?.value || '';
       const total = Carrito.totalPrecio(SLUG);
+      const moneda = TENANT?.moneda || 'COP';
 
       try {
         const r = await fetch(`/menu/${SLUG}/pedido`, {
@@ -187,11 +198,19 @@
         const data = await r.json();
         if (!r.ok) throw new Error(data.error || 'No se pudo registrar el pedido');
 
+        // Guardamos el pedido siempre (queda en tu admin y disponible para el día
+        // que lo conectes a un POS real). Además, si el negocio tiene WhatsApp,
+        // abrimos el chat con el detalle ya escrito.
+        if (TENANT.whatsapp) {
+          const mensaje = construirMensajeWhatsapp(items, total, nota, data.id, moneda);
+          window.open(`https://wa.me/${TENANT.whatsapp}?text=${mensaje}`, '_blank');
+        }
+
         Carrito.vaciar(SLUG);
         mostrarConfirmacion(data.id, total);
       } catch (err) {
         btn.disabled = false;
-        btn.textContent = 'CONFIRMAR PEDIDO';
+        btn.textContent = TENANT?.whatsapp ? 'ENVIAR PEDIDO POR WHATSAPP' : 'CONFIRMAR PEDIDO';
         alert('No se pudo enviar el pedido. Intenta de nuevo.');
         console.warn(err);
       }
@@ -201,20 +220,23 @@
       document.getElementById('resumenBar')?.remove();
       const moneda = TENANT?.moneda || 'COP';
       const tienePago = !!TENANT?.pago_url;
+      const tieneWhatsapp = !!TENANT?.whatsapp;
 
       document.getElementById('contenido').innerHTML = `
         <div class="confirmacion">
           <h2>¡Pedido #${pedidoId} registrado!</h2>
           <p>
             Total: <strong>${formatearPrecio(total, moneda)}</strong><br><br>
-            ${tienePago
-              ? 'Te abrimos la página de pago en una pestaña nueva. Cuando termines, muestra la confirmación en caja o a tu mesero.'
-              : 'Acércate a caja o avisa a tu mesero para completar el pago de tu pedido.'}
+            ${tieneWhatsapp
+              ? 'Te abrimos WhatsApp en una pestaña nueva con tu pedido ya escrito — solo dale enviar.'
+              : (tienePago
+                  ? 'Te abrimos la página de pago en una pestaña nueva. Cuando termines, muestra la confirmación en caja o a tu mesero.'
+                  : 'Acércate a caja o avisa a tu mesero para completar el pago de tu pedido.')}
           </p>
-          ${tienePago ? `<a class="cta" href="${TENANT.pago_url}" target="_blank">IR A PAGAR</a>` : `<a class="cta" href="/${SLUG}">VOLVER AL INICIO</a>`}
+          ${tienePago && !tieneWhatsapp ? `<a class="cta" href="${TENANT.pago_url}" target="_blank">IR A PAGAR</a>` : `<a class="cta" href="/${SLUG}">VOLVER AL INICIO</a>`}
         </div>`;
 
-      if (tienePago) {
+      if (tienePago && !tieneWhatsapp) {
         setTimeout(() => window.open(TENANT.pago_url, '_blank'), 400);
       }
     }
