@@ -2,649 +2,875 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fenlora — Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>FREEZE — Granizados & Shots</title>
 <style>
+  /*
+    ============================================================
+    PLANTILLA MULTITENANT — variables de negocio
+    Todo lo que cambia por cliente vive aquí arriba (colores) y
+    en el bloque "LOGO DEL NEGOCIO" del header (imagen).
+    El admin, más adelante, solo necesita escribir estos valores.
+    ============================================================
+  */
   :root{
-    --bg:#0b0d10; --panel:#14171c; --panel2:#191d23; --line:#232830; --text:#eef1f4; --muted:#8b93a1;
-    --accent:#5eead4; --accent-dim:#1c3b36; --danger:#f2555a; --warn:#f2b155; --radius:14px;
+    --bg:#0a0a0e;
+    --cyan:#22d3f5;
+    --pink:#ff2d87;
+    --white:#f5f5f7;
+    --gray:#9a9aa5;
+    --border-cyan: rgba(34,211,245,.45);
+    --border-pink: rgba(255,45,135,.45);
   }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;}
-  header.top{padding:20px 28px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
-  header.top h1{font-size:19px;margin:0;letter-spacing:.3px;}
-  header.top .tag{color:var(--muted);font-size:13px;}
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    background:var(--bg);
+    color:var(--white);
+    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  body{
+    max-width:520px;
+    margin:0 auto;
+    min-height:100vh;
+    position:relative;
+    padding-bottom:88px;
+    background:var(--bg);
+    overflow-x:hidden;
+  }
+  a{text-decoration:none; color:inherit;}
+  button{font-family:inherit; cursor:pointer;}
+  img{display:block; max-width:100%;}
 
-  nav.top-tabs{display:flex;gap:6px;padding:0 28px;border-bottom:1px solid var(--line);}
-  nav.top-tabs button{background:none;border:none;color:var(--muted);font-size:14px;font-weight:600;padding:14px 6px;cursor:pointer;border-bottom:2px solid transparent;}
-  nav.top-tabs button.active{color:var(--accent);border-bottom-color:var(--accent);}
+  /* ===================================================
+     HEADER — hamburguesa + LOGO DEL NEGOCIO (configurable)
+     Va superpuesto sobre el hero (z-index encima de la imagen)
+     para que la foto nunca lo tape.
+     =================================================== */
+  header.topbar{
+    position:absolute;
+    top:0; left:0; right:0;
+    z-index:30;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:14px 16px 18px;
+    background:linear-gradient(180deg, rgba(4,4,6,.8) 0%, rgba(4,4,6,.5) 60%, transparent 100%);
+  }
+  .icon-btn{
+    width:40px; height:40px;
+    border-radius:50%;
+    border:1.5px solid var(--border-pink);
+    background:rgba(10,10,14,.4);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--white);
+    flex-shrink:0;
+  }
+  .icon-btn svg{width:18px; height:18px;}
 
-  main{max-width:1080px;margin:0 auto;padding:28px;display:grid;gap:22px;}
-  .hidden{display:none !important;}
+  /* Slot del logo: PROTAGÓNICO, igual que la imagen 6 de referencia.
+     Cada tenant sube su propio logo.png/svg aquí — el layout no se mueve. */
+  .logo-slot{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    height:96px;
+  }
+  .logo-slot img{
+    height:100%;
+    width:auto;
+    max-width:220px;
+    object-fit:contain;
+    filter:drop-shadow(0 4px 18px rgba(0,0,0,.7)) drop-shadow(0 0 22px rgba(255,45,135,.25));
+  }
+  .header-spacer{ width:40px; flex-shrink:0; } /* balancea el hamburguesa para centrar el logo */
 
-  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
-  .stat-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;}
-  .stat-card .num{font-size:26px;font-weight:700;}
-  .stat-card .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:4px;}
-  .stat-card.warn .num{color:var(--warn);}
+  /* ===================================================
+     HERO — una sola imagen (gancho visual) con el texto
+     superpuesto encima, no separado en bloques.
+     =================================================== */
+  .hero-wrap{
+    position:relative;
+    height:460px;
+    overflow:hidden;
+  }
+  .hero-bg{
+    position:absolute; inset:0;
+    background:
+      radial-gradient(circle at 20% 15%, rgba(255,45,135,.35), transparent 55%),
+      radial-gradient(circle at 80% 70%, rgba(34,211,245,.35), transparent 55%),
+      #050507;
+  }
+  .hero-bg::after{
+    content:'';
+    position:absolute; inset:0;
+    background-image:
+      radial-gradient(rgba(255,255,255,.06) 1px, transparent 1.5px);
+    background-size:16px 16px;
+  }
+  /* escena ilustrada del producto (reemplazar por foto real del negocio) */
+  .hero-scene{
+    position:absolute;
+    right:6%; bottom:0;
+    display:flex; align-items:flex-end; gap:12px;
+    height:88%;
+  }
+  .granizado-cup{
+    position:relative;
+    width:140px; height:210px;
+    border-radius:8px 8px 30px 30px;
+    background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.15);
+    overflow:hidden;
+    box-shadow:0 20px 40px rgba(0,0,0,.55);
+  }
+  .granizado-cup .fill{
+    position:absolute; left:0; right:0; bottom:0; top:12%;
+    background:linear-gradient(90deg, #ff2d87 0%, #ff2d87 48%, #22d3f5 52%, #22d3f5 100%);
+  }
+  .granizado-cup .fill::after{
+    content:'';
+    position:absolute; inset:0;
+    background-image:
+      radial-gradient(rgba(255,255,255,.35) 1px, transparent 1.5px),
+      radial-gradient(rgba(255,255,255,.25) 1.5px, transparent 2px);
+    background-size:14px 14px, 22px 22px;
+    background-position:0 0, 8px 10px;
+    mix-blend-mode:overlay;
+  }
+  .straw{
+    position:absolute; top:-40px; left:55%; width:6px; height:75px;
+    background:linear-gradient(180deg,var(--pink),var(--cyan));
+    transform:translateX(-50%) rotate(10deg);
+    border-radius:4px;
+  }
+  .shot-glass{
+    position:relative;
+    width:56px; height:175px;
+    margin-bottom:4px;
+  }
+  .shot-glass .glass{
+    position:absolute; bottom:0; left:0; right:0; top:22px;
+    border-radius:4px 4px 16px 16px;
+    background:linear-gradient(180deg,
+      #7ee83a 0%, #7ee83a 30%,
+      #7a1fb0 32%, #7a1fb0 62%,
+      #ff7a1a 64%, #ff7a1a 100%);
+    border:1px solid rgba(255,255,255,.2);
+    box-shadow:0 15px 30px rgba(0,0,0,.55);
+  }
 
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;}
-  .panel h2{margin:0 0 14px;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
-  .empty{color:var(--muted);font-size:14px;padding:8px 0;}
-  .alert-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
-  .alert-row:last-child{border-bottom:none;}
-  .alert-row a{color:var(--warn);}
+  .hero-scrim{
+    position:absolute; inset:0;
+    background:linear-gradient(90deg, rgba(4,4,6,.92) 0%, rgba(4,4,6,.65) 38%, rgba(4,4,6,.05) 62%, transparent 78%);
+  }
 
-  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-  .toolbar input{flex:1;min-width:220px;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:#0f1215;color:var(--text);font-size:14px;}
-  button{background:var(--accent);color:#04201b;border:none;padding:10px 16px;border-radius:9px;font-weight:600;cursor:pointer;font-size:13.5px;}
-  button:hover{opacity:.9;}
-  .btn-secondary{background:transparent;border:1px solid var(--line);color:var(--text);}
-  .btn-danger{background:transparent;border:1px solid var(--danger);color:var(--danger);}
-  .btn-mini{padding:6px 10px;font-size:12px;border-radius:7px;}
+  .hero-content{
+    position:relative;
+    z-index:10;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:118px 20px 24px 18px;
+    max-width:280px;
+  }
+  .hero-headline{
+    font-family:'Arial Black', Impact, sans-serif;
+    font-size:30px;
+    line-height:1.08;
+    letter-spacing:.3px;
+    margin-bottom:12px;
+  }
+  .hero-headline .l1{color:var(--cyan); text-shadow:0 0 18px rgba(34,211,245,.5);}
+  .hero-headline .l2{color:#fff; display:block;}
+  .hero-headline .l3{color:var(--pink); display:block; text-shadow:0 0 18px rgba(255,45,135,.55);}
+  .hero-copy{
+    color:#d8d8de;
+    font-size:13.5px;
+    line-height:1.5;
+    margin-bottom:18px;
+  }
+  .cta{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:12px 22px;
+    border-radius:30px;
+    border:1.5px solid transparent;
+    background:
+      linear-gradient(var(--bg), var(--bg)) padding-box,
+      linear-gradient(90deg,var(--cyan),var(--pink)) border-box;
+    color:#fff;
+    font-weight:700;
+    font-size:12.5px;
+    letter-spacing:1.5px;
+    width:fit-content;
+  }
+  .cta svg{width:14px;height:14px;}
 
-  .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-top:16px;}
-  .negocio-card{background:var(--panel2);border:1px solid var(--line);border-radius:var(--radius);padding:16px;cursor:pointer;transition:border-color .15s ease;}
-  .negocio-card:hover{border-color:var(--accent);}
-  .negocio-card .nombre{font-size:15.5px;font-weight:700;margin-bottom:8px;}
-  .negocio-card .pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
-  .pill{display:inline-block;padding:2px 9px;border-radius:99px;background:var(--accent-dim);color:var(--accent);font-size:11px;}
-  .pill.gray{background:#22262d;color:var(--muted);}
-  .pill.off{background:#3a2323;color:var(--danger);}
-  .negocio-card .meta{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;}
-  .negocio-card .meta .warn-text{color:var(--warn);}
+  /* ===================================================
+     CATEGORY PILLS — franja delgada
+     =================================================== */
+  .categories{
+    margin:16px 18px 14px;
+    display:flex;
+    border:1.5px solid var(--pink);
+    border-radius:16px;
+    background:rgba(255,255,255,.02);
+    overflow:hidden;
+    box-shadow:0 0 18px rgba(255,45,135,.28), inset 0 0 18px rgba(255,45,135,.05);
+  }
+  .cat{
+    flex:1;
+    display:flex;
+    align-items:center;
+    gap:9px;
+    padding:13px 10px;
+  }
+  .cat:first-child{border-right:1px solid rgba(255,45,135,.35);}
+  .cat-ic{
+    width:38px; height:38px;
+    border-radius:50%;
+    border:1.5px solid currentColor;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+    box-shadow:0 0 10px currentColor;
+  }
+  .cat-ic svg{width:18px;height:18px;}
+  .cat.cyan{color:var(--cyan);}
+  .cat.pink{color:var(--pink);}
+  .cat-text strong{display:block; font-size:13px; letter-spacing:.4px;}
+  .cat-text span{display:block; font-size:10.5px; color:var(--gray); margin-top:2px; line-height:1.3;}
 
-  .volver{color:var(--accent);text-decoration:none;font-size:13px;font-weight:600;display:inline-block;margin-bottom:10px;}
-  .detalle-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;}
-  .detalle-head h2{margin:0;font-size:20px;}
-  .detalle-head a.link-vivo{color:var(--accent);font-size:13px;text-decoration:none;}
+  /* ===================================================
+     PROMO
+     =================================================== */
+  .promo{
+    margin:0 18px 24px;
+    position:relative;
+    border:1.5px solid var(--cyan);
+    border-radius:18px;
+    padding:18px 16px 14px;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(34,211,245,.12), transparent 55%),
+      rgba(255,255,255,.015);
+    overflow:hidden;
+    box-shadow:0 0 22px rgba(34,211,245,.3), inset 0 0 20px rgba(34,211,245,.05);
+  }
+  .promo-top{
+    display:flex; align-items:center; gap:6px;
+    font-size:11px; font-weight:700; letter-spacing:1px; color:var(--pink);
+    margin-bottom:6px;
+  }
+  .promo-row{ display:flex; justify-content:space-between; align-items:flex-end; }
+  .promo-left .num{ font-family:'Arial Black',Impact,sans-serif; font-size:44px; color:#fff; line-height:1; }
+  .promo-left .desc{ font-family:'Arial Black',Impact,sans-serif; font-size:19px; color:var(--pink); line-height:1.15; margin-top:4px; }
+  .promo-left .time{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--gray); margin-top:10px; }
+  .promo-shots{ display:flex; gap:6px; align-items:flex-end; }
+  .mini-shot{ width:26px; height:70px; border-radius:3px 3px 10px 10px; border:1px solid rgba(255,255,255,.25); }
+  .promo-badge{
+    position:absolute; top:14px; right:14px;
+    width:60px; height:60px; border-radius:50%;
+    border:1.5px solid var(--cyan);
+    display:flex; align-items:center; justify-content:center;
+    text-align:center; font-size:9px; font-weight:800; letter-spacing:.5px;
+    color:#fff; line-height:1.2;
+    background:rgba(10,10,14,.7);
+  }
+  .promo-dots{ display:flex; justify-content:center; gap:5px; margin-top:14px; }
+  .promo-dots span{ width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.25); }
+  .promo-dots span.on{ background:var(--cyan); }
 
-  nav.sub-tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-top:6px;flex-wrap:wrap;}
-  nav.sub-tabs button{background:none;border:none;color:var(--muted);font-size:13.5px;font-weight:600;padding:10px 4px;margin-right:16px;cursor:pointer;border-bottom:2px solid transparent;}
-  nav.sub-tabs button.active{color:var(--accent);border-bottom-color:var(--accent);}
+  /* ===================================================
+     FAVORITOS
+     =================================================== */
+  .section-head{ display:flex; justify-content:space-between; align-items:center; margin:0 18px 14px; }
+  .section-head h2{ font-family:'Arial Black',Impact,sans-serif; font-size:16px; letter-spacing:1px; }
+  .see-all{ font-size:11px; font-weight:700; letter-spacing:.5px; color:var(--pink); display:flex; align-items:center; gap:4px; }
 
-  form{display:grid;gap:14px;}
-  label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px;}
-  input,select{width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:#0f1215;color:var(--text);font-size:14px;}
-  input:focus,select:focus{outline:2px solid var(--accent-dim);border-color:var(--accent);}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-  table{width:100%;border-collapse:collapse;}
-  th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);font-size:13.5px;}
-  th{color:var(--muted);font-weight:500;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;}
-  .msg{font-size:13px;margin-top:4px;min-height:16px;}
-  .msg.ok{color:var(--accent);} .msg.err{color:var(--danger);}
-  .checkbox-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);}
-  .checkbox-row input{width:auto;}
-  .upload-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-  .upload-row input[type="file"]{flex:1;min-width:180px;padding:8px;}
-  .thumb-preview{width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--line);display:none;background:#0f1215;}
-  td.acciones{display:flex;gap:6px;}
-  .badge-destacado{background:var(--accent-dim);color:var(--accent);border-radius:99px;padding:2px 8px;font-size:11px;}
-  .estado-pill{padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600;}
-  .estado-pendiente_pago{background:#3a3020;color:var(--warn);}
-  .estado-pagado{background:var(--accent-dim);color:var(--accent);}
-  .estado-cancelado{background:#3a2323;color:var(--danger);}
-  .metric-mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;}
+  .fav-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; padding:0 18px; margin-bottom:22px; }
+  .fav-card{ border-radius:14px; overflow:hidden; background:rgba(255,255,255,.015); transition:transform .15s ease; }
+  .fav-card.cyan{ border:1.5px solid var(--cyan); box-shadow:0 0 16px rgba(34,211,245,.28); }
+  .fav-card.pink{ border:1.5px solid var(--pink); box-shadow:0 0 16px rgba(255,45,135,.28); }
+  .fav-img{ position:relative; height:120px; overflow:hidden; }
+  .fav-body{ padding:10px 12px 12px; }
+  .fav-name{ font-size:12.5px; font-weight:800; letter-spacing:.3px; text-transform:uppercase; line-height:1.25; min-height:32px; }
+  .fav-name.cyan{ color:var(--cyan); }
+  .fav-name.pink{ color:var(--pink); }
+  .fav-desc{ font-size:11px; color:var(--gray); margin:4px 0 10px; line-height:1.3; }
+  .fav-foot{ display:flex; justify-content:space-between; align-items:center; }
+  .fav-price{ font-size:13px; font-weight:800; color:#fff; }
+  .add-btn{
+    width:28px; height:28px; border-radius:50%;
+    border:1.5px solid var(--border-cyan);
+    background:transparent; color:var(--cyan); font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+    transition:transform .15s ease, background .15s ease;
+    box-shadow:0 0 8px currentColor;
+  }
+  .add-btn.pink{ border-color:var(--pink); color:var(--pink); }
+  .add-btn:active{ transform:scale(.9); background:rgba(34,211,245,.15); }
+  .add-btn.pink:active{ background:rgba(255,45,135,.18); }
 
-  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;}
-  .modal{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px;max-width:480px;width:100%;max-height:88vh;overflow-y:auto;}
-  .modal h2{margin:0 0 16px;font-size:16px;}
-  .modal-close-row{display:flex;justify-content:flex-end;gap:8px;margin-top:6px;}
+  .img-granizado-tropical{ background:linear-gradient(150deg,#ff2d87 0%,#ff2d87 45%, #22d3f5 55%, #22d3f5 100%); }
+  .img-granizado-limonada{ background:linear-gradient(150deg,#9ef01a,#5fb51c); }
+  .img-shot-bomb{ background:linear-gradient(160deg,#0d0d12 0%,#0d0d12 40%,#1c3fff 55%,#1c3fff 100%); }
+  .img-shot-passion{ background:linear-gradient(180deg,#ffd23f 0%,#ffd23f 35%,#ff6a00 40%,#ff6a00 100%); }
+
+  /* ===================================================
+     FEATURES STRIP
+     =================================================== */
+  .features{
+    margin:0 18px 24px;
+    border:1.5px solid var(--pink);
+    border-radius:16px;
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    background:rgba(255,255,255,.015);
+    overflow:hidden;
+    box-shadow:0 0 18px rgba(255,45,135,.25), inset 0 0 18px rgba(255,45,135,.04);
+  }
+  .feature{ display:flex; align-items:center; gap:10px; padding:16px 12px; border-bottom:1px solid rgba(255,45,135,.22); }
+  .feature:nth-child(odd){ border-right:1px solid rgba(255,45,135,.22); }
+  .feature:nth-last-child(-n+2){ border-bottom:none; }
+  .feature-ic{
+    width:36px; height:36px; border-radius:50%;
+    border:1.5px solid var(--cyan); color:var(--cyan);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+    box-shadow:0 0 9px currentColor;
+  }
+  .feature-ic svg{ width:16px; height:16px; }
+  .feature:nth-child(2) .feature-ic, .feature:nth-child(4) .feature-ic{ border-color:var(--pink); color:var(--pink); }
+  .feature-text strong{ display:block; font-size:10.5px; letter-spacing:.3px; }
+  .feature-text span{ display:block; font-size:9.5px; color:var(--gray); margin-top:2px; }
+
+  /* Tablet+: los 4 beneficios en una sola fila, como la referencia ancha */
+  @media (min-width:640px){
+    .features{ grid-template-columns:repeat(4,1fr); }
+    .feature{ border-bottom:none !important; flex-direction:row; }
+    .feature:not(:last-child){ border-right:1px solid rgba(255,45,135,.22) !important; }
+  }
+
+  /* ===================================================
+     BOTTOM NAV — el botón central ahora es "Llamar mesero"
+     =================================================== */
+  nav.bottom-nav{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:520px;
+    background:rgba(8,8,11,.92);
+    backdrop-filter:blur(14px);
+    border-top:1px solid rgba(255,255,255,.08);
+    display:flex; justify-content:space-around; align-items:center;
+    padding:10px 6px calc(10px + env(safe-area-inset-bottom));
+    z-index:50;
+  }
+  .nav-item{ display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--gray); font-size:9.5px; font-weight:600; position:relative; flex:1; background:none; border:none; }
+  .nav-item svg{ width:20px; height:20px; }
+  .nav-item.active{ color:var(--cyan); }
+  .nav-item.active .underline{ position:absolute; bottom:-8px; width:16px; height:2px; border-radius:2px; background:var(--cyan); }
+  .nav-item .badge-nav{ position:absolute; top:-4px; right:14px; background:var(--pink); color:#fff; font-size:8px; font-weight:800; width:14px; height:14px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+  .nav-center-wrap{ display:flex; flex-direction:column; align-items:center; gap:2px; flex:none; }
+  .nav-center{
+    width:56px; height:56px; border-radius:50%;
+    border:2px solid var(--pink);
+    background:#0a0a0e;
+    display:flex; align-items:center; justify-content:center;
+    margin-top:-26px;
+    box-shadow:0 0 18px rgba(255,45,135,.45);
+  }
+  .nav-center svg{ width:24px; height:24px; color:var(--cyan); }
+  .nav-center-label{ font-size:9px; font-weight:700; color:var(--pink); letter-spacing:.3px; }
+
+  /* ===================================================
+     DRAWER — menú hamburguesa
+     =================================================== */
+  .drawer-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.6);
+    opacity:0; pointer-events:none; transition:opacity .25s ease;
+    z-index:90;
+  }
+  .drawer-overlay.open{ opacity:1; pointer-events:auto; }
+  .drawer{
+    position:fixed; top:0; left:0; bottom:0;
+    width:78%; max-width:320px;
+    background:#0d0d12;
+    border-right:1px solid rgba(255,255,255,.08);
+    transform:translateX(-100%);
+    transition:transform .3s cubic-bezier(.4,0,.2,1);
+    z-index:95;
+    display:flex; flex-direction:column;
+    padding:20px 0 0;
+  }
+  .drawer.open{ transform:translateX(0); }
+  .drawer-head{ display:flex; align-items:center; justify-content:space-between; padding:0 18px 18px; border-bottom:1px solid rgba(255,255,255,.08); }
+  .drawer-head img{ height:36px; width:auto; max-width:150px; object-fit:contain; }
+  .drawer-close{ width:32px; height:32px; border-radius:50%; border:1px solid rgba(255,255,255,.15); background:transparent; color:var(--white); font-size:15px; display:flex; align-items:center; justify-content:center; }
+  .drawer-nav{ display:flex; flex-direction:column; padding:10px 0; flex:1; overflow-y:auto; }
+  .drawer-link{
+    display:flex; align-items:center; gap:14px;
+    padding:13px 20px;
+    font-size:13.5px; font-weight:600; color:var(--white);
+    border-left:3px solid transparent;
+  }
+  .drawer-link svg{ width:19px; height:19px; color:var(--gray); flex-shrink:0; }
+  .drawer-link.active{ color:var(--cyan); border-left-color:var(--cyan); background:rgba(34,211,245,.06); }
+  .drawer-link.active svg{ color:var(--cyan); }
+  .drawer-foot{ border-top:1px solid rgba(255,255,255,.08); padding:8px 0 max(16px,env(safe-area-inset-bottom)); }
+  .drawer-link.small{ font-size:12.5px; color:var(--gray); }
+  .drawer-link.logout svg, .drawer-link.logout{ color:var(--pink); }
+
+  /* Toast simple para el botón "Llamar mesero" */
+  .toast{
+    position:fixed; left:50%; bottom:100px; transform:translateX(-50%) translateY(20px);
+    background:#16161d; border:1px solid var(--border-cyan);
+    color:#fff; font-size:12.5px; font-weight:600;
+    padding:11px 18px; border-radius:30px;
+    display:flex; align-items:center; gap:8px;
+    opacity:0; pointer-events:none;
+    transition:all .3s ease;
+    z-index:120;
+    white-space:nowrap;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast svg{ width:15px; height:15px; color:var(--cyan); }
+
+  /* ===================================================
+     TABLET / DESKTOP
+     =================================================== */
+  @media (min-width:640px){
+    body{ max-width:820px; border-left:1px solid rgba(255,255,255,.06); border-right:1px solid rgba(255,255,255,.06); padding-bottom:96px; }
+    .hero-wrap{ height:520px; }
+    .hero-headline{ font-size:40px; }
+    .hero-content{ max-width:400px; padding:140px 30px 30px; }
+    .logo-slot{ height:112px; }
+    .logo-slot img{ max-width:270px; }
+    .hero-copy{ font-size:15px; }
+    .granizado-cup{ width:190px; height:280px; }
+    .shot-glass{ width:74px; height:230px; }
+    .fav-grid{ grid-template-columns:repeat(4,1fr); gap:14px; }
+    .fav-img{ height:150px; }
+    .categories{ border-radius:18px; }
+    .cat{ padding:18px 16px; }
+    nav.bottom-nav{ padding-bottom:calc(14px + env(safe-area-inset-bottom)); }
+    .drawer{ max-width:340px; }
+  }
 </style>
+<script src="/carrito.js"></script>
 </head>
 <body>
 
-<header class="top">
-  <h1>Fenlora · Panel de negocios</h1>
-  <span class="tag">Menú digital multitenant</span>
-</header>
+  <!-- ============ OVERLAY DEL DRAWER ============ -->
+  <div class="drawer-overlay" id="drawerOverlay"></div>
 
-<nav class="top-tabs">
-  <button data-vista="resumen" class="active">Resumen</button>
-  <button data-vista="negocios">Negocios</button>
-</nav>
-
-<main>
-
-  <section id="vista-resumen">
-    <div class="stats-grid" id="stats-grid">
-      <div class="stat-card"><div class="num">—</div><div class="label">Cargando…</div></div>
+  <!-- ============ DRAWER (menú hamburguesa) ============ -->
+  <aside class="drawer" id="drawer">
+    <div class="drawer-head">
+      <!-- LOGO DEL NEGOCIO — mismo slot configurable que el header -->
+      <img class="tenant-logo" src="assets/logo.png" alt="Logo del negocio">
+      <button class="drawer-close" id="drawerClose" aria-label="Cerrar menú">✕</button>
     </div>
-    <div class="panel" id="panel-alertas" style="margin-top:20px;">
-      <h2>Negocios sin productos todavía</h2>
-      <div id="alertas-wrap"><p class="empty">Cargando…</p></div>
-    </div>
-  </section>
-
-  <section id="vista-negocios" class="hidden">
-    <div class="toolbar">
-      <input id="buscar-negocio" placeholder="Buscar negocio por nombre o nicho…">
-      <button id="btn-abrir-modal-nuevo">+ Nuevo negocio</button>
-    </div>
-    <div id="grid-negocios" class="cards-grid"><p class="empty">Cargando…</p></div>
-  </section>
-
-  <section id="vista-detalle" class="hidden">
-    <a href="#" class="volver" id="btn-volver">← Volver a Negocios</a>
-    <div class="detalle-head">
-      <h2 id="detalle-nombre">—</h2>
-      <a href="#" target="_blank" class="link-vivo" id="detalle-link-vivo">Ver menú en vivo ↗</a>
-    </div>
-
-    <nav class="sub-tabs">
-      <button data-tab="info" class="active">Info / Apariencia</button>
-      <button data-tab="productos">Productos</button>
-      <button data-tab="pedidos">Pedidos</button>
-      <button data-tab="metricas">Métricas</button>
+    <nav class="drawer-nav">
+      <a href="#" class="drawer-link active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></svg>
+        Inicio
+      </a>
+      <a href="#menu" class="drawer-link" id="navMenuDrawer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4Z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
+        Nuestro Menú
+      </a>
+      <a href="#" class="drawer-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-8 12h6l-1 8 8-12h-6l1-8Z"/></svg>
+        Promociones
+      </a>
+      <a href="#" class="drawer-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        Mis Pedidos
+      </a>
+      <a href="#" class="drawer-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-6.5 7-11.5A7 7 0 0 0 5 9.5C5 14.5 12 21 12 21Z"/></svg>
+        Ubicación y Horarios
+      </a>
+      <a href="#" class="drawer-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        Métodos de Pago
+      </a>
+      <a href="#" class="drawer-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        Sobre Nosotros
+      </a>
+      <a href="#" class="drawer-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Ayuda y Soporte
+      </a>
     </nav>
-
-    <div id="tab-info" class="panel" style="margin-top:16px;">
-      <form id="form-editar-negocio">
-        <div class="row">
-          <div>
-            <label for="e-nombre">Nombre del negocio</label>
-            <input id="e-nombre" required>
-          </div>
-          <div>
-            <label>Nicho</label>
-            <input id="e-nicho" disabled>
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label for="e-whatsapp">WhatsApp (con código de país, sin +)</label>
-            <input id="e-whatsapp" placeholder="Ej: 51999999999">
-          </div>
-          <div>
-            <label>Estado</label>
-            <div class="checkbox-row" style="padding-top:10px;">
-              <input id="e-activo" type="checkbox">
-              <label for="e-activo" style="margin:0;">Negocio activo (visible al público)</label>
-            </div>
-          </div>
-        </div>
-        <div>
-          <label for="e-logo-url">Logo (URL, o sube un archivo abajo)</label>
-          <input id="e-logo-url" placeholder="https://pub-xxxx.r2.dev/negocio/logo.png">
-          <div class="upload-row" style="margin-top:8px;">
-            <input id="e-logo-file" type="file" accept="image/*">
-            <img id="e-logo-preview" class="thumb-preview">
-            <span class="msg" id="e-logo-upload-msg"></span>
-          </div>
-        </div>
-        <div class="row">
-          <div>
-            <label for="e-pago-url">Link de pago (Wompi, Bold, etc. — opcional)</label>
-            <input id="e-pago-url" placeholder="https://checkout.wompi.co/l/xxxxx">
-          </div>
-          <div>
-            <label for="e-moneda">Moneda</label>
-            <select id="e-moneda">
-              <option value="COP">COP — Peso colombiano</option>
-              <option value="PEN">PEN — Sol peruano</option>
-              <option value="MXN">MXN — Peso mexicano</option>
-              <option value="USD">USD — Dólar</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <button type="submit">Guardar cambios</button>
-          <span class="msg" id="e-msg"></span>
-        </div>
-      </form>
+    <div class="drawer-foot">
+      <a href="#" class="drawer-link small">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        Configuración
+      </a>
+      <a href="#" class="drawer-link small logout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Cerrar Sesión
+      </a>
     </div>
+  </aside>
 
-    <div id="tab-productos" class="panel hidden" style="margin-top:16px;">
-      <form id="form-producto">
-        <div class="row">
-          <div>
-            <label for="p-categoria">Categoría</label>
-            <input id="p-categoria" required placeholder="Ej: Granizados">
-          </div>
-          <div>
-            <label for="p-nombre">Nombre del producto</label>
-            <input id="p-nombre" required placeholder="Ej: Granizado Tropical">
-          </div>
+  <!-- ============ HERO (header + imagen + texto, todo en 1 bloque) ============ -->
+  <section class="hero-wrap">
+    <div class="hero-bg">
+      <div class="hero-scene">
+        <div class="granizado-cup">
+          <div class="straw"></div>
+          <div class="fill"></div>
         </div>
-        <div>
-          <label for="p-descripcion">Descripción</label>
-          <input id="p-descripcion" placeholder="Ej: Fresa, piña y coco.">
-        </div>
-        <div class="row">
-          <div>
-            <label for="p-precio">Precio</label>
-            <input id="p-precio" type="number" step="0.01" min="0" required placeholder="Ej: 12.90">
-          </div>
-          <div>
-            <label for="p-imagen-url">URL de la foto (opcional si subes archivo)</label>
-            <input id="p-imagen-url" placeholder="https://pub-xxxx.r2.dev/negocio/productos/foto.jpg">
-          </div>
-        </div>
-        <div>
-          <label>O sube la foto directo (se guarda en R2 automáticamente)</label>
-          <div class="upload-row">
-            <input id="p-imagen-file" type="file" accept="image/*">
-            <img id="p-imagen-preview" class="thumb-preview">
-            <span class="msg" id="upload-msg"></span>
-          </div>
-        </div>
-        <div class="checkbox-row">
-          <input id="p-destacado" type="checkbox">
-          <label for="p-destacado" style="margin:0;">Mostrar en "Nuestros Favoritos" del home</label>
-        </div>
-        <div class="toolbar">
-          <button type="submit" id="p-submit-btn">Agregar producto</button>
-          <button type="button" class="btn-secondary btn-mini" id="p-cancelar-edicion" style="display:none;">Cancelar edición</button>
-          <span class="msg" id="p-msg"></span>
-        </div>
-        <input type="hidden" id="p-editando-id">
-      </form>
-      <div id="productos-wrap" style="margin-top:18px;"><p class="empty">Cargando productos…</p></div>
+        <div class="shot-glass"><div class="glass"></div></div>
+      </div>
     </div>
+    <div class="hero-scrim"></div>
 
-    <div id="tab-pedidos" class="panel hidden" style="margin-top:16px;">
-      <div id="pedidos-wrap"><p class="empty">Cargando pedidos…</p></div>
-    </div>
+    <header class="topbar">
+      <button class="icon-btn" id="hamburgerBtn" aria-label="Abrir menú">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <!-- LOGO DEL NEGOCIO — slot configurable por tenant -->
+      <div class="logo-slot">
+        <img class="tenant-logo" src="assets/logo.png" alt="Logo del negocio">
+      </div>
+      <div class="header-spacer" aria-hidden="true"></div>
+    </header>
 
-    <div id="tab-metricas" class="panel hidden" style="margin-top:16px;">
-      <div class="metric-mini" id="metricas-wrap"></div>
-      <p class="empty" style="margin-top:14px;">Las visitas al menú se activarán en una próxima fase — por ahora estas métricas se calculan sobre productos y pedidos reales.</p>
+    <div class="hero-content">
+      <h1 class="hero-headline">
+        <span class="l1">FRÍOS.</span>
+        <span class="l2">INTENSOS.</span>
+        <span class="l3">EXPLOSIVOS.</span>
+      </h1>
+      <p class="hero-copy">Granizados helados y shots que encienden tu momento.</p>
+      <a href="#menu" class="cta" id="verMenuBtn">
+        VER MENÚ
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
     </div>
   </section>
 
-</main>
+  <!-- CATEGORIES -->
+  <section class="categories" id="menu">
+    <div class="cat cyan">
+      <div class="cat-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M4.9 4.9l14.2 14.2M19.1 4.9 4.9 19.1M2 12h20M7 7l10 10M17 7 7 17"/></svg>
+      </div>
+      <div class="cat-text">
+        <strong>GRANIZADOS</strong>
+        <span>Helados, frutales y refrescantes.</span>
+      </div>
+    </div>
+    <div class="cat pink">
+      <div class="cat-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14l-2 9a5 5 0 0 1-10 0L5 3Z"/><path d="M9 21h6"/><path d="M12 15v6"/></svg>
+      </div>
+      <div class="cat-text">
+        <strong>SHOTS</strong>
+        <span>Clásicos, premium y explosivos.</span>
+      </div>
+    </div>
+  </section>
 
-<div class="modal-overlay hidden" id="modal-nuevo-negocio">
-  <div class="modal">
-    <h2>Crear nuevo negocio</h2>
-    <form id="form-nuevo">
-      <div class="row">
-        <div>
-          <label for="nombre">Nombre del negocio</label>
-          <input id="nombre" required placeholder="Ej: Cero Absoluto">
-        </div>
-        <div>
-          <label for="whatsapp">WhatsApp (con código de país, sin +)</label>
-          <input id="whatsapp" placeholder="Ej: 51999999999">
-        </div>
-      </div>
-      <div>
-        <label for="nicho">Nicho / plantilla base</label>
-        <select id="nicho" required></select>
-      </div>
-      <div class="row">
-        <div>
-          <label for="pago_url">Link de pago (opcional)</label>
-          <input id="pago_url" placeholder="https://checkout.wompi.co/l/xxxxx">
-        </div>
-        <div>
-          <label for="moneda">Moneda</label>
-          <select id="moneda">
-            <option value="COP">COP</option>
-            <option value="PEN">PEN</option>
-            <option value="MXN">MXN</option>
-            <option value="USD">USD</option>
-          </select>
+  <!-- PROMO -->
+  <section class="promo">
+    <div class="promo-badge">TODOS<br>LOS<br>SHOTS</div>
+    <div class="promo-top">⚡ PROMO DEL DÍA ⚡</div>
+    <div class="promo-row">
+      <div class="promo-left">
+        <div class="num">2X1</div>
+        <div class="desc">EN TODOS<br>LOS SHOTS</div>
+        <div class="time">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+          DE 6:00 PM A 10:00 PM
         </div>
       </div>
-      <div class="modal-close-row">
-        <button type="button" class="btn-secondary" id="btn-cerrar-modal">Cancelar</button>
-        <button type="submit">Crear negocio</button>
+      <div class="promo-shots">
+        <div class="mini-shot" style="background:linear-gradient(180deg,#22d3f5,#0d6fa8)"></div>
+        <div class="mini-shot" style="background:linear-gradient(180deg,#7ee83a,#3f8a12)"></div>
+        <div class="mini-shot" style="background:linear-gradient(180deg,#ff2d87,#a3105a)"></div>
+        <div class="mini-shot" style="background:linear-gradient(180deg,#ffd23f,#ff7a1a)"></div>
       </div>
-      <div class="msg" id="msg"></div>
-    </form>
+    </div>
+    <div class="promo-dots"><span class="on"></span><span></span><span></span></div>
+  </section>
+
+  <!-- FAVORITES -->
+  <div class="section-head" id="favSectionHead">
+    <h2>NUESTROS FAVORITOS</h2>
+    <a href="#" class="see-all" id="verTodosBtn">VER TODOS →</a>
   </div>
-</div>
 
-<script>
-const $ = s => document.querySelector(s);
-let TENANTS = [];
-let NEGOCIO_ACTIVO = null;
-
-function irAVista(vista) {
-  document.querySelectorAll('nav.top-tabs button').forEach(b => b.classList.toggle('active', b.dataset.vista === vista));
-  $('#vista-resumen').classList.toggle('hidden', vista !== 'resumen');
-  $('#vista-negocios').classList.toggle('hidden', vista !== 'negocios');
-  $('#vista-detalle').classList.add('hidden');
-  if (vista === 'resumen') cargarResumen();
-  if (vista === 'negocios') cargarTenants();
-}
-document.querySelectorAll('nav.top-tabs button').forEach(b => b.addEventListener('click', () => irAVista(b.dataset.vista)));
-
-async function cargarResumen() {
-  const r = await fetch('/admin/api/resumen');
-  const data = await r.json();
-  $('#stats-grid').innerHTML = `
-    <div class="stat-card"><div class="num">${data.negocios_activos}/${data.negocios_total}</div><div class="label">Negocios activos</div></div>
-    <div class="stat-card"><div class="num">${data.productos_total}</div><div class="label">Productos totales</div></div>
-    <div class="stat-card"><div class="num">${data.pedidos_total}</div><div class="label">Pedidos totales</div></div>
-    <div class="stat-card warn"><div class="num">${data.pedidos_pendientes}</div><div class="label">Pedidos por cobrar</div></div>
-  `;
-  const wrap = $('#alertas-wrap');
-  if (!data.negocios_sin_productos.length) {
-    wrap.innerHTML = '<p class="empty">Todos tus negocios activos ya tienen al menos un producto cargado. 🎉</p>';
-    return;
-  }
-  wrap.innerHTML = data.negocios_sin_productos.map(n => `
-    <div class="alert-row">
-      <span>${n.nombre}</span>
-      <a href="#" onclick="abrirNegocio('${n.id}','productos');return false;">Cargar productos →</a>
-    </div>`).join('');
-}
-
-async function cargarNichos() {
-  const r = await fetch('/admin/api/nichos');
-  const { nichos } = await r.json();
-  $('#nicho').innerHTML = nichos.map(n => `<option value="${n.id}">${n.label}</option>`).join('');
-}
-
-async function cargarTenants() {
-  const r = await fetch('/admin/api/tenants');
-  const { tenants } = await r.json();
-  TENANTS = tenants;
-  pintarGridNegocios(tenants);
-}
-
-function pintarGridNegocios(tenants) {
-  const grid = $('#grid-negocios');
-  if (!tenants.length) { grid.innerHTML = '<p class="empty">Todavía no has creado ningún negocio.</p>'; return; }
-  grid.innerHTML = tenants.map(t => `
-    <div class="negocio-card" onclick="abrirNegocio('${t.id}')">
-      <div class="nombre">${t.nombre}</div>
-      <div class="pills">
-        <span class="pill gray">${t.nicho}</span>
-        <span class="pill ${t.activo ? '' : 'off'}">${t.activo ? 'Activo' : 'Inactivo'}</span>
+  <section class="fav-grid" id="favGrid">
+    <div class="fav-card cyan">
+      <div class="fav-img img-granizado-tropical"></div>
+      <div class="fav-body">
+        <div class="fav-name cyan">GRANIZADO TROPICAL</div>
+        <div class="fav-desc">Fresa, piña y coco.</div>
+        <div class="fav-foot">
+          <span class="fav-price">S/ 12.90</span>
+          <button class="add-btn cyan">+</button>
+        </div>
       </div>
-      <div class="meta">
-        <span>${t.total_productos} producto${t.total_productos === 1 ? '' : 's'}</span>
-        <span class="${t.pedidos_pendientes > 0 ? 'warn-text' : ''}">${t.pedidos_pendientes > 0 ? t.pedidos_pendientes + ' por cobrar' : t.total_pedidos + ' pedidos'}</span>
+    </div>
+
+    <div class="fav-card cyan">
+      <div class="fav-img img-granizado-limonada"></div>
+      <div class="fav-body">
+        <div class="fav-name cyan">GRANIZADO LIMONADA</div>
+        <div class="fav-desc">Limón, hierbabuena y soda.</div>
+        <div class="fav-foot">
+          <span class="fav-price">S/ 12.90</span>
+          <button class="add-btn cyan">+</button>
+        </div>
       </div>
-    </div>`).join('');
-}
+    </div>
 
-$('#buscar-negocio').addEventListener('input', (e) => {
-  const q = e.target.value.trim().toLowerCase();
-  pintarGridNegocios(TENANTS.filter(t => t.nombre.toLowerCase().includes(q) || t.nicho.toLowerCase().includes(q)));
-});
+    <div class="fav-card pink">
+      <div class="fav-img img-shot-bomb"></div>
+      <div class="fav-body">
+        <div class="fav-name pink">SHOT BOMB</div>
+        <div class="fav-desc">Vodka, curazao azul y granadina.</div>
+        <div class="fav-foot">
+          <span class="fav-price">S/ 9.90</span>
+          <button class="add-btn pink">+</button>
+        </div>
+      </div>
+    </div>
 
-$('#btn-abrir-modal-nuevo').addEventListener('click', () => $('#modal-nuevo-negocio').classList.remove('hidden'));
-$('#btn-cerrar-modal').addEventListener('click', () => $('#modal-nuevo-negocio').classList.add('hidden'));
+    <div class="fav-card pink">
+      <div class="fav-img img-shot-passion"></div>
+      <div class="fav-body">
+        <div class="fav-name pink">SHOT PASSION</div>
+        <div class="fav-desc">Maracuyá, vodka y naranja.</div>
+        <div class="fav-foot">
+          <span class="fav-price">S/ 9.90</span>
+          <button class="add-btn pink">+</button>
+        </div>
+      </div>
+    </div>
+  </section>
 
-$('#form-nuevo').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const msg = $('#msg');
-  msg.textContent = ''; msg.className = 'msg';
-  const payload = {
-    nombre: $('#nombre').value.trim(),
-    whatsapp: $('#whatsapp').value.trim(),
-    nicho: $('#nicho').value,
-    pago_url: $('#pago_url').value.trim(),
-    moneda: $('#moneda').value
-  };
-  const r = await fetch('/admin/api/tenants', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  const data = await r.json();
-  if (!r.ok) { msg.textContent = data.error || 'Error al crear el negocio'; msg.className = 'msg err'; return; }
-  msg.textContent = `Creado — link: /t/${data.id}`;
-  msg.className = 'msg ok';
-  e.target.reset();
-  setTimeout(() => {
-    $('#modal-nuevo-negocio').classList.add('hidden');
-    msg.textContent = '';
-    cargarTenants();
-    abrirNegocio(data.id);
-  }, 700);
-});
+  <!-- FEATURES -->
+  <section class="features">
+    <div class="feature">
+      <div class="feature-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M4.9 4.9l14.2 14.2M19.1 4.9 4.9 19.1M2 12h20"/></svg>
+      </div>
+      <div class="feature-text"><strong>TODO HELADO</strong><span>Ingredientes de calidad</span></div>
+    </div>
+    <div class="feature">
+      <div class="feature-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12l-1 8H7L6 2Z"/><path d="M8 10h8l-1 12H9L8 10Z"/></svg>
+      </div>
+      <div class="feature-text"><strong>PREPARADOS AL MOMENTO</strong><span>Máxima frescura</span></div>
+    </div>
+    <div class="feature">
+      <div class="feature-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m13 2-8 12h6l-1 8 8-12h-6l1-8Z"/></svg>
+      </div>
+      <div class="feature-text"><strong>SABORES INTENSOS</strong><span>Explosión de sabor</span></div>
+    </div>
+    <div class="feature">
+      <div class="feature-ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.9 8 11 4.6-2.1 8-6 8-11V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+      </div>
+      <div class="feature-text"><strong>PAGO SEGURO</strong><span>Compra 100% protegida</span></div>
+    </div>
+  </section>
 
-async function abrirNegocio(id, tabInicial) {
-  NEGOCIO_ACTIVO = id;
-  $('#vista-resumen').classList.add('hidden');
-  $('#vista-negocios').classList.add('hidden');
-  $('#vista-detalle').classList.remove('hidden');
-  document.querySelectorAll('nav.top-tabs button').forEach(b => b.classList.remove('active'));
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></svg>
+      Inicio
+      <span class="underline"></span>
+    </button>
+    <a href="#" class="nav-item" id="navMenuBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4Z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
+      Menú
+    </a>
 
-  const r = await fetch(`/admin/api/tenants/${encodeURIComponent(id)}`);
-  const t = await r.json();
-  $('#detalle-nombre').textContent = t.nombre;
-  $('#detalle-link-vivo').href = `/t/${t.id}`;
+    <!-- Botón central = LLAMAR AL MESERO -->
+    <div class="nav-center-wrap">
+      <button class="nav-center" id="callWaiterBtn" aria-label="Llamar al mesero">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14l-2 9a5 5 0 0 1-10 0L5 3Z"/><path d="M9 21h6"/><path d="M12 15v6"/></svg>
+      </button>
+      <span class="nav-center-label">Mesero</span>
+    </div>
 
-  $('#e-nombre').value = t.nombre;
-  $('#e-nicho').value = t.nicho;
-  $('#e-whatsapp').value = t.whatsapp || '';
-  $('#e-activo').checked = !!t.activo;
-  $('#e-logo-url').value = t.logo_url || '';
-  $('#e-pago-url').value = t.pago_url || '';
-  $('#e-moneda').value = t.moneda || 'COP';
-  $('#e-logo-preview').style.display = 'none';
-  if (t.logo_url) { $('#e-logo-preview').src = t.logo_url; $('#e-logo-preview').style.display = 'block'; }
+    <a href="#" class="nav-item" id="navPedidosBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      Pedidos
+      <span class="badge-nav">0</span>
+    </a>
+    <button class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      Perfil
+    </button>
+  </nav>
 
-  irATabDetalle(tabInicial || 'info');
-}
+  <!-- TOAST -->
+  <div class="toast" id="toast">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    <span id="toastText">Llamando al mesero...</span>
+  </div>
 
-$('#btn-volver').addEventListener('click', (e) => { e.preventDefault(); irAVista('negocios'); });
+  <script>
+    /*
+      ============================================================
+      CARGA DINÁMICA DEL NEGOCIO (Fase 2)
+      Ya no hay datos quemados aquí. La página lee el slug del
+      negocio desde la URL (/t/<slug>, o la raíz "/" como alias
+      temporal de "cero-absoluto") y pide su configuración a
+      /menu/<slug>, que ahora vive en la base de datos y se edita
+      desde el admin.
+      ============================================================
+    */
+    function getTenantSlug() {
+      const partes = location.pathname.split('/').filter(Boolean);
+      if (partes[0]) return decodeURIComponent(partes[0]);
+      return 'cero-absoluto'; // alias temporal: si se abre index.html directo sin slug
+    }
 
-function irATabDetalle(tab) {
-  document.querySelectorAll('nav.sub-tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  ['info', 'productos', 'pedidos', 'metricas'].forEach(t => $('#tab-' + t).classList.toggle('hidden', t !== tab));
-  if (tab === 'productos') cargarProductos(NEGOCIO_ACTIVO);
-  if (tab === 'pedidos') cargarPedidos(NEGOCIO_ACTIVO);
-  if (tab === 'metricas') cargarMetricas(NEGOCIO_ACTIVO);
-}
-document.querySelectorAll('nav.sub-tabs button').forEach(b => b.addEventListener('click', () => irATabDetalle(b.dataset.tab)));
+    function pintarFavoritos(destacados) {
+      const grid = document.getElementById('favGrid');
+      const head = document.getElementById('favSectionHead');
+      if (!destacados || destacados.length === 0) {
+        // Sin destacados marcados todavía: ocultamos la sección en vez de mostrar
+        // productos de ejemplo que no son del negocio real.
+        grid.style.display = 'none';
+        head.style.display = 'none';
+        return;
+      }
+      const moneda = TENANT_DATA?.moneda || 'COP';
+      grid.innerHTML = '';
+      destacados.slice(0, 4).forEach((p, i) => {
+        const color = i % 2 === 0 ? 'cyan' : 'pink';
+        const card = document.createElement('div');
+        card.className = `fav-card ${color}`;
+        const imgStyle = p.imagen_url ? `style="background-image:url('${p.imagen_url}');background-size:cover;background-position:center;"` : '';
+        card.innerHTML = `
+          <div class="fav-img" ${imgStyle}></div>
+          <div class="fav-body">
+            <div class="fav-name ${color}">${p.nombre.toUpperCase()}</div>
+            <div class="fav-desc">${p.descripcion || ''}</div>
+            <div class="fav-foot">
+              <span class="fav-price">${formatearPrecio(p.precio, moneda)}</span>
+              <button class="add-btn ${color}" data-id="${p.id}" data-nombre="${p.nombre}" data-precio="${p.precio}">+</button>
+            </div>
+          </div>`;
+        grid.appendChild(card);
+      });
+      grid.querySelectorAll('.add-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          Carrito.agregar(getTenantSlug(), {
+            producto_id: btn.dataset.id, nombre: btn.dataset.nombre, precio: Number(btn.dataset.precio)
+          });
+          btn.style.background = 'rgba(34,211,245,.35)';
+          setTimeout(() => btn.style.background = 'transparent', 200);
+        });
+      });
+    }
 
-$('#e-logo-file').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  const msg = $('#e-logo-upload-msg');
-  if (!file) return;
-  msg.textContent = 'Subiendo…'; msg.className = 'msg';
-  const form = new FormData();
-  form.append('file', file);
-  form.append('tenant_id', NEGOCIO_ACTIVO);
-  form.append('carpeta', 'logo');
-  try {
-    const r = await fetch('/admin/api/upload', { method: 'POST', body: form });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || 'Error al subir el logo');
-    $('#e-logo-url').value = data.url;
-    $('#e-logo-preview').src = data.url;
-    $('#e-logo-preview').style.display = 'block';
-    msg.textContent = 'Logo subido ✓'; msg.className = 'msg ok';
-  } catch (err) {
-    msg.textContent = err.message; msg.className = 'msg err';
-  }
-});
+    let TENANT_DATA = null;
 
-$('#form-editar-negocio').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const msg = $('#e-msg');
-  msg.textContent = ''; msg.className = 'msg';
-  const payload = {
-    nombre: $('#e-nombre').value.trim(),
-    whatsapp: $('#e-whatsapp').value.trim(),
-    activo: $('#e-activo').checked ? 1 : 0,
-    logo_url: $('#e-logo-url').value.trim(),
-    pago_url: $('#e-pago-url').value.trim() || null,
-    moneda: $('#e-moneda').value
-  };
-  const r = await fetch(`/admin/api/tenants/${encodeURIComponent(NEGOCIO_ACTIVO)}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  const data = await r.json();
-  if (!r.ok) { msg.textContent = data.error || 'Error al guardar'; msg.className = 'msg err'; return; }
-  msg.textContent = 'Guardado ✓'; msg.className = 'msg ok';
-  cargarTenants();
-});
+    function aplicarTenant(data) {
+      TENANT_DATA = data;
+      document.title = `${data.nombre} — ${data.contenido.tagline || ''}`;
+      document.querySelectorAll('.tenant-logo').forEach(img => { img.src = data.logo_url; });
 
-async function cargarProductos(tenantId) {
-  const wrap = $('#productos-wrap');
-  wrap.innerHTML = '<p class="empty">Cargando productos…</p>';
-  const r = await fetch(`/admin/api/tenants/${encodeURIComponent(tenantId)}/products`);
-  const { productos } = await r.json();
-  if (!productos.length) { wrap.innerHTML = '<p class="empty">Este negocio todavía no tiene productos.</p>'; return; }
-  wrap.innerHTML = `
-    <table>
-      <thead><tr><th>Foto</th><th>Categoría</th><th>Nombre</th><th>Precio</th><th>Destacado</th><th>Acciones</th></tr></thead>
-      <tbody>
-        ${productos.map(p => `
-          <tr>
-            <td>${p.imagen_url ? `<img src="${p.imagen_url}" class="thumb-preview" style="display:block;">` : '—'}</td>
-            <td>${p.categoria}</td>
-            <td>${p.nombre}</td>
-            <td>S/ ${Number(p.precio).toFixed(2)}</td>
-            <td>${p.destacado ? '<span class="badge-destacado">Sí</span>' : '—'}</td>
-            <td class="acciones">
-              <button type="button" class="btn-secondary btn-mini" onclick='editarProducto(${JSON.stringify(p)})'>Editar</button>
-              <button type="button" class="btn-danger btn-mini" onclick="borrarProducto(${p.id})">Borrar</button>
-            </td>
-          </tr>`).join('')}
-      </tbody>
-    </table>`;
-}
+      // "Ver Menú" y "Ver Todos" llevan al catálogo completo de este negocio
+      const linkMenu = `/${getTenantSlug()}/menu`;
+      const linkCheckout = `/${getTenantSlug()}/checkout`;
+      const btnVerMenu = document.getElementById('verMenuBtn');
+      const btnVerTodos = document.getElementById('verTodosBtn');
+      const btnNavMenu = document.getElementById('navMenuBtn');
+      const btnNavMenuDrawer = document.getElementById('navMenuDrawer');
+      const btnNavPedidos = document.getElementById('navPedidosBtn');
+      if (btnVerMenu) btnVerMenu.href = linkMenu;
+      if (btnVerTodos) btnVerTodos.href = linkMenu;
+      if (btnNavMenu) btnNavMenu.href = linkMenu;
+      if (btnNavMenuDrawer) btnNavMenuDrawer.href = linkMenu;
+      if (btnNavPedidos) btnNavPedidos.href = linkCheckout;
 
-$('#p-imagen-file').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  const uploadMsg = $('#upload-msg');
-  if (!file) return;
-  uploadMsg.textContent = 'Subiendo…'; uploadMsg.className = 'msg';
-  const form = new FormData();
-  form.append('file', file);
-  form.append('tenant_id', NEGOCIO_ACTIVO);
-  form.append('carpeta', 'productos');
-  try {
-    const r = await fetch('/admin/api/upload', { method: 'POST', body: form });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || 'Error al subir la imagen');
-    $('#p-imagen-url').value = data.url;
-    $('#p-imagen-preview').src = data.url;
-    $('#p-imagen-preview').style.display = 'block';
-    uploadMsg.textContent = 'Foto subida ✓'; uploadMsg.className = 'msg ok';
-  } catch (err) {
-    uploadMsg.textContent = err.message; uploadMsg.className = 'msg err';
-  }
-});
+      const root = document.documentElement.style;
+      if (data.tema.fondo) root.setProperty('--bg', data.tema.fondo);
+      if (data.tema.acento2) root.setProperty('--cyan', data.tema.acento2);
+      if (data.tema.acento1) root.setProperty('--pink', data.tema.acento1);
 
-function editarProducto(p) {
-  $('#p-editando-id').value = p.id;
-  $('#p-categoria').value = p.categoria;
-  $('#p-nombre').value = p.nombre;
-  $('#p-descripcion').value = p.descripcion || '';
-  $('#p-precio').value = p.precio;
-  $('#p-imagen-url').value = p.imagen_url || '';
-  $('#p-destacado').checked = !!p.destacado;
-  $('#p-imagen-preview').style.display = 'none';
-  if (p.imagen_url) { $('#p-imagen-preview').src = p.imagen_url; $('#p-imagen-preview').style.display = 'block'; }
-  $('#p-submit-btn').textContent = 'Guardar cambios';
-  $('#p-cancelar-edicion').style.display = 'inline-block';
-  $('#form-producto').scrollIntoView({ behavior: 'smooth' });
-}
+      const partesTitulo = (data.contenido.hero_titulo || '').split('. ').filter(Boolean);
+      const spans = document.querySelectorAll('.hero-headline span');
+      partesTitulo.forEach((texto, i) => {
+        if (spans[i]) spans[i].textContent = texto.replace(/\.$/, '') + '.';
+      });
 
-function cancelarEdicionProducto() {
-  $('#form-producto').reset();
-  $('#p-editando-id').value = '';
-  $('#p-imagen-preview').style.display = 'none';
-  $('#p-submit-btn').textContent = 'Agregar producto';
-  $('#p-cancelar-edicion').style.display = 'none';
-}
-$('#p-cancelar-edicion').addEventListener('click', cancelarEdicionProducto);
+      const heroCopy = document.querySelector('.hero-copy');
+      if (heroCopy && data.contenido.tagline) heroCopy.textContent = data.contenido.tagline;
 
-async function borrarProducto(id) {
-  if (!confirm('¿Borrar este producto? No se puede deshacer.')) return;
-  await fetch(`/admin/api/products/${id}`, { method: 'DELETE' });
-  cargarProductos(NEGOCIO_ACTIVO);
-  cargarResumen();
-}
+      const catStrongs = document.querySelectorAll('.cat .cat-text strong');
+      (data.contenido.categorias || []).forEach((nombre, i) => {
+        if (catStrongs[i]) catStrongs[i].textContent = nombre.toUpperCase();
+      });
 
-$('#form-producto').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const msg = $('#p-msg');
-  msg.textContent = ''; msg.className = 'msg';
-  const payload = {
-    categoria: $('#p-categoria').value.trim(),
-    nombre: $('#p-nombre').value.trim(),
-    descripcion: $('#p-descripcion').value.trim(),
-    precio: parseFloat($('#p-precio').value),
-    imagen_url: $('#p-imagen-url').value.trim() || null,
-    destacado: $('#p-destacado').checked
-  };
-  const editandoId = $('#p-editando-id').value;
-  const url = editandoId ? `/admin/api/products/${editandoId}` : `/admin/api/tenants/${encodeURIComponent(NEGOCIO_ACTIVO)}/products`;
-  const method = editandoId ? 'PUT' : 'POST';
-  const r = await fetch(url, {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-  const data = await r.json();
-  if (!r.ok) { msg.textContent = data.error || 'Error al guardar el producto'; msg.className = 'msg err'; return; }
-  msg.textContent = editandoId ? 'Producto actualizado ✓' : 'Producto agregado ✓';
-  msg.className = 'msg ok';
-  cancelarEdicionProducto();
-  cargarProductos(NEGOCIO_ACTIVO);
-  cargarResumen();
-});
+      const featStrongs = document.querySelectorAll('.feature-text strong');
+      (data.contenido.beneficios || []).forEach((texto, i) => {
+        if (featStrongs[i]) featStrongs[i].textContent = texto.toUpperCase();
+      });
 
-async function cargarPedidos(tenantId) {
-  const wrap = $('#pedidos-wrap');
-  wrap.innerHTML = '<p class="empty">Cargando pedidos…</p>';
-  const r = await fetch(`/admin/api/tenants/${encodeURIComponent(tenantId)}/pedidos`);
-  const { pedidos } = await r.json();
-  if (!pedidos.length) { wrap.innerHTML = '<p class="empty">Este negocio todavía no tiene pedidos.</p>'; return; }
-  wrap.innerHTML = `
-    <table>
-      <thead><tr><th>Fecha</th><th>Items</th><th>Total</th><th>Nota</th><th>Estado</th><th>Acciones</th></tr></thead>
-      <tbody>
-        ${pedidos.map(p => `
-          <tr>
-            <td>${new Date(p.creado_en).toLocaleString()}</td>
-            <td>${p.items.map(i => `${i.cantidad}× ${i.nombre}`).join(', ')}</td>
-            <td>S/ ${Number(p.total).toFixed(2)}</td>
-            <td>${p.cliente_nota || '—'}</td>
-            <td><span class="estado-pill estado-${p.estado}">${p.estado.replace('_', ' ')}</span></td>
-            <td class="acciones">
-              ${p.estado !== 'pagado' ? `<button type="button" class="btn-secondary btn-mini" onclick="marcarPedido(${p.id},'pagado')">Marcar pagado</button>` : ''}
-              ${p.estado !== 'cancelado' ? `<button type="button" class="btn-danger btn-mini" onclick="marcarPedido(${p.id},'cancelado')">Cancelar</button>` : ''}
-            </td>
-          </tr>`).join('')}
-      </tbody>
-    </table>`;
-}
+      pintarFavoritos(data.destacados);
+    }
 
-async function marcarPedido(id, estado) {
-  await fetch(`/admin/api/pedidos/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ estado })
-  });
-  cargarPedidos(NEGOCIO_ACTIVO);
-  cargarResumen();
-}
+    fetch(`/menu/${getTenantSlug()}`)
+      .then(r => r.ok ? r.json() : Promise.reject(new Error('Negocio no encontrado')))
+      .then(aplicarTenant)
+      .catch(err => console.warn('No se pudo cargar la configuración del negocio:', err));
 
-async function cargarMetricas(tenantId) {
-  const [rProd, rPed] = await Promise.all([
-    fetch(`/admin/api/tenants/${encodeURIComponent(tenantId)}/products`),
-    fetch(`/admin/api/tenants/${encodeURIComponent(tenantId)}/pedidos`)
-  ]);
-  const { productos } = await rProd.json();
-  const { pedidos } = await rPed.json();
-  const pendientes = pedidos.filter(p => p.estado === 'pendiente_pago').length;
-  const pagados = pedidos.filter(p => p.estado === 'pagado').length;
-  const totalVentas = pedidos.filter(p => p.estado === 'pagado').reduce((sum, p) => sum + Number(p.total), 0);
-  $('#metricas-wrap').innerHTML = `
-    <div class="stat-card"><div class="num">${productos.length}</div><div class="label">Productos cargados</div></div>
-    <div class="stat-card"><div class="num">${pedidos.length}</div><div class="label">Pedidos totales</div></div>
-    <div class="stat-card warn"><div class="num">${pendientes}</div><div class="label">Por cobrar</div></div>
-    <div class="stat-card"><div class="num">${pagados}</div><div class="label">Pagados</div></div>
-    <div class="stat-card"><div class="num">S/ ${totalVentas.toFixed(2)}</div><div class="label">Vendido (pagados)</div></div>
-  `;
-}
+    // ---- Drawer (menú hamburguesa) ----
+    const drawer = document.getElementById('drawer');
+    const drawerOverlay = document.getElementById('drawerOverlay');
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const drawerClose = document.getElementById('drawerClose');
 
-cargarNichos();
-cargarResumen();
-</script>
+    function openDrawer(){ drawer.classList.add('open'); drawerOverlay.classList.add('open'); }
+    function closeDrawer(){ drawer.classList.remove('open'); drawerOverlay.classList.remove('open'); }
+
+    hamburgerBtn.addEventListener('click', openDrawer);
+    drawerClose.addEventListener('click', closeDrawer);
+    drawerOverlay.addEventListener('click', closeDrawer);
+
+    // ---- Nav inferior: resaltar item activo (excepto el botón central) ----
+    document.querySelectorAll('.nav-item').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('.nav-item').forEach(b=>{
+          b.classList.remove('active');
+          b.querySelector('.underline')?.remove();
+        });
+        btn.classList.add('active');
+        const u=document.createElement('span');
+        u.className='underline';
+        btn.appendChild(u);
+      });
+    });
+
+    // ---- Botón central: Llamar al mesero ----
+    const toast = document.getElementById('toast');
+    let toastTimeout;
+    document.getElementById('callWaiterBtn').addEventListener('click', ()=>{
+      toast.classList.add('show');
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(()=> toast.classList.remove('show'), 2400);
+    });
+
+    // ---- Carrito real: refresca los badges con lo que ya haya en el navegador ----
+    Carrito.actualizarBadges(getTenantSlug());
+  </script>
+
 </body>
 </html>

@@ -137,12 +137,12 @@
   <script>
     function getTenantSlug() {
       const partes = location.pathname.split('/').filter(Boolean);
-      // /t/<slug>/menu
-      if (partes[0] === 't' && partes[1]) return decodeURIComponent(partes[1]);
+      // /<slug>/menu
+      if (partes[0]) return decodeURIComponent(partes[0]);
       return 'cero-absoluto';
     }
     const SLUG = getTenantSlug();
-    document.getElementById('backBtn').href = `/t/${SLUG}`;
+    document.getElementById('backBtn').href = `/${SLUG}`;
 
     let TENANT_DATA = null;
 
@@ -165,7 +165,7 @@
         bar = document.createElement('a');
         bar.id = 'carritoFlotante';
         bar.className = 'carrito-flotante';
-        bar.href = `/t/${SLUG}/checkout`;
+        bar.href = `/${SLUG}/checkout`;
         document.body.appendChild(bar);
       }
       bar.innerHTML = `<span><span class="carrito-flotante-count">${n}</span>Ver carrito</span><span>${formatearPrecio(total, moneda)}</span>`;

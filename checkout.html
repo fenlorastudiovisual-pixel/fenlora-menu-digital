@@ -96,12 +96,12 @@
   <script>
     function getTenantSlug() {
       const partes = location.pathname.split('/').filter(Boolean);
-      // /t/<slug>/checkout
-      if (partes[0] === 't' && partes[1]) return decodeURIComponent(partes[1]);
+      // /<slug>/checkout
+      if (partes[0]) return decodeURIComponent(partes[0]);
       return 'cero-absoluto';
     }
     const SLUG = getTenantSlug();
-    document.getElementById('backBtn').href = `/t/${SLUG}/menu`;
+    document.getElementById('backBtn').href = `/${SLUG}/menu`;
 
     let TENANT = null;
 
@@ -110,7 +110,7 @@
       const contenido = document.getElementById('contenido');
 
       if (items.length === 0) {
-        contenido.innerHTML = `<div class="empty-msg">Tu carrito está vacío.<br><br><a href="/t/${SLUG}/menu" style="color:var(--cyan)">Ver el menú →</a></div>`;
+        contenido.innerHTML = `<div class="empty-msg">Tu carrito está vacío.<br><br><a href="/${SLUG}/menu" style="color:var(--cyan)">Ver el menú →</a></div>`;
         return;
       }
 
@@ -211,7 +211,7 @@
               ? 'Te abrimos la página de pago en una pestaña nueva. Cuando termines, muestra la confirmación en caja o a tu mesero.'
               : 'Acércate a caja o avisa a tu mesero para completar el pago de tu pedido.'}
           </p>
-          ${tienePago ? `<a class="cta" href="${TENANT.pago_url}" target="_blank">IR A PAGAR</a>` : `<a class="cta" href="/t/${SLUG}">VOLVER AL INICIO</a>`}
+          ${tienePago ? `<a class="cta" href="${TENANT.pago_url}" target="_blank">IR A PAGAR</a>` : `<a class="cta" href="/${SLUG}">VOLVER AL INICIO</a>`}
         </div>`;
 
       if (tienePago) {

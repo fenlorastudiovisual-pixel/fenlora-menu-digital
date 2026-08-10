@@ -1,9 +1,10 @@
 import { NICHOS, listaNichos } from "./niches.js";
 
-// URL pública del bucket R2 (la que activaste en Settings → Public Development URL).
-// Si más adelante conectas un dominio propio tipo cdn.fenlora.com, cámbiala aquí
-// y todas las fotos (logos y productos) de todos los negocios se sirven desde ahí.
+// URL pública del bucket R2 (la que activaste en Settings -> Public Development URL).
 const PUBLIC_R2_URL = "https://pub-6509f754158640c68cc33a2321f3387e.r2.dev";
+
+// Rutas reservadas: ningún negocio puede usar estos slugs.
+const RESERVADOS = new Set(["admin", "menu", "assets", "carrito.js", "logo.png", "favicon.ico"]);
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -75,6 +76,7 @@ async function createTenant(request, env) {
   if (!preset) return json({ error: `Nicho desconocido: ${nicho}` }, 400);
 
   let id = slugify(nombre);
+  if (RESERVADOS.has(id)) id = `${id}-negocio`;
   const existe = await env.DB.prepare("SELECT id FROM tenants WHERE id = ?").bind(id).first();
   if (existe) id = `${id}-${Date.now().toString(36)}`;
 
@@ -88,7 +90,7 @@ async function createTenant(request, env) {
     JSON.stringify(preset.tema), JSON.stringify(contenido), pago_url || null, moneda || "COP"
   ).run();
 
-  return json({ id, url: `/t/${id}` }, 201);
+  return json({ id, url: `/${id}` }, 201);
 }
 
 // ---------- /admin/api/tenants/:id ----------
@@ -175,7 +177,7 @@ async function deleteProduct(id, env) {
   return json({ ok: true });
 }
 
-// ---------- /menu/:slug/pedido (público: el cliente registra su pedido) ----------
+// ---------- /menu/:slug/pedido (público) ----------
 async function crearPedido(slug, request, env) {
   const tenant = await env.DB.prepare("SELECT id FROM tenants WHERE id = ? AND activo = 1").bind(slug).first();
   if (!tenant) return json({ error: "Negocio no encontrado" }, 404);
@@ -193,7 +195,7 @@ async function crearPedido(slug, request, env) {
   return json({ id: r.meta.last_row_id }, 201);
 }
 
-// ---------- /admin/api/tenants/:id/pedidos (admin: ver pedidos de un negocio) ----------
+// ---------- /admin/api/tenants/:id/pedidos ----------
 async function listPedidos(tenantId, env) {
   const { results } = await env.DB.prepare(
     "SELECT * FROM pedidos WHERE tenant_id = ? ORDER BY creado_en DESC LIMIT 100"
@@ -202,7 +204,7 @@ async function listPedidos(tenantId, env) {
   return json({ pedidos });
 }
 
-// ---------- /admin/api/pedidos/:id (admin: marcar pagado/cancelado) ----------
+// ---------- /admin/api/pedidos/:id ----------
 async function updatePedidoEstado(id, request, env) {
   const body = await request.json();
   if (!body.estado) return json({ error: "Falta 'estado'" }, 400);
@@ -210,7 +212,7 @@ async function updatePedidoEstado(id, request, env) {
   return json({ ok: true });
 }
 
-// ---------- /admin/api/upload (foto de producto o logo -> R2) ----------
+// ---------- /admin/api/upload ----------
 async function uploadFile(request, env) {
   const form = await request.formData();
   const file = form.get("file");
@@ -256,25 +258,17 @@ export default {
     const method = request.method;
 
     try {
-      // /admin/api/nichos
-      if (path === "/admin/api/nichos" && method === "GET") {
-        return getNichos();
+      // La raíz del dominio siempre lleva al admin (protegido por Cloudflare Access)
+      if (path === "/" && method === "GET") {
+        return Response.redirect(new URL("/admin", url), 302);
       }
 
-      // /admin/api/resumen
-      if (path === "/admin/api/resumen" && method === "GET") {
-        return await getResumen(env);
-      }
+      if (path === "/admin/api/nichos" && method === "GET") return getNichos();
+      if (path === "/admin/api/resumen" && method === "GET") return await getResumen(env);
 
-      // /admin/api/tenants
-      if (path === "/admin/api/tenants" && method === "GET") {
-        return await listTenants(env);
-      }
-      if (path === "/admin/api/tenants" && method === "POST") {
-        return await createTenant(request, env);
-      }
+      if (path === "/admin/api/tenants" && method === "GET") return await listTenants(env);
+      if (path === "/admin/api/tenants" && method === "POST") return await createTenant(request, env);
 
-      // /admin/api/tenants/:id
       const tenantMatch = path.match(/^\/admin\/api\/tenants\/([^/]+)$/);
       if (tenantMatch) {
         const id = decodeURIComponent(tenantMatch[1]);
@@ -283,7 +277,6 @@ export default {
         if (method === "DELETE") return await deleteTenant(id, env);
       }
 
-      // /admin/api/tenants/:id/products
       const productsMatch = path.match(/^\/admin\/api\/tenants\/([^/]+)\/products$/);
       if (productsMatch) {
         const tenantId = decodeURIComponent(productsMatch[1]);
@@ -291,7 +284,6 @@ export default {
         if (method === "POST") return await createProduct(tenantId, request, env);
       }
 
-      // /admin/api/products/:id
       const productMatch = path.match(/^\/admin\/api\/products\/([^/]+)$/);
       if (productMatch) {
         const id = decodeURIComponent(productMatch[1]);
@@ -299,57 +291,50 @@ export default {
         if (method === "DELETE") return await deleteProduct(id, env);
       }
 
-      // /admin/api/upload  (sube foto de producto o logo a R2)
-      if (path === "/admin/api/upload" && method === "POST") {
-        return await uploadFile(request, env);
-      }
+      if (path === "/admin/api/upload" && method === "POST") return await uploadFile(request, env);
 
-      // /admin/api/tenants/:id/pedidos
       const pedidosMatch = path.match(/^\/admin\/api\/tenants\/([^/]+)\/pedidos$/);
       if (pedidosMatch && method === "GET") {
         return await listPedidos(decodeURIComponent(pedidosMatch[1]), env);
       }
 
-      // /admin/api/pedidos/:id
       const pedidoMatch = path.match(/^\/admin\/api\/pedidos\/([^/]+)$/);
       if (pedidoMatch && method === "PUT") {
         return await updatePedidoEstado(decodeURIComponent(pedidoMatch[1]), request, env);
       }
 
-      // /menu/:slug/pedido  (público: el cliente registra su pedido)
       const crearPedidoMatch = path.match(/^\/menu\/([^/]+)\/pedido$/);
       if (crearPedidoMatch && method === "POST") {
         return await crearPedido(decodeURIComponent(crearPedidoMatch[1]), request, env);
       }
 
-      // /menu/:slug  (API pública: config del negocio + productos, en JSON)
       const menuMatch = path.match(/^\/menu\/([^/]+)$/);
       if (menuMatch && method === "GET") {
         return await getMenuPublico(decodeURIComponent(menuMatch[1]), env);
       }
 
-      // /t/:slug/checkout  (página pública: carrito y confirmación de pedido)
-      const checkoutMatch = path.match(/^\/t\/([^/]+)\/checkout$/);
-      if (checkoutMatch && method === "GET") {
+      // ---- Páginas públicas del negocio, URLs limpias: /<slug>, /<slug>/menu, /<slug>/checkout ----
+
+      const checkoutMatch = path.match(/^\/([^/]+)\/checkout$/);
+      if (checkoutMatch && method === "GET" && !RESERVADOS.has(checkoutMatch[1])) {
         const plantilla = await env.ASSETS.fetch(new URL("/checkout.html", request.url));
         return new Response(plantilla.body, plantilla);
       }
 
-      // /t/:slug/menu  (página pública ligera: catálogo completo por categoría)
-      const menuPageMatch = path.match(/^\/t\/([^/]+)\/menu$/);
-      if (menuPageMatch && method === "GET") {
+      const menuPageMatch = path.match(/^\/([^/]+)\/menu$/);
+      if (menuPageMatch && method === "GET" && !RESERVADOS.has(menuPageMatch[1])) {
         const plantilla = await env.ASSETS.fetch(new URL("/menu.html", request.url));
         return new Response(plantilla.body, plantilla);
       }
 
-      // /t/:slug  (página del negocio: sirve la misma plantilla index.html;
-      // el propio index.html lee el slug de la URL y pide su config a /menu/:slug)
-      if (path.startsWith("/t/") && method === "GET") {
+      const slugMatch = path.match(/^\/([^/]+)$/);
+      if (slugMatch && method === "GET" && !RESERVADOS.has(slugMatch[1]) && !slugMatch[1].includes(".")) {
         const plantilla = await env.ASSETS.fetch(new URL("/index.html", request.url));
         return new Response(plantilla.body, plantilla);
       }
 
-      return json({ error: "Ruta no encontrada" }, 404);
+      // Cualquier otra cosa: archivos estáticos reales (admin/index.html, carrito.js, logo.png, etc.)
+      return env.ASSETS.fetch(request);
     } catch (err) {
       return json({ error: "Error interno", detalle: String(err) }, 500);
     }
