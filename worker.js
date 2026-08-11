@@ -86,7 +86,7 @@ async function createTenant(request, env) {
     `INSERT INTO tenants (id, nombre, nicho, whatsapp, logo_url, tema, contenido, pago_url, moneda)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
-    id, nombre, nicho, whatsapp || null, "/assets/logo-placeholder.png",
+    id, nombre, nicho, whatsapp || null, null,
     JSON.stringify(preset.tema), JSON.stringify(contenido), pago_url || null, moneda || "COP"
   ).run();
 
@@ -111,14 +111,23 @@ async function updateTenant(id, request, env) {
   const activo = body.activo ?? row.activo;
   const pago_url = body.pago_url ?? row.pago_url;
   const moneda = body.moneda ?? row.moneda;
+  const precio_mensual = body.precio_mensual ?? row.precio_mensual;
+  const dia_cobro = body.dia_cobro ?? row.dia_cobro;
   const tema = body.tema ? JSON.stringify(body.tema) : row.tema;
   const contenido = body.contenido ? JSON.stringify(body.contenido) : row.contenido;
 
   await env.DB.prepare(
-    `UPDATE tenants SET nombre=?, whatsapp=?, logo_url=?, tema=?, contenido=?, activo=?, pago_url=?, moneda=? WHERE id=?`
-  ).bind(nombre, whatsapp, logo_url, tema, contenido, activo, pago_url, moneda, id).run();
+    `UPDATE tenants SET nombre=?, whatsapp=?, logo_url=?, tema=?, contenido=?, activo=?, pago_url=?, moneda=?, precio_mensual=?, dia_cobro=? WHERE id=?`
+  ).bind(nombre, whatsapp, logo_url, tema, contenido, activo, pago_url, moneda, precio_mensual, dia_cobro, id).run();
 
   return json({ ok: true });
+}
+
+// ---------- /admin/api/tenants/:id/pago (marcar pagado el mes actual) ----------
+async function marcarPago(id, env) {
+  const hoy = new Date().toISOString().slice(0, 10);
+  await env.DB.prepare("UPDATE tenants SET fecha_ultimo_pago = ? WHERE id = ?").bind(hoy, id).run();
+  return json({ ok: true, fecha_ultimo_pago: hoy });
 }
 
 async function deleteTenant(id, env) {
@@ -149,12 +158,96 @@ async function generarDemos(env) {
       `INSERT INTO tenants (id, nombre, nicho, whatsapp, logo_url, tema, contenido, moneda)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
-      id, `Demo — ${preset.label}`, nichoId, null, "/assets/logo-placeholder.png",
+      id, `Demo — ${preset.label}`, nichoId, null, null,
       JSON.stringify(preset.tema), JSON.stringify(contenido), "COP"
     ).run();
     creados.push(id);
   }
   return json({ creados });
+}
+
+// ---------- /admin/api/cobranza ----------
+// Un negocio está "vencido" si tiene precio_mensual y dia_cobro configurados,
+// ya pasó ese día en el mes actual, y no hay un pago registrado este mes.
+async function getCobranza(env) {
+  const { results } = await env.DB.prepare(`
+    SELECT id, nombre, precio_mensual, dia_cobro, fecha_ultimo_pago, moneda
+    FROM tenants
+    WHERE activo = 1 AND precio_mensual IS NOT NULL AND dia_cobro IS NOT NULL
+    ORDER BY nombre
+  `).all();
+
+  const hoy = new Date();
+  const diaHoy = hoy.getDate();
+  const mesHoy = hoy.toISOString().slice(0, 7); // YYYY-MM
+
+  const negocios = results.map(t => {
+    const pagoEsteMes = t.fecha_ultimo_pago && t.fecha_ultimo_pago.slice(0, 7) === mesHoy;
+    const vencido = !pagoEsteMes && diaHoy >= t.dia_cobro;
+    const diasVencido = vencido ? diaHoy - t.dia_cobro : 0;
+    return { ...t, al_dia: pagoEsteMes, vencido, dias_vencido: diasVencido };
+  });
+
+  const ingresoRecurrente = results.reduce((s, t) => s + (t.precio_mensual || 0), 0);
+
+  return json({
+    ingreso_recurrente: ingresoRecurrente,
+    negocios: negocios.sort((a, b) => (b.vencido - a.vencido) || (b.dias_vencido - a.dias_vencido))
+  });
+}
+
+// ---------- /admin/api/config ----------
+async function getConfig(env) {
+  const row = await env.DB.prepare("SELECT * FROM config WHERE id = 1").first();
+  return json(row || { moneda_default: "COP", whatsapp_mensaje_default: "", url_publica_r2: "" });
+}
+
+async function updateConfig(request, env) {
+  const body = await request.json();
+  await env.DB.prepare(`
+    INSERT INTO config (id, moneda_default, whatsapp_mensaje_default, url_publica_r2)
+    VALUES (1, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET moneda_default=excluded.moneda_default,
+      whatsapp_mensaje_default=excluded.whatsapp_mensaje_default, url_publica_r2=excluded.url_publica_r2
+  `).bind(body.moneda_default || "COP", body.whatsapp_mensaje_default || "", body.url_publica_r2 || "").run();
+  return json({ ok: true });
+}
+
+// ---------- /admin/api/metricas ----------
+async function getMetricas(env) {
+  const { results: pedidosPorDia } = await env.DB.prepare(`
+    SELECT substr(creado_en, 1, 10) AS dia, COUNT(*) AS total
+    FROM pedidos
+    WHERE creado_en >= date('now', '-13 days')
+    GROUP BY dia ORDER BY dia
+  `).all();
+
+  const { results: topNegocios } = await env.DB.prepare(`
+    SELECT t.nombre, COUNT(*) AS total_pedidos
+    FROM pedidos p JOIN tenants t ON t.id = p.tenant_id
+    GROUP BY p.tenant_id ORDER BY total_pedidos DESC LIMIT 5
+  `).all();
+
+  const { results: porNicho } = await env.DB.prepare(`
+    SELECT nicho, COUNT(*) AS total FROM tenants GROUP BY nicho ORDER BY total DESC
+  `).all();
+
+  const { results: pedidosRecientes } = await env.DB.prepare(`
+    SELECT items FROM pedidos ORDER BY creado_en DESC LIMIT 200
+  `).all();
+  const conteoProductos = {};
+  pedidosRecientes.forEach(p => {
+    try {
+      JSON.parse(p.items).forEach(it => {
+        conteoProductos[it.nombre] = (conteoProductos[it.nombre] || 0) + it.cantidad;
+      });
+    } catch {}
+  });
+  const topProductos = Object.entries(conteoProductos)
+    .sort((a, b) => b[1] - a[1]).slice(0, 5)
+    .map(([nombre, cantidad]) => ({ nombre, cantidad }));
+
+  return json({ pedidosPorDia, topNegocios, porNicho, topProductos });
 }
 
 // ---------- /admin/api/tenants/:id/products ----------
@@ -302,6 +395,16 @@ export default {
 
       if (path === "/admin/api/demos" && method === "GET") return await listDemos(env);
       if (path === "/admin/api/demos/generar" && method === "POST") return await generarDemos(env);
+
+      if (path === "/admin/api/cobranza" && method === "GET") return await getCobranza(env);
+
+      const pagoMatch = path.match(/^\/admin\/api\/tenants\/([^/]+)\/pago$/);
+      if (pagoMatch && method === "POST") return await marcarPago(decodeURIComponent(pagoMatch[1]), env);
+
+      if (path === "/admin/api/config" && method === "GET") return await getConfig(env);
+      if (path === "/admin/api/config" && method === "PUT") return await updateConfig(request, env);
+
+      if (path === "/admin/api/metricas" && method === "GET") return await getMetricas(env);
 
       const tenantMatch = path.match(/^\/admin\/api\/tenants\/([^/]+)$/);
       if (tenantMatch) {

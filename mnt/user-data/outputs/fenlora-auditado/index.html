@@ -469,7 +469,7 @@
   <aside class="drawer" id="drawer">
     <div class="drawer-head">
       <!-- LOGO DEL NEGOCIO — mismo slot configurable que el header -->
-      <img class="tenant-logo" src="assets/logo.png" alt="Logo del negocio">
+      <img class="tenant-logo" src="" alt="Logo del negocio" style="display:none;">
       <button class="drawer-close" id="drawerClose" aria-label="Cerrar menú">✕</button>
     </div>
     <nav class="drawer-nav">
@@ -520,8 +520,8 @@
 
   <!-- ============ HERO (header + imagen + texto, todo en 1 bloque) ============ -->
   <section class="hero-wrap">
-    <div class="hero-bg">
-      <div class="hero-scene">
+    <div class="hero-bg" id="heroBg">
+      <div class="hero-scene" id="heroScene">
         <div class="granizado-cup">
           <div class="straw"></div>
           <div class="fill"></div>
@@ -537,7 +537,7 @@
       </button>
       <!-- LOGO DEL NEGOCIO — slot configurable por tenant -->
       <div class="logo-slot">
-        <img class="tenant-logo" src="assets/logo.png" alt="Logo del negocio">
+        <img class="tenant-logo" src="" alt="Logo del negocio" style="display:none;">
       </div>
       <div class="header-spacer" aria-hidden="true"></div>
     </header>
@@ -579,16 +579,16 @@
   </section>
 
   <!-- PROMO -->
-  <section class="promo">
-    <div class="promo-badge">TODOS<br>LOS<br>SHOTS</div>
+  <section class="promo" id="promoSection">
+    <div class="promo-badge" id="promoEtiqueta">TODOS<br>LOS<br>SHOTS</div>
     <div class="promo-top">⚡ PROMO DEL DÍA ⚡</div>
     <div class="promo-row">
       <div class="promo-left">
-        <div class="num">2X1</div>
-        <div class="desc">EN TODOS<br>LOS SHOTS</div>
+        <div class="num" id="promoTitulo">2X1</div>
+        <div class="desc" id="promoDescripcion">EN TODOS<br>LOS SHOTS</div>
         <div class="time">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-          DE 6:00 PM A 10:00 PM
+          <span id="promoHorario">DE 6:00 PM A 10:00 PM</span>
         </div>
       </div>
       <div class="promo-shots">
@@ -735,8 +735,8 @@
     */
     function getTenantSlug() {
       const partes = location.pathname.split('/').filter(Boolean);
-      if (partes[0] === 't' && partes[1]) return decodeURIComponent(partes[1]);
-      return 'cero-absoluto'; // alias temporal: la raíz del dominio sigue mostrando este negocio
+      if (partes[0]) return decodeURIComponent(partes[0]);
+      return 'cero-absoluto'; // alias temporal: si se abre index.html directo sin slug
     }
 
     function pintarFavoritos(destacados) {
@@ -784,11 +784,14 @@
     function aplicarTenant(data) {
       TENANT_DATA = data;
       document.title = `${data.nombre} — ${data.contenido.tagline || ''}`;
-      document.querySelectorAll('.tenant-logo').forEach(img => { img.src = data.logo_url; });
+      document.querySelectorAll('.tenant-logo').forEach(img => {
+        if (data.logo_url) { img.src = data.logo_url; img.style.display = ''; }
+        else { img.style.display = 'none'; } // sin logo cargado todavía: no mostramos ícono roto
+      });
 
       // "Ver Menú" y "Ver Todos" llevan al catálogo completo de este negocio
-      const linkMenu = `/t/${getTenantSlug()}/menu`;
-      const linkCheckout = `/t/${getTenantSlug()}/checkout`;
+      const linkMenu = `/${getTenantSlug()}/menu`;
+      const linkCheckout = `/${getTenantSlug()}/checkout`;
       const btnVerMenu = document.getElementById('verMenuBtn');
       const btnVerTodos = document.getElementById('verTodosBtn');
       const btnNavMenu = document.getElementById('navMenuBtn');
@@ -800,14 +803,12 @@
       if (btnNavMenuDrawer) btnNavMenuDrawer.href = linkMenu;
       if (btnNavPedidos) btnNavPedidos.href = linkCheckout;
 
-      // WhatsApp directo al negocio (reemplaza el antiguo botón "Perfil")
       const btnWhatsapp = document.getElementById('navWhatsappBtn');
       if (btnWhatsapp) {
         if (data.whatsapp) {
           const mensaje = encodeURIComponent(`Hola, vi su menú digital de ${data.nombre} y quiero hacer una consulta 🙂`);
           btnWhatsapp.href = `https://wa.me/${data.whatsapp}?text=${mensaje}`;
         } else {
-          // Si el negocio no cargó su número todavía, ocultamos el botón en vez de dejarlo roto
           btnWhatsapp.style.display = 'none';
         }
       }
@@ -835,6 +836,34 @@
       (data.contenido.beneficios || []).forEach((texto, i) => {
         if (featStrongs[i]) featStrongs[i].textContent = texto.toUpperCase();
       });
+
+      // Imagen principal (hero): si el negocio cargó una foto real, la usamos de fondo
+      // y ocultamos la ilustración genérica de la plantilla.
+      if (data.contenido.hero_imagen_url) {
+        const heroBg = document.getElementById('heroBg');
+        const heroScene = document.getElementById('heroScene');
+        if (heroBg) {
+          heroBg.style.backgroundImage = `url('${data.contenido.hero_imagen_url}')`;
+          heroBg.style.backgroundSize = 'cover';
+          heroBg.style.backgroundPosition = 'center';
+        }
+        if (heroScene) heroScene.style.display = 'none';
+      }
+
+      // Promo del home: si el negocio no la activó desde el admin, se oculta la sección entera.
+      const promo = data.contenido.promo || {};
+      const promoSection = document.getElementById('promoSection');
+      if (promoSection) {
+        if (promo.activa) {
+          const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.textContent = val; };
+          set('promoTitulo', promo.titulo);
+          set('promoDescripcion', promo.descripcion);
+          set('promoHorario', promo.horario);
+          set('promoEtiqueta', promo.etiqueta);
+        } else {
+          promoSection.style.display = 'none';
+        }
+      }
 
       pintarFavoritos(data.destacados);
     }

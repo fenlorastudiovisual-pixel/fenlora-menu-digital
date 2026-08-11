@@ -174,7 +174,10 @@
     function pintarCatalogo(data) {
       TENANT_DATA = data;
       document.title = `Menú — ${data.nombre}`;
-      document.querySelectorAll('.tenant-logo').forEach(img => { img.src = data.logo_url; });
+      document.querySelectorAll('.tenant-logo').forEach(img => {
+        if (data.logo_url) { img.src = data.logo_url; img.style.display = ''; }
+        else { img.style.display = 'none'; }
+      });
 
       const root = document.documentElement.style;
       if (data.tema.fondo) root.setProperty('--bg', data.tema.fondo);
