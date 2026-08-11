@@ -170,6 +170,36 @@
             <div><label>Precio mensual del servicio (cobranza — opcional)</label><input id="d-precio-mensual" type="number" step="0.01" placeholder="Ej: 30000"></div>
             <div><label>Día de cobro (1-28)</label><input id="d-dia-cobro" type="number" min="1" max="28" placeholder="Ej: 5"></div>
           </div>
+
+          <hr style="border-color:rgba(255,255,255,.1); margin:18px 0;">
+          <hr style="border-color:rgba(255,255,255,.1); margin:18px 0;">
+          <h3 style="margin-bottom:10px;">Logo del negocio</h3>
+          <div class="row">
+            <div><label>Subir logo</label><input id="d-logo-file" type="file" accept="image/*"></div>
+            <div><label>O pega una URL de imagen</label><input id="d-logo-imagen" placeholder="https://.../logo.png"></div>
+          </div>
+          <p class="empty" style="margin:2px 0 14px;">Ideal PNG con fondo transparente. Aparece en el header y en el menú lateral del negocio.</p>
+
+          <h3 style="margin-bottom:10px;">Imagen principal (hero del home)</h3>
+          <div class="row">
+            <div><label>Subir foto</label><input id="d-hero-file" type="file" accept="image/*"></div>
+            <div><label>O pega una URL de imagen</label><input id="d-hero-imagen" placeholder="https://.../foto-hero.jpg"></div>
+          </div>
+          <p class="empty" style="margin:2px 0 14px;">Si la dejas vacía, se muestra la ilustración genérica de la plantilla.</p>
+
+          <h3 style="margin-bottom:10px;">Promo del home (banner "2X1", etc.)</h3>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <input type="checkbox" id="d-promo-activa" style="width:auto;"> <label for="d-promo-activa" style="margin:0;">Mostrar banner de promo en el home</label>
+          </div>
+          <div class="row">
+            <div><label>Título grande (ej: 2X1)</label><input id="d-promo-titulo" placeholder="Ej: 2X1"></div>
+            <div><label>Etiqueta circular (ej: TODOS LOS SHOTS)</label><input id="d-promo-etiqueta" placeholder="Ej: TODOS LOS SHOTS"></div>
+          </div>
+          <div class="row">
+            <div><label>Descripción (ej: EN TODOS LOS SHOTS)</label><input id="d-promo-descripcion" placeholder="Ej: EN TODOS LOS SHOTS"></div>
+            <div><label>Horario (ej: DE 6:00 PM A 10:00 PM)</label><input id="d-promo-horario" placeholder="Ej: DE 6:00 PM A 10:00 PM"></div>
+          </div>
+
           <div><button type="submit">Guardar cambios</button> <div class="msg" id="d-msg"></div></div>
         </form>
       </div>
@@ -188,7 +218,11 @@
           <div style="display:flex;align-items:center;gap:8px;">
             <input type="checkbox" id="p-destacado" style="width:auto;"> <label for="p-destacado" style="margin:0;">Mostrar en "Nuestros Favoritos" del home</label>
           </div>
-          <div><button type="submit">Agregar producto</button> <div class="msg" id="p-msg"></div></div>
+          <div>
+            <button type="submit" id="p-submit-btn">Agregar producto</button>
+            <button type="button" id="p-cancelar-btn" class="secondary" style="display:none;">Cancelar edición</button>
+            <div class="msg" id="p-msg"></div>
+          </div>
         </form>
         <div id="productos-wrap"><p class="empty">Elige un negocio primero.</p></div>
       </div>
@@ -280,6 +314,7 @@
 const $ = s => document.querySelector(s);
 let TENANTS = [];
 let ACTIVO_ID = null;
+let NEGOCIO_ACTUAL = null;
 
 // ---------------- TABS PRINCIPALES ----------------
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -398,6 +433,7 @@ async function seleccionarNegocio(id) {
   ACTIVO_ID = id;
   const r = await fetch(`/admin/api/tenants/${encodeURIComponent(id)}`);
   const t = await r.json();
+  NEGOCIO_ACTUAL = t; // guardamos el objeto completo (incluye "contenido") para no pisarlo al guardar
 
   $('#panel-detalle').style.display = 'block';
   $('#detalle-nombre').textContent = t.nombre;
@@ -410,6 +446,18 @@ async function seleccionarNegocio(id) {
   $('#d-moneda').value = t.moneda || 'COP';
   $('#d-precio-mensual').value = t.precio_mensual || '';
   $('#d-dia-cobro').value = t.dia_cobro || '';
+
+  $('#d-logo-imagen').value = (t.logo_url && !t.logo_url.includes('logo-placeholder')) ? t.logo_url : '';
+  $('#d-logo-file').value = '';
+
+  const promo = (t.contenido && t.contenido.promo) || {};
+  $('#d-hero-imagen').value = (t.contenido && t.contenido.hero_imagen_url) || '';
+  $('#d-hero-file').value = '';
+  $('#d-promo-activa').checked = !!promo.activa;
+  $('#d-promo-titulo').value = promo.titulo || '';
+  $('#d-promo-etiqueta').value = promo.etiqueta || '';
+  $('#d-promo-descripcion').value = promo.descripcion || '';
+  $('#d-promo-horario').value = promo.horario || '';
 
   $('#panel-detalle').scrollIntoView({ behavior: 'smooth', block: 'start' });
   cargarProductos(id);
@@ -451,45 +499,139 @@ $('#form-datos').addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!ACTIVO_ID) return;
   const msg = $('#d-msg'); msg.textContent = ''; msg.className = 'msg';
+
+  let hero_imagen_url = $('#d-hero-imagen').value.trim() || null;
+  const heroFile = $('#d-hero-file').files[0];
+  if (heroFile) {
+    const fd = new FormData();
+    fd.append('file', heroFile); fd.append('tenant_id', ACTIVO_ID); fd.append('carpeta', 'hero');
+    const ru = await fetch('/admin/api/upload', { method: 'POST', body: fd });
+    const du = await ru.json();
+    if (!ru.ok) { msg.textContent = du.error || 'Error al subir la imagen principal'; msg.className = 'msg err'; return; }
+    hero_imagen_url = du.url;
+  }
+
+  let logo_url = $('#d-logo-imagen').value.trim() || (NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.logo_url) || null;
+  const logoFile = $('#d-logo-file').files[0];
+  if (logoFile) {
+    const fd = new FormData();
+    fd.append('file', logoFile); fd.append('tenant_id', ACTIVO_ID); fd.append('carpeta', 'logo');
+    const ru = await fetch('/admin/api/upload', { method: 'POST', body: fd });
+    const du = await ru.json();
+    if (!ru.ok) { msg.textContent = du.error || 'Error al subir el logo'; msg.className = 'msg err'; return; }
+    logo_url = du.url;
+  }
+  if (logo_url && logo_url.includes('logo-placeholder')) logo_url = null; // nunca guardamos el placeholder roto a propósito
+
+  // Partimos del "contenido" ya guardado (tagline, hero_titulo, categorias, beneficios...)
+  // y solo reemplazamos hero_imagen_url y promo, para no perder lo demás.
+  const contenidoActual = (NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.contenido) || {};
+  const contenido = {
+    ...contenidoActual,
+    hero_imagen_url,
+    promo: {
+      activa: $('#d-promo-activa').checked,
+      titulo: $('#d-promo-titulo').value.trim(),
+      etiqueta: $('#d-promo-etiqueta').value.trim(),
+      descripcion: $('#d-promo-descripcion').value.trim(),
+      horario: $('#d-promo-horario').value.trim()
+    }
+  };
+
   const r = await fetch(`/admin/api/tenants/${encodeURIComponent(ACTIVO_ID)}`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       nombre: $('#d-nombre').value.trim(),
       whatsapp: $('#d-whatsapp').value.trim(),
       pago_url: $('#d-pago-url').value.trim() || null,
+      logo_url,
       moneda: $('#d-moneda').value,
       precio_mensual: $('#d-precio-mensual').value ? Number($('#d-precio-mensual').value) : null,
-      dia_cobro: $('#d-dia-cobro').value ? Number($('#d-dia-cobro').value) : null
+      dia_cobro: $('#d-dia-cobro').value ? Number($('#d-dia-cobro').value) : null,
+      contenido
     })
   });
   const data = await r.json();
   if (!r.ok) { msg.textContent = data.error || 'Error al guardar'; msg.className = 'msg err'; return; }
   msg.textContent = 'Guardado ✓'; msg.className = 'msg ok';
   cargarTenants();
+  seleccionarNegocio(ACTIVO_ID); // recarga NEGOCIO_ACTUAL con lo que quedó guardado
 });
 
 // ---------------- PRODUCTOS ----------------
+let PRODUCTOS_CACHE = [];
+let EDITANDO_PRODUCTO_ID = null;
+
 async function cargarProductos(tenantId) {
   const wrap = $('#productos-wrap');
   wrap.innerHTML = '<p class="empty">Cargando…</p>';
   const r = await fetch(`/admin/api/tenants/${encodeURIComponent(tenantId)}/products`);
   const { productos } = await r.json();
+  PRODUCTOS_CACHE = productos;
+
   if (!productos.length) { wrap.innerHTML = '<p class="empty">Este negocio todavía no tiene productos.</p>'; return; }
-  wrap.innerHTML = `
-    <table>
-      <thead><tr><th></th><th>Categoría</th><th>Nombre</th><th>Precio</th><th>Destacado</th><th></th></tr></thead>
-      <tbody>
-        ${productos.map(p => `
-          <tr>
-            <td>${p.imagen_url ? `<img class="prod-thumb" src="${p.imagen_url}">` : ''}</td>
-            <td>${p.categoria}</td>
-            <td>${p.nombre}</td>
-            <td>${Number(p.precio).toFixed(2)}</td>
-            <td>${p.destacado ? '★' : ''}</td>
-            <td><button class="danger small" onclick="borrarProducto(${p.id})">Eliminar</button></td>
-          </tr>`).join('')}
-      </tbody>
-    </table>`;
+
+  const filaProducto = (p) => `
+    <tr>
+      <td>${p.imagen_url ? `<img class="prod-thumb" src="${p.imagen_url}">` : ''}</td>
+      <td>${p.nombre}</td>
+      <td>${Number(p.precio).toFixed(2)}</td>
+      <td>${p.destacado ? '★' : '—'}</td>
+      <td style="white-space:nowrap;">
+        <button class="secondary small" onclick="editarProducto(${p.id})">Editar</button>
+        <button class="secondary small" onclick="toggleDestacado(${p.id}, ${p.destacado ? 1 : 0})">${p.destacado ? 'Quitar de Home' : 'Poner en Home'}</button>
+        <button class="danger small" onclick="borrarProducto(${p.id})">Eliminar</button>
+      </td>
+    </tr>`;
+
+  const destacados = productos.filter(p => p.destacado);
+  const porCategoria = {};
+  productos.forEach(p => { (porCategoria[p.categoria] = porCategoria[p.categoria] || []).push(p); });
+
+  let html = `<h3 style="margin:6px 0 8px;">⭐ Destacados — aparecen en "Nuestros Favoritos" del Home</h3>`;
+  html += destacados.length
+    ? `<table><thead><tr><th></th><th>Nombre</th><th>Precio</th><th>★</th><th></th></tr></thead><tbody>${destacados.map(filaProducto).join('')}</tbody></table>`
+    : `<p class="empty">Ningún producto marcado como destacado todavía.</p>`;
+
+  html += `<h3 style="margin:24px 0 8px;">📋 Menú completo — todos los productos por categoría</h3>`;
+  Object.keys(porCategoria).sort().forEach(cat => {
+    html += `<h4 style="margin:14px 0 6px;color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:.6px;">${cat}</h4>`;
+    html += `<table><thead><tr><th></th><th>Nombre</th><th>Precio</th><th>★</th><th></th></tr></thead><tbody>${porCategoria[cat].map(filaProducto).join('')}</tbody></table>`;
+  });
+
+  wrap.innerHTML = html;
+}
+
+function editarProducto(id) {
+  const p = PRODUCTOS_CACHE.find(x => x.id === id);
+  if (!p) return;
+  EDITANDO_PRODUCTO_ID = id;
+  $('#p-categoria').value = p.categoria;
+  $('#p-nombre').value = p.nombre;
+  $('#p-precio').value = p.precio;
+  $('#p-descripcion').value = p.descripcion || '';
+  $('#p-destacado').checked = !!p.destacado;
+  $('#p-foto').value = '';
+  $('#p-submit-btn').textContent = 'Guardar cambios';
+  $('#p-cancelar-btn').style.display = 'inline-block';
+  $('#form-producto').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function cancelarEdicionProducto() {
+  EDITANDO_PRODUCTO_ID = null;
+  $('#form-producto').reset();
+  $('#p-submit-btn').textContent = 'Agregar producto';
+  $('#p-cancelar-btn').style.display = 'none';
+}
+$('#p-cancelar-btn').addEventListener('click', cancelarEdicionProducto);
+
+async function toggleDestacado(id, actualNum) {
+  await fetch(`/admin/api/products/${id}`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ destacado: actualNum ? 0 : 1 })
+  });
+  cargarProductos(ACTIVO_ID);
+  cargarTenants();
 }
 
 $('#form-producto').addEventListener('submit', async (e) => {
@@ -497,7 +639,10 @@ $('#form-producto').addEventListener('submit', async (e) => {
   if (!ACTIVO_ID) return;
   const msg = $('#p-msg'); msg.textContent = ''; msg.className = 'msg';
 
-  let imagen_url = null;
+  const editando = EDITANDO_PRODUCTO_ID;
+  const productoPrevio = editando ? PRODUCTOS_CACHE.find(x => x.id === editando) : null;
+
+  let imagen_url = productoPrevio ? productoPrevio.imagen_url : null;
   const file = $('#p-foto').files[0];
   if (file) {
     const fd = new FormData();
@@ -508,20 +653,22 @@ $('#form-producto').addEventListener('submit', async (e) => {
     imagen_url = du.url;
   }
 
-  const r = await fetch(`/admin/api/tenants/${encodeURIComponent(ACTIVO_ID)}/products`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      categoria: $('#p-categoria').value.trim(),
-      nombre: $('#p-nombre').value.trim(),
-      descripcion: $('#p-descripcion').value.trim(),
-      precio: Number($('#p-precio').value),
-      imagen_url, destacado: $('#p-destacado').checked
-    })
-  });
+  const cuerpo = {
+    categoria: $('#p-categoria').value.trim(),
+    nombre: $('#p-nombre').value.trim(),
+    descripcion: $('#p-descripcion').value.trim(),
+    precio: Number($('#p-precio').value),
+    imagen_url, destacado: $('#p-destacado').checked
+  };
+
+  const r = editando
+    ? await fetch(`/admin/api/products/${editando}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) })
+    : await fetch(`/admin/api/tenants/${encodeURIComponent(ACTIVO_ID)}/products`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo) });
+
   const data = await r.json();
   if (!r.ok) { msg.textContent = data.error || 'Error al guardar'; msg.className = 'msg err'; return; }
-  msg.textContent = 'Producto agregado ✓'; msg.className = 'msg ok';
-  e.target.reset();
+  msg.textContent = editando ? 'Cambios guardados ✓' : 'Producto agregado ✓'; msg.className = 'msg ok';
+  cancelarEdicionProducto();
   cargarProductos(ACTIVO_ID);
   cargarTenants();
 });
