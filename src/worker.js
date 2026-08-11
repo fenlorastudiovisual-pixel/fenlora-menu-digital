@@ -4,7 +4,7 @@ import { NICHOS, listaNichos } from "./niches.js";
 const PUBLIC_R2_URL = "https://pub-6509f754158640c68cc33a2321f3387e.r2.dev";
 
 // Rutas reservadas: ningún negocio puede usar estos slugs.
-const RESERVADOS = new Set(["admin", "menu", "assets", "carrito.js", "logo.png", "favicon.ico"]);
+const RESERVADOS = new Set(["admin", "menu", "assets", "carrito.js", "logo.png", "favicon.ico", "negocio.html", "menu.html", "checkout.html"]);
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -86,7 +86,7 @@ async function createTenant(request, env) {
     `INSERT INTO tenants (id, nombre, nicho, whatsapp, logo_url, tema, contenido, pago_url, moneda)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
-    id, nombre, nicho, whatsapp || null, "/assets/logo-placeholder.png",
+    id, nombre, nicho, whatsapp || null, null,
     JSON.stringify(preset.tema), JSON.stringify(contenido), pago_url || null, moneda || "COP"
   ).run();
 
@@ -158,7 +158,7 @@ async function generarDemos(env) {
       `INSERT INTO tenants (id, nombre, nicho, whatsapp, logo_url, tema, contenido, moneda)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
-      id, `Demo — ${preset.label}`, nichoId, null, "/assets/logo-placeholder.png",
+      id, `Demo — ${preset.label}`, nichoId, null, null,
       JSON.stringify(preset.tema), JSON.stringify(contenido), "COP"
     ).run();
     creados.push(id);
@@ -466,7 +466,7 @@ export default {
 
       const slugMatch = path.match(/^\/([^/]+)$/);
       if (slugMatch && method === "GET" && !RESERVADOS.has(slugMatch[1]) && !slugMatch[1].includes(".")) {
-        const plantilla = await env.ASSETS.fetch(new URL("/index.html", request.url));
+        const plantilla = await env.ASSETS.fetch(new URL("/negocio.html", request.url));
         return new Response(plantilla.body, plantilla);
       }
 
