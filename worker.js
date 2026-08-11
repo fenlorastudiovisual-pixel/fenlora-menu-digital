@@ -4,7 +4,7 @@ import { NICHOS, listaNichos } from "./niches.js";
 const PUBLIC_R2_URL = "https://pub-6509f754158640c68cc33a2321f3387e.r2.dev";
 
 // Rutas reservadas: ningún negocio puede usar estos slugs.
-const RESERVADOS = new Set(["admin", "menu", "assets", "carrito.js", "logo.png", "favicon.ico"]);
+const RESERVADOS = new Set(["admin", "menu", "assets", "carrito.js", "logo.png", "favicon.ico", "negocio.html", "menu.html", "checkout.html"]);
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -466,7 +466,7 @@ export default {
 
       const slugMatch = path.match(/^\/([^/]+)$/);
       if (slugMatch && method === "GET" && !RESERVADOS.has(slugMatch[1]) && !slugMatch[1].includes(".")) {
-        const plantilla = await env.ASSETS.fetch(new URL("/index.html", request.url));
+        const plantilla = await env.ASSETS.fetch(new URL("/negocio.html", request.url));
         return new Response(plantilla.body, plantilla);
       }
 
