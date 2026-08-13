@@ -279,7 +279,9 @@
     text-align:center; font-size:9px; font-weight:800; letter-spacing:.5px;
     color:#fff; line-height:1.2;
     background:rgba(10,10,14,.7);
+    overflow:hidden;
   }
+  .promo-badge.promo-badge-img{ background-color:transparent; }
   .promo-dots{ display:flex; justify-content:center; gap:5px; margin-top:14px; }
   .promo-dots span{ width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.25); }
   .promo-dots span.on{ background:var(--cyan); }
@@ -292,24 +294,28 @@
   .see-all{ font-size:11px; font-weight:700; letter-spacing:.5px; color:var(--pink); display:flex; align-items:center; gap:4px; }
 
   .fav-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; padding:0 18px; margin-bottom:22px; }
-  .fav-card{ border-radius:14px; overflow:hidden; background:rgba(255,255,255,.015); transition:transform .15s ease; }
+  .fav-card{ border-radius:14px; overflow:hidden; background:rgba(255,255,255,.015); transition:transform .15s ease; display:flex; flex-direction:column; }
   .fav-card.cyan{ border:1.5px solid var(--cyan); box-shadow:0 0 16px rgba(34,211,245,.28); }
   .fav-card.pink{ border:1.5px solid var(--pink); box-shadow:0 0 16px rgba(255,45,135,.28); }
-  .fav-img{ position:relative; height:120px; overflow:hidden; }
-  .fav-body{ padding:10px 12px 12px; }
-  .fav-name{ font-size:12.5px; font-weight:800; letter-spacing:.3px; text-transform:uppercase; line-height:1.25; min-height:32px; }
+  .fav-img{ position:relative; height:120px; overflow:hidden; background-color:rgba(255,255,255,.03); }
+  /* fav-body ahora es flex-column: nombre y descripción quedan pegados arriba,
+     y fav-foot (precio + botón) se ancla siempre abajo con margin-top:auto,
+     así ya no queda un vacío grande cuando la descripción es corta. */
+  .fav-body{ padding:10px 12px 12px; display:flex; flex-direction:column; flex:1; }
+  .fav-name{ font-size:12.5px; font-weight:800; letter-spacing:.3px; text-transform:uppercase; line-height:1.25; }
   .fav-name.cyan{ color:var(--cyan); }
   .fav-name.pink{ color:var(--pink); }
-  .fav-desc{ font-size:11px; color:var(--gray); margin:4px 0 10px; line-height:1.3; }
-  .fav-foot{ display:flex; justify-content:space-between; align-items:center; }
+  .fav-desc{ font-size:11px; color:var(--gray); margin:3px 0 0; line-height:1.3; }
+  .fav-foot{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
   .fav-price{ font-size:13px; font-weight:800; color:#fff; }
   .add-btn{
-    width:28px; height:28px; border-radius:50%;
+    width:32px; height:32px; min-width:32px; border-radius:50%;
     border:1.5px solid var(--border-cyan);
-    background:transparent; color:var(--cyan); font-size:16px;
-    display:flex; align-items:center; justify-content:center;
+    background:transparent; color:var(--cyan); font-size:17px; line-height:1;
+    display:flex; align-items:center; justify-content:center; padding:0;
     transition:transform .15s ease, background .15s ease;
     box-shadow:0 0 8px currentColor;
+    flex-shrink:0;
   }
   .add-btn.pink{ border-color:var(--pink); color:var(--pink); }
   .add-btn:active{ transform:scale(.9); background:rgba(34,211,245,.15); }
@@ -813,10 +819,26 @@
       if (data.tema.acento2) root.setProperty('--cyan', data.tema.acento2);
       if (data.tema.acento1) root.setProperty('--pink', data.tema.acento1);
 
-      const partesTitulo = (data.contenido.hero_titulo || '').split('. ').filter(Boolean);
+      // Fix crítico: el markup trae 3 <span> de ejemplo (FRÍOS./INTENSOS./EXPLOSIVOS.)
+      // como placeholder visual. Antes, si el hero_titulo del negocio tenía menos de
+      // 3 partes (ej. "Disfruta lo simple, disfruta lo extraordinario", que no tiene
+      // ningún ". "), los spans sobrantes se quedaban con el texto de ejemplo y se
+      // mezclaba con el texto real del negocio. Ahora: se limpian TODOS los spans
+      // primero, se reparte el texto real, y cualquier span sin contenido se oculta.
+      const partesTitulo = (data.contenido.hero_titulo || '')
+        .split(/\n|\.\s+/)
+        .map(t => t.trim())
+        .filter(Boolean);
       const spans = document.querySelectorAll('.hero-headline span');
-      partesTitulo.forEach((texto, i) => {
-        if (spans[i]) spans[i].textContent = texto.replace(/\.$/, '') + '.';
+      spans.forEach((span, i) => {
+        const texto = partesTitulo[i];
+        if (texto) {
+          span.textContent = /[.!?]$/.test(texto) ? texto : texto + '.';
+          span.style.display = '';
+        } else {
+          span.textContent = '';
+          span.style.display = 'none';
+        }
       });
 
       const heroCopy = document.querySelector('.hero-copy');
@@ -854,7 +876,23 @@
           set('promoTitulo', promo.titulo);
           set('promoDescripcion', promo.descripcion);
           set('promoHorario', promo.horario);
-          set('promoEtiqueta', promo.etiqueta);
+          // Fix: el círculo de la promo antes solo aceptaba texto. Ahora, si el
+          // negocio subió una imagen/URL propia (ej. una foto real de "todos los
+          // shots"), se muestra esa imagen de fondo en vez del texto genérico.
+          const badge = document.getElementById('promoEtiqueta');
+          if (badge) {
+            if (promo.imagen_url) {
+              badge.innerHTML = '';
+              badge.style.backgroundImage = `url('${promo.imagen_url}')`;
+              badge.style.backgroundSize = 'cover';
+              badge.style.backgroundPosition = 'center';
+              badge.classList.add('promo-badge-img');
+            } else if (promo.etiqueta) {
+              badge.style.backgroundImage = '';
+              badge.classList.remove('promo-badge-img');
+              badge.textContent = promo.etiqueta;
+            }
+          }
         } else {
           promoSection.style.display = 'none';
         }
