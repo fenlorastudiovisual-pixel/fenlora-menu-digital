@@ -244,6 +244,17 @@
                   <div><label>O pega una URL de imagen</label><input id="d-logo-imagen" placeholder="https://.../logo.png"></div>
                 </div>
                 <img id="d-logo-preview" class="img-preview" alt="Vista previa del logo guardado">
+                <div class="row">
+                  <div>
+                    <label>Tamaño del logo en el home</label>
+                    <select id="d-logo-tamano">
+                      <option value="pequeno">Pequeño</option>
+                      <option value="mediano" selected>Mediano (recomendado)</option>
+                      <option value="grande">Grande</option>
+                    </select>
+                  </div>
+                </div>
+                <p class="hint">Cuidado con "Grande" si tu logo es ancho: puede tapar la foto del hero.</p>
               </div>
 
               <div class="seccion">
@@ -281,21 +292,6 @@
                 </div>
                 <p class="hint">Esta es la foto grande dentro del banner de promo (ej. la fila de 4 shots de la referencia). Es distinta de la imagen del círculo de arriba — son 2 imágenes separadas.</p>
                 <img id="d-promo-bg-preview" class="img-preview" alt="Vista previa de la foto de fondo guardada">
-              </div>
-
-              <div class="seccion">
-                <h3>📏 Tamaño del logo</h3>
-                <p class="hint">Controla qué tan grande se ve el logo en el header del home. Cuidado con "Grande" si tu logo es ancho: puede tapar la foto del hero.</p>
-                <div class="row">
-                  <div>
-                    <label>Tamaño</label>
-                    <select id="d-logo-tamano">
-                      <option value="pequeno">Pequeño</option>
-                      <option value="mediano" selected>Mediano (recomendado)</option>
-                      <option value="grande">Grande</option>
-                    </select>
-                  </div>
-                </div>
               </div>
 
               <div><button type="submit">Guardar cambios</button> <div class="msg" id="d-msg"></div></div>
