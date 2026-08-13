@@ -266,9 +266,14 @@
                 </div>
                 <div class="row">
                   <div><label>Subir imagen del círculo (opcional)</label><input id="d-promo-file" type="file" accept="image/*"></div>
-                  <div><label>O pega una URL de imagen</label><input id="d-promo-imagen" placeholder="https://.../promo-shots.jpg"></div>
+                  <div><label>O pega una URL de imagen (círculo)</label><input id="d-promo-imagen" placeholder="https://.../promo-shots.jpg"></div>
                 </div>
                 <p class="hint">Si dejas esto vacío, el círculo muestra solo la "Etiqueta circular" en texto (como ahora). Si subes una imagen, se muestra la imagen en vez del texto.</p>
+                <div class="row">
+                  <div><label>Subir foto de fondo de la promo (opcional)</label><input id="d-promo-bg-file" type="file" accept="image/*"></div>
+                  <div><label>O pega una URL de imagen (foto de fondo)</label><input id="d-promo-bg-imagen" placeholder="https://.../shots-fila.jpg"></div>
+                </div>
+                <p class="hint">Esta es la foto grande dentro del banner de promo (ej. la fila de 4 shots de la referencia). Es distinta de la imagen del círculo de arriba — son 2 imágenes separadas.</p>
               </div>
 
               <div><button type="submit">Guardar cambios</button> <div class="msg" id="d-msg"></div></div>
@@ -562,6 +567,8 @@ async function seleccionarNegocio(id) {
   $('#d-promo-horario').value = promo.horario || '';
   $('#d-promo-imagen').value = promo.imagen_url || '';
   $('#d-promo-file').value = '';
+  $('#d-promo-bg-imagen').value = promo.imagen_fondo_url || '';
+  $('#d-promo-bg-file').value = '';
 
   // Fix: antes esto ponía siempre la misma URL ("/slug"), así que si ya estaba
   // seleccionado ese negocio el navegador no recargaba el iframe (mismo src =
@@ -656,6 +663,17 @@ $('#form-datos').addEventListener('submit', async (e) => {
     promo_imagen_url = du.url;
   }
 
+  let promo_imagen_fondo_url = $('#d-promo-bg-imagen').value.trim() || null;
+  const promoBgFile = $('#d-promo-bg-file').files[0];
+  if (promoBgFile) {
+    const fd = new FormData();
+    fd.append('file', promoBgFile); fd.append('tenant_id', ACTIVO_ID); fd.append('carpeta', 'promo');
+    const ru = await fetch('/admin/api/upload', { method: 'POST', body: fd });
+    const du = await ru.json();
+    if (!ru.ok) { msg.textContent = du.error || 'Error al subir la foto de fondo de la promo'; msg.className = 'msg err'; return; }
+    promo_imagen_fondo_url = du.url;
+  }
+
   // Partimos del "contenido" ya guardado (tagline, hero_titulo, categorias, beneficios...)
   // y solo reemplazamos hero_imagen_url y promo, para no perder lo demás.
   const contenidoActual = (NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.contenido) || {};
@@ -668,7 +686,8 @@ $('#form-datos').addEventListener('submit', async (e) => {
       etiqueta: $('#d-promo-etiqueta').value.trim(),
       descripcion: $('#d-promo-descripcion').value.trim(),
       horario: $('#d-promo-horario').value.trim(),
-      imagen_url: promo_imagen_url
+      imagen_url: promo_imagen_url,
+      imagen_fondo_url: promo_imagen_fondo_url
     }
   };
 

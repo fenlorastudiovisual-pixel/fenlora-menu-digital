@@ -19,6 +19,7 @@
     --pink:#ff2d87;
     --white:#f5f5f7;
     --gray:#9a9aa5;
+    --text-on-bg:#ffffff;
     --border-cyan: rgba(34,211,245,.45);
     --border-pink: rgba(255,45,135,.45);
   }
@@ -203,7 +204,7 @@
     background:
       linear-gradient(var(--bg), var(--bg)) padding-box,
       linear-gradient(90deg,var(--cyan),var(--pink)) border-box;
-    color:#fff;
+    color:var(--white);
     font-weight:700;
     font-size:12.5px;
     letter-spacing:1.5px;
@@ -297,7 +298,7 @@
   .fav-card{ border-radius:14px; overflow:hidden; background:rgba(255,255,255,.015); transition:transform .15s ease; display:flex; flex-direction:column; }
   .fav-card.cyan{ border:1.5px solid var(--cyan); box-shadow:0 0 16px rgba(34,211,245,.28); }
   .fav-card.pink{ border:1.5px solid var(--pink); box-shadow:0 0 16px rgba(255,45,135,.28); }
-  .fav-img{ position:relative; height:120px; overflow:hidden; background-color:rgba(255,255,255,.03); }
+  .fav-img{ position:relative; height:120px; overflow:hidden; background-color:rgba(128,128,140,.12); }
   /* fav-body ahora es flex-column: nombre y descripción quedan pegados arriba,
      y fav-foot (precio + botón) se ancla siempre abajo con margin-top:auto,
      así ya no queda un vacío grande cuando la descripción es corta. */
@@ -307,7 +308,7 @@
   .fav-name.pink{ color:var(--pink); }
   .fav-desc{ font-size:11px; color:var(--gray); margin:3px 0 0; line-height:1.3; }
   .fav-foot{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
-  .fav-price{ font-size:13px; font-weight:800; color:#fff; }
+  .fav-price{ font-size:13px; font-weight:800; color:var(--white); }
   .add-btn{
     width:32px; height:32px; min-width:32px; border-radius:50%;
     border:1.5px solid var(--border-cyan);
@@ -757,7 +758,12 @@
         const color = i % 2 === 0 ? 'cyan' : 'pink';
         const card = document.createElement('div');
         card.className = `fav-card ${color}`;
-        const imgStyle = p.imagen_url ? `style="background-image:url('${p.imagen_url}');background-size:cover;background-position:center;"` : '';
+        // Fix: antes usaba background-size:cover, que siempre RECORTA la imagen
+        // para rellenar el cuadro completo — por eso se veían "exageradas" y
+        // no correspondían a la foto real. Ahora con "contain" siempre se ve
+        // la imagen COMPLETA, sin cortar nada; si sobra espacio a los lados
+        // se rellena con un tono neutro para que no se vea un vacío feo.
+        const imgStyle = p.imagen_url ? `style="background-image:url('${p.imagen_url}');background-size:contain;background-repeat:no-repeat;background-position:center;"` : '';
         card.innerHTML = `
           <div class="fav-img" ${imgStyle}></div>
           <div class="fav-body">
@@ -818,6 +824,23 @@
       if (data.tema.fondo) root.setProperty('--bg', data.tema.fondo);
       if (data.tema.acento2) root.setProperty('--cyan', data.tema.acento2);
       if (data.tema.acento1) root.setProperty('--pink', data.tema.acento1);
+
+      // Fix: el texto de toda la plantilla (--white) era un color casi blanco FIJO,
+      // sin importar el tema. En temas oscuros (granizados) se ve bien, pero en
+      // temas claros (café, fondo crema/blanco) el texto casi blanco se vuelve
+      // invisible: el botón "VER MENÚ", los nombres en "Nuestros Favoritos", las
+      // categorías, etc. Ahora se calcula el brillo real del color de fondo del
+      // negocio y se elige texto claro u oscuro según haga falta para que TODO
+      // el texto por defecto de la plantilla se siga leyendo bien, sin importar
+      // qué tan claro u oscuro sea el tema que elija cada negocio.
+      if (data.tema.fondo) {
+        const hex = data.tema.fondo.replace('#', '');
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        const brillo = (r * 299 + g * 587 + b * 114) / 1000; // percepción de luminosidad
+        root.setProperty('--white', brillo > 150 ? '#17171a' : '#f5f5f7');
+      }
 
       // Fix crítico: el markup trae 3 <span> de ejemplo (FRÍOS./INTENSOS./EXPLOSIVOS.)
       // como placeholder visual. Antes, si el hero_titulo del negocio tenía menos de
@@ -891,6 +914,19 @@
               badge.style.backgroundImage = '';
               badge.classList.remove('promo-badge-img');
               badge.textContent = promo.etiqueta;
+            }
+          }
+          // Fix: faltaba la foto real de fondo de la promo (distinta del círculo).
+          // Si el negocio sube una, reemplazamos los 4 vasitos de ilustración
+          // genérica por su foto real (ej. su propia fila de shots).
+          const promoShots = document.querySelector('.promo-shots');
+          if (promoShots) {
+            if (promo.imagen_fondo_url) {
+              promoShots.innerHTML = '';
+              promoShots.style.backgroundImage = `url('${promo.imagen_fondo_url}')`;
+              promoShots.style.backgroundSize = 'contain';
+              promoShots.style.backgroundRepeat = 'no-repeat';
+              promoShots.style.backgroundPosition = 'center';
             }
           }
         } else {
