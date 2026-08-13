@@ -265,6 +265,10 @@
                   <div><label>O pega una URL de imagen</label><input id="d-hero-imagen" placeholder="https://.../foto-hero.jpg"></div>
                 </div>
                 <img id="d-hero-preview" class="img-preview" alt="Vista previa del hero guardado">
+                <div class="row">
+                  <div><label>O usa un video de fondo en vez de foto (URL, opcional)</label><input id="d-hero-video" placeholder="https://.../hero-video.mp4"></div>
+                </div>
+                <p class="hint">Si pones una URL de video aquí, se reproduce en bucle y sin sonido de fondo, y tiene prioridad sobre la foto de arriba (no se muestran los dos a la vez).</p>
               </div>
 
               <div class="seccion">
@@ -290,8 +294,12 @@
                   <div><label>Subir foto de fondo de la promo (opcional)</label><input id="d-promo-bg-file" type="file" accept="image/*"></div>
                   <div><label>O pega una URL de imagen (foto de fondo)</label><input id="d-promo-bg-imagen" placeholder="https://.../shots-fila.jpg"></div>
                 </div>
-                <p class="hint">Esta es la foto grande dentro del banner de promo (ej. la fila de 4 shots de la referencia). Es distinta de la imagen del círculo de arriba — son 2 imágenes separadas.</p>
+                <p class="hint">Esta foto ahora cubre TODA la sección de la promo (de lado a lado, como el hero) — puedes subirla en 16:9, 4:3 o la proporción que quieras, siempre se rellena sin dejar huecos vacíos. Deja espacio oscuro/vacío de un lado en tu foto si quieres que el texto se lea cómodo ahí, como en tu referencia.</p>
                 <img id="d-promo-bg-preview" class="img-preview" alt="Vista previa de la foto de fondo guardada">
+                <div class="row">
+                  <div><label>O usa un video de fondo en vez de foto (URL, opcional)</label><input id="d-promo-bg-video" placeholder="https://.../promo-video.mp4"></div>
+                </div>
+                <p class="hint">Si pones una URL de video aquí, se reproduce en bucle y sin sonido de fondo, y tiene prioridad sobre la foto de arriba (no se muestran los dos a la vez).</p>
               </div>
 
               <div><button type="submit">Guardar cambios</button> <div class="msg" id="d-msg"></div></div>
@@ -579,6 +587,7 @@ async function seleccionarNegocio(id) {
   const promo = (t.contenido && t.contenido.promo) || {};
   $('#d-hero-imagen').value = (t.contenido && t.contenido.hero_imagen_url) || '';
   $('#d-hero-file').value = '';
+  $('#d-hero-video').value = (t.contenido && t.contenido.hero_video_url) || '';
   $('#d-promo-activa').checked = !!promo.activa;
   $('#d-promo-titulo').value = promo.titulo || '';
   $('#d-promo-etiqueta').value = promo.etiqueta || '';
@@ -588,6 +597,7 @@ async function seleccionarNegocio(id) {
   $('#d-promo-file').value = '';
   $('#d-promo-bg-imagen').value = promo.imagen_fondo_url || '';
   $('#d-promo-bg-file').value = '';
+  $('#d-promo-bg-video').value = promo.video_fondo_url || '';
 
   $('#d-logo-tamano').value = (t.contenido && t.contenido.logo_tamano) || 'mediano';
 
@@ -708,6 +718,7 @@ $('#form-datos').addEventListener('submit', async (e) => {
   const contenido = {
     ...contenidoActual,
     hero_imagen_url,
+    hero_video_url: $('#d-hero-video').value.trim() || null,
     logo_tamano: $('#d-logo-tamano').value,
     promo: {
       activa: $('#d-promo-activa').checked,
@@ -716,7 +727,8 @@ $('#form-datos').addEventListener('submit', async (e) => {
       descripcion: $('#d-promo-descripcion').value.trim(),
       horario: $('#d-promo-horario').value.trim(),
       imagen_url: promo_imagen_url,
-      imagen_fondo_url: promo_imagen_fondo_url
+      imagen_fondo_url: promo_imagen_fondo_url,
+      video_fondo_url: $('#d-promo-bg-video').value.trim() || null
     }
   };
 

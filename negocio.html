@@ -128,6 +128,12 @@
       radial-gradient(circle at 80% 70%, rgba(34,211,245,.35), transparent 55%),
       #050507;
   }
+  /* Video de fondo del hero (si el negocio sube un video en vez de foto) */
+  .hero-video{
+    position:absolute; inset:0; z-index:1;
+    width:100%; height:100%; object-fit:cover;
+    display:none;
+  }
   .hero-bg::after{
     content:'';
     position:absolute; inset:0;
@@ -282,22 +288,47 @@
     background:
       radial-gradient(circle at 100% 0%, rgba(34,211,245,.12), transparent 55%),
       rgba(255,255,255,.015);
+    background-size:cover;
+    background-position:center;
     overflow:hidden;
     box-shadow:0 0 22px rgba(34,211,245,.3), inset 0 0 20px rgba(34,211,245,.05);
   }
+  /* Fix: la foto de fondo de la promo antes se metía apachurrada en una
+     cajita chica a la derecha (.promo-shots). Ahora, igual que el hero,
+     la imagen cubre TODA la sección de lado a lado — funciona con
+     cualquier foto (16:9, 4:3, la que sea) porque "cover" siempre rellena
+     el espacio completo sin dejar huecos, sin importar la proporción
+     original. Se agrega un degradado oscuro por debajo del texto para
+     que siga leyéndose bien encima de la foto, sin importar qué tan clara
+     o con qué colores sea la imagen que suba cada negocio.
+  */
+  .promo.promo-con-foto::before{
+    content:'';
+    position:absolute; inset:0;
+    background:linear-gradient(90deg, rgba(6,6,9,.94) 0%, rgba(6,6,9,.75) 45%, rgba(6,6,9,.15) 100%);
+    z-index:1;
+  }
   .promo-top{
+    position:relative; z-index:2;
     display:flex; align-items:center; gap:6px;
     font-size:11px; font-weight:700; letter-spacing:1px; color:var(--pink);
     margin-bottom:6px;
   }
-  .promo-row{ display:flex; justify-content:space-between; align-items:flex-end; }
+  .promo-row{ position:relative; z-index:2; display:flex; justify-content:space-between; align-items:flex-end; }
   .promo-left .num{ font-family:'Arial Black',Impact,sans-serif; font-size:44px; color:#fff; line-height:1; }
   .promo-left .desc{ font-family:'Arial Black',Impact,sans-serif; font-size:19px; color:var(--pink); line-height:1.15; margin-top:4px; }
   .promo-left .time{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--gray); margin-top:10px; }
-  .promo-shots{ display:flex; gap:6px; align-items:flex-end; min-width:120px; min-height:78px; flex-shrink:0; border-radius:10px; overflow:hidden; }
+  .promo-shots{ display:flex; gap:6px; align-items:flex-end; min-width:120px; min-height:78px; flex-shrink:0; }
   .mini-shot{ width:26px; height:70px; border-radius:3px 3px 10px 10px; border:1px solid rgba(255,255,255,.25); }
+  .promo.promo-con-foto .promo-shots{ display:none; }
+  /* Video de fondo de la promo (si el negocio sube un video en vez de foto) */
+  .promo-video{
+    position:absolute; inset:0; z-index:0;
+    width:100%; height:100%; object-fit:cover;
+    display:none;
+  }
   .promo-badge{
-    position:absolute; top:14px; right:14px;
+    position:absolute; top:14px; right:14px; z-index:2;
     width:60px; height:60px; border-radius:50%;
     border:1.5px solid var(--cyan);
     display:flex; align-items:center; justify-content:center;
@@ -337,7 +368,13 @@
   .fav-name.cyan{ color:var(--cyan); }
   .fav-name.pink{ color:var(--pink); }
   .fav-desc{ font-size:11px; color:var(--gray); margin:3px 0 0; line-height:1.3; }
-  .fav-foot{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
+  /* Fix: antes esto tenía "margin-top:8px" fijo, así que si una tarjeta tenía
+     descripción de 2 líneas y la de al lado 1 línea, el precio quedaba a
+     distinta altura (el espacio sobrante quedaba DEBAJO del precio en vez de
+     empujarlo hacia abajo). "margin-top:auto" ahora ancla el precio+botón
+     siempre al borde inferior de la tarjeta, sin importar cuánto texto tenga
+     el nombre o la descripción — así todos quedan a la misma altura entre sí. */
+  .fav-foot{ display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:8px; }
   .fav-price{ font-size:13px; font-weight:800; color:var(--white); }
   .add-btn{
     width:32px; height:32px; min-width:32px; border-radius:50%;
@@ -576,6 +613,7 @@
   <!-- ============ HERO (header + imagen + texto, todo en 1 bloque) ============ -->
   <section class="hero-wrap">
     <div class="hero-bg" id="heroBg">
+      <video class="hero-video" id="heroVideo" muted loop playsinline autoplay></video>
       <div class="hero-scene" id="heroScene">
         <div class="granizado-cup">
           <div class="straw"></div>
@@ -635,6 +673,7 @@
 
   <!-- PROMO -->
   <section class="promo" id="promoSection">
+    <video class="promo-video" id="promoVideo" muted loop playsinline autoplay></video>
     <div class="promo-badge" id="promoEtiqueta">TODOS<br>LOS<br>SHOTS</div>
     <div class="promo-top">⚡ PROMO DEL DÍA ⚡</div>
     <div class="promo-row">
@@ -926,11 +965,20 @@
         if (featStrongs[i]) featStrongs[i].textContent = texto.toUpperCase();
       });
 
-      // Imagen principal (hero): si el negocio cargó una foto real, la usamos de fondo
-      // y ocultamos la ilustración genérica de la plantilla.
-      if (data.contenido.hero_imagen_url) {
-        const heroBg = document.getElementById('heroBg');
-        const heroScene = document.getElementById('heroScene');
+      // Imagen o video principal (hero): si el negocio cargó un video, tiene
+      // prioridad sobre la foto (igual criterio que en la promo). Si no hay
+      // ni video ni foto, se queda la ilustración genérica de la plantilla.
+      const heroBg = document.getElementById('heroBg');
+      const heroScene = document.getElementById('heroScene');
+      const heroVideo = document.getElementById('heroVideo');
+      if (heroVideo) heroVideo.style.display = 'none';
+      if (heroBg) heroBg.style.backgroundImage = '';
+
+      if (data.contenido.hero_video_url && heroVideo) {
+        heroVideo.src = data.contenido.hero_video_url;
+        heroVideo.style.display = 'block';
+        if (heroScene) heroScene.style.display = 'none';
+      } else if (data.contenido.hero_imagen_url) {
         if (heroBg) {
           heroBg.style.backgroundImage = `url('${data.contenido.hero_imagen_url}')`;
           heroBg.style.backgroundSize = 'cover';
@@ -965,18 +1013,24 @@
               badge.textContent = promo.etiqueta;
             }
           }
-          // Fix: faltaba la foto real de fondo de la promo (distinta del círculo).
-          // Si el negocio sube una, reemplazamos los 4 vasitos de ilustración
-          // genérica por su foto real (ej. su propia fila de shots).
-          const promoShots = document.querySelector('.promo-shots');
-          if (promoShots) {
-            if (promo.imagen_fondo_url) {
-              promoShots.innerHTML = '';
-              promoShots.style.backgroundImage = `url('${promo.imagen_fondo_url}')`;
-              promoShots.style.backgroundSize = 'contain';
-              promoShots.style.backgroundRepeat = 'no-repeat';
-              promoShots.style.backgroundPosition = 'center';
-            }
+          // Fix de fondo: la foto/video de la promo ahora cubre TODA la
+          // sección (igual que el hero), no una cajita chica a un lado.
+          // Si hay video, tiene prioridad sobre la imagen. Si hay imagen,
+          // se pone como fondo del <section> completo con "cover" — así
+          // cualquier proporción (16:9, 4:3, la que sea) rellena el
+          // espacio sin dejar huecos vacíos.
+          const promoVideo = document.getElementById('promoVideo');
+          promoSection.classList.remove('promo-con-foto');
+          promoSection.style.backgroundImage = '';
+          if (promoVideo) promoVideo.style.display = 'none';
+
+          if (promo.video_fondo_url && promoVideo) {
+            promoVideo.src = promo.video_fondo_url;
+            promoVideo.style.display = 'block';
+            promoSection.classList.add('promo-con-foto');
+          } else if (promo.imagen_fondo_url) {
+            promoSection.style.backgroundImage = `url('${promo.imagen_fondo_url}')`;
+            promoSection.classList.add('promo-con-foto');
           }
         } else {
           promoSection.style.display = 'none';
