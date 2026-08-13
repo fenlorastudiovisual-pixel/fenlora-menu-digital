@@ -85,26 +85,31 @@
   .logo-slot{
     flex:1;
     display:flex;
-    align-items:center;
+    align-items:flex-start;
     justify-content:center;
-    height:96px;
   }
   .logo-slot img{
-    height:100%;
+    height:84px;
     width:auto;
-    max-width:220px;
+    max-width:190px;
+    /* Fix: antes el logo quedaba pegado justo al ras de arriba, encima de los
+       íconos. En la referencia hay un aire visible debajo del ícono de
+       hamburguesa antes de que empiece el logo — este margen replica eso. */
+    margin-top:14px;
     object-fit:contain;
     filter:drop-shadow(0 4px 18px rgba(0,0,0,.7)) drop-shadow(0 0 22px rgba(255,45,135,.25));
   }
   /* Tamaño de logo configurable desde el admin. "Mediano" es el tamaño de
-     siempre (96px). "Pequeño" y "Grande" lo ajustan sin mover el resto del
-     header (la topbar es absoluta sobre el hero, así que esto es 100% seguro
-     y nunca descuadra el layout). "Grande" tiene un tope de ancho más bajo
-     para cuidar que no tape demasiado la foto del hero, como se pidió. */
-  .logo-slot.logo-pequeno{ height:64px; }
-  .logo-slot.logo-pequeno img{ max-width:150px; }
-  .logo-slot.logo-grande{ height:132px; }
-  .logo-slot.logo-grande img{ max-width:260px; }
+     siempre. "Pequeño" y "Grande" lo ajustan sin mover el resto del header
+     (la topbar es absoluta sobre el hero). Fix: "Grande" antes casi no se
+     notaba — ahora es un salto real de tamaño, como pide la referencia.
+     Cuando se elige "Grande", el bloque de texto del hero también baja un
+     poco más (ver regla con :has() más abajo) para que nunca se encimen. */
+  .logo-slot.logo-pequeno img{ height:58px; max-width:140px; margin-top:8px; }
+  .logo-slot.logo-grande img{ height:130px; max-width:260px; margin-top:18px; }
+  /* Compensación en móvil: con logo "Grande" (14+18+130≈162px) el texto del
+     hero necesita más aire arriba para no encimarse con el logo. */
+  .hero-wrap:has(.logo-grande) .hero-content{ padding-top:176px; }
   .header-spacer{ width:40px; flex-shrink:0; } /* balancea el hamburguesa para centrar el logo */
 
   /* ===================================================
@@ -482,8 +487,17 @@
     .hero-wrap{ height:520px; }
     .hero-headline{ font-size:40px; }
     .hero-content{ max-width:400px; padding:140px 30px 30px; }
-    .logo-slot{ height:112px; }
-    .logo-slot img{ max-width:270px; }
+  /* Fix: esta regla usaba el selector genérico ".logo-slot img", que por venir
+     después en el CSS (y aplicar siempre) le ganaba a las clases de tamaño
+     (.logo-pequeno/.logo-grande) y las dejaba sin efecto en pantallas anchas
+     — por eso "Grande" no se notaba en desktop. Ahora cada tamaño tiene su
+     propia regla también para escritorio. */
+  .logo-slot img{ height:105px; max-width:250px; margin-top:20px; }
+  .logo-slot.logo-pequeno img{ height:72px; max-width:170px; margin-top:12px; }
+  .logo-slot.logo-grande img{ height:175px; max-width:340px; margin-top:26px; }
+  /* Cuando el logo es "Grande", el texto del hero necesita más aire arriba
+     para no encimarse con un logo más alto. */
+  .hero-wrap:has(.logo-grande) .hero-content{ padding-top:225px; }
     .hero-copy{ font-size:15px; }
     .granizado-cup{ width:190px; height:280px; }
     .shot-glass{ width:74px; height:230px; }
