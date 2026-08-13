@@ -1,0 +1,17 @@
+﻿# Wrangler NO excluye esto automáticamente (no lee .gitignore).
+# Cualquier archivo que NO esté aquí se sube como asset público del sitio.
+
+# Control de versiones y config interna — nunca deben ser públicos
+.git/
+.gitignore
+.wrangler/
+node_modules/
+
+# Carpeta sobrante de una sesión vieja, no es parte del sitio
+mnt/
+
+# Migraciones de base de datos y documentación interna — no son del sitio público
+*.sql
+README.md
+README-ADMIN.md
+wrangler.toml
