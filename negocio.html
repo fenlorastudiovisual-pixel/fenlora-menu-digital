@@ -38,7 +38,17 @@
     padding-bottom:88px;
     background:var(--bg);
     overflow-x:hidden;
+    /* Fix: antes se veía primero la plantilla genérica (FREEZE, texto de ejemplo)
+       y milisegundos después aparecían los datos reales del negocio — un
+       "parpadeo" feo. Ahora la página empieza invisible y solo se muestra
+       (con un fundido suave) una vez que ya se aplicaron los datos reales,
+       o como máximo 1.2s después por seguridad si la red está muy lenta,
+       para nunca dejar la pantalla en blanco indefinidamente.
+    */
+    opacity:0;
+    transition:opacity .25s ease;
   }
+  body.loaded{ opacity:1; }
   a{text-decoration:none; color:inherit;}
   button{font-family:inherit; cursor:pointer;}
   img{display:block; max-width:100%;}
@@ -86,6 +96,15 @@
     object-fit:contain;
     filter:drop-shadow(0 4px 18px rgba(0,0,0,.7)) drop-shadow(0 0 22px rgba(255,45,135,.25));
   }
+  /* Tamaño de logo configurable desde el admin. "Mediano" es el tamaño de
+     siempre (96px). "Pequeño" y "Grande" lo ajustan sin mover el resto del
+     header (la topbar es absoluta sobre el hero, así que esto es 100% seguro
+     y nunca descuadra el layout). "Grande" tiene un tope de ancho más bajo
+     para cuidar que no tape demasiado la foto del hero, como se pidió. */
+  .logo-slot.logo-pequeno{ height:64px; }
+  .logo-slot.logo-pequeno img{ max-width:150px; }
+  .logo-slot.logo-grande{ height:132px; }
+  .logo-slot.logo-grande img{ max-width:260px; }
   .header-spacer{ width:40px; flex-shrink:0; } /* balancea el hamburguesa para centrar el logo */
 
   /* ===================================================
@@ -298,7 +317,13 @@
   .fav-card{ border-radius:14px; overflow:hidden; background:rgba(255,255,255,.015); transition:transform .15s ease; display:flex; flex-direction:column; }
   .fav-card.cyan{ border:1.5px solid var(--cyan); box-shadow:0 0 16px rgba(34,211,245,.28); }
   .fav-card.pink{ border:1.5px solid var(--pink); box-shadow:0 0 16px rgba(255,45,135,.28); }
-  .fav-img{ position:relative; height:120px; overflow:hidden; background-color:rgba(128,128,140,.12); }
+  /* Fix: "contain" mostraba la imagen completa pero dejaba espacios vacíos a
+     los lados si la foto no era exactamente cuadrada. Para que se vea como
+     la referencia (foto de borde a borde, sin vacíos), usamos una proporción
+     FIJA (1:1, cuadrada) + "cover". El admin ahora indica ese formato exacto
+     para que subas la foto ya recortada a esa proporción y no se pierda nada
+     importante al rellenar el cuadro. */
+  .fav-img{ position:relative; aspect-ratio:1/1; height:auto; overflow:hidden; background-color:rgba(128,128,140,.12); }
   /* fav-body ahora es flex-column: nombre y descripción quedan pegados arriba,
      y fav-foot (precio + botón) se ancla siempre abajo con margin-top:auto,
      así ya no queda un vacío grande cuando la descripción es corta. */
@@ -335,30 +360,35 @@
     border:1.5px solid var(--pink);
     border-radius:16px;
     display:grid;
-    grid-template-columns:repeat(2,1fr);
+    grid-template-columns:repeat(4,1fr);
     background:rgba(255,255,255,.015);
     overflow:hidden;
     box-shadow:0 0 18px rgba(255,45,135,.25), inset 0 0 18px rgba(255,45,135,.04);
   }
-  .feature{ display:flex; align-items:center; gap:10px; padding:16px 12px; border-bottom:1px solid rgba(255,45,135,.22); }
-  .feature:nth-child(odd){ border-right:1px solid rgba(255,45,135,.22); }
-  .feature:nth-last-child(-n+2){ border-bottom:none; }
+  /* Fix: en móvil esto ocupaba demasiado espacio vertical (2 filas de íconos
+     grandes con texto al lado). Ahora, igual que en la referencia, las 4
+     casillas van SIEMPRE en una sola fila compacta (ícono arriba, texto
+     abajo, todo más chico) — desde el celular más angosto hasta tablet. */
+  .feature{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:5px; padding:10px 4px; }
+  .feature:not(:last-child){ border-right:1px solid rgba(255,45,135,.22); }
   .feature-ic{
-    width:36px; height:36px; border-radius:50%;
+    width:28px; height:28px; border-radius:50%;
     border:1.5px solid var(--cyan); color:var(--cyan);
     display:flex; align-items:center; justify-content:center; flex-shrink:0;
     box-shadow:0 0 9px currentColor;
   }
-  .feature-ic svg{ width:16px; height:16px; }
+  .feature-ic svg{ width:13px; height:13px; }
   .feature:nth-child(2) .feature-ic, .feature:nth-child(4) .feature-ic{ border-color:var(--pink); color:var(--pink); }
-  .feature-text strong{ display:block; font-size:10.5px; letter-spacing:.3px; }
-  .feature-text span{ display:block; font-size:9.5px; color:var(--gray); margin-top:2px; }
+  .feature-text strong{ display:block; font-size:8.5px; letter-spacing:.2px; line-height:1.15; }
+  .feature-text span{ display:block; font-size:7.5px; color:var(--gray); margin-top:2px; line-height:1.2; }
 
-  /* Tablet+: los 4 beneficios en una sola fila, como la referencia ancha */
+  /* Tablet+: más aire, ícono más grande, texto al lado en vez de abajo */
   @media (min-width:640px){
-    .features{ grid-template-columns:repeat(4,1fr); }
-    .feature{ border-bottom:none !important; flex-direction:row; }
-    .feature:not(:last-child){ border-right:1px solid rgba(255,45,135,.22) !important; }
+    .feature{ flex-direction:row; padding:16px 12px; gap:10px; text-align:left; }
+    .feature-ic{ width:36px; height:36px; }
+    .feature-ic svg{ width:16px; height:16px; }
+    .feature-text strong{ font-size:10.5px; }
+    .feature-text span{ font-size:9.5px; }
   }
 
   /* ===================================================
@@ -458,7 +488,7 @@
     .granizado-cup{ width:190px; height:280px; }
     .shot-glass{ width:74px; height:230px; }
     .fav-grid{ grid-template-columns:repeat(4,1fr); gap:14px; }
-    .fav-img{ height:150px; }
+    /* aspect-ratio:1/1 ya se encarga de mantenerlo cuadrado en cualquier tamaño de pantalla */
     .categories{ border-radius:18px; }
     .cat{ padding:18px 16px; }
     nav.bottom-nav{ padding-bottom:calc(14px + env(safe-area-inset-bottom)); }
@@ -758,12 +788,7 @@
         const color = i % 2 === 0 ? 'cyan' : 'pink';
         const card = document.createElement('div');
         card.className = `fav-card ${color}`;
-        // Fix: antes usaba background-size:cover, que siempre RECORTA la imagen
-        // para rellenar el cuadro completo — por eso se veían "exageradas" y
-        // no correspondían a la foto real. Ahora con "contain" siempre se ve
-        // la imagen COMPLETA, sin cortar nada; si sobra espacio a los lados
-        // se rellena con un tono neutro para que no se vea un vacío feo.
-        const imgStyle = p.imagen_url ? `style="background-image:url('${p.imagen_url}');background-size:contain;background-repeat:no-repeat;background-position:center;"` : '';
+        const imgStyle = p.imagen_url ? `style="background-image:url('${p.imagen_url}');background-size:cover;background-position:center;"` : '';
         card.innerHTML = `
           <div class="fav-img" ${imgStyle}></div>
           <div class="fav-body">
@@ -796,6 +821,16 @@
         if (data.logo_url) { img.src = data.logo_url; img.style.display = ''; }
         else { img.style.display = 'none'; } // sin logo cargado todavía: no mostramos ícono roto
       });
+
+      // Tamaño de logo elegido en el admin (pequeño/mediano/grande).
+      const logoSlot = document.querySelector('.logo-slot');
+      if (logoSlot) {
+        logoSlot.classList.remove('logo-pequeno', 'logo-grande');
+        const tam = data.contenido.logo_tamano;
+        if (tam === 'pequeno') logoSlot.classList.add('logo-pequeno');
+        else if (tam === 'grande') logoSlot.classList.add('logo-grande');
+        // "mediano" (o sin valor) no agrega clase = tamaño de siempre.
+      }
 
       // "Ver Menú" y "Ver Todos" llevan al catálogo completo de este negocio
       const linkMenu = `/${getTenantSlug()}/menu`;
@@ -940,7 +975,13 @@
     fetch(`/menu/${getTenantSlug()}`)
       .then(r => r.ok ? r.json() : Promise.reject(new Error('Negocio no encontrado')))
       .then(aplicarTenant)
-      .catch(err => console.warn('No se pudo cargar la configuración del negocio:', err));
+      .catch(err => console.warn('No se pudo cargar la configuración del negocio:', err))
+      .finally(() => document.body.classList.add('loaded'));
+
+    // Red de seguridad: si por algún motivo el fetch nunca resuelve (conexión
+    // muy lenta o colgada), igual mostramos la página después de 1.2s con lo
+    // que haya cargado, en vez de dejarla invisible para siempre.
+    setTimeout(() => document.body.classList.add('loaded'), 1200);
 
     // ---- Drawer (menú hamburguesa) ----
     const drawer = document.getElementById('drawer');
