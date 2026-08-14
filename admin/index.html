@@ -306,6 +306,60 @@
                 <p class="hint">Si pones una URL de video aquí, se reproduce en bucle y sin sonido de fondo, y tiene prioridad sobre la foto de arriba (no se muestran los dos a la vez).</p>
               </div>
 
+              <div class="seccion">
+                <h3>📝 Textos del Home</h3>
+                <p class="hint">Título grande del hero — hasta 3 frases, una por línea (ej. "Fríos." / "Intensos." / "Explosivos."). Si pones menos de 3, las demás simplemente no aparecen.</p>
+                <textarea id="d-hero-titulo" rows="3" placeholder="Frase 1&#10;Frase 2&#10;Frase 3" style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;"></textarea>
+                <div class="row" style="margin-top:10px;">
+                  <div><label>Subtítulo del hero</label><input id="d-tagline" placeholder="Ej: Granizados helados y shots que encienden tu momento."></div>
+                  <div><label>Texto del botón principal</label><input id="d-hero-boton" placeholder="Ej: VER MENÚ"></div>
+                </div>
+                <div class="row">
+                  <div><label>Tamaño del texto del hero</label>
+                    <select id="d-hero-titulo-tamano">
+                      <option value="auto" selected>Automático (recomendado)</option>
+                      <option value="pequeno">Pequeño</option>
+                      <option value="mediano">Mediano</option>
+                      <option value="grande">Grande</option>
+                    </select>
+                  </div>
+                  <div><label>Tipografía de los títulos</label>
+                    <select id="d-fuente-titulo">
+                      <option value="default" selected>Por defecto (Arial Black)</option>
+                      <option value="Poppins">Poppins (redondeada, moderna)</option>
+                      <option value="Montserrat">Montserrat (geométrica, limpia)</option>
+                      <option value="Playfair Display">Playfair Display (elegante, serif)</option>
+                      <option value="Bebas Neue">Bebas Neue (condensada, impacto)</option>
+                      <option value="Oswald">Oswald (condensada, moderna)</option>
+                      <option value="Pacifico">Pacifico (manuscrita, casual)</option>
+                      <option value="Raleway">Raleway (fina, minimalista)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <p class="hint" style="margin-top:16px;">Título y texto "Ver todos" de la sección de destacados del home.</p>
+                <div class="row">
+                  <div><label>Título de la sección</label><input id="d-fav-titulo" placeholder="Ej: NUESTROS FAVORITOS"></div>
+                  <div><label>Texto del enlace "ver más"</label><input id="d-fav-vertodos" placeholder="Ej: VER TODOS"></div>
+                </div>
+
+                <p class="hint" style="margin-top:16px;">Etiquetas de los 3 botones de la barra inferior.</p>
+                <div class="row">
+                  <div><label>Botón izquierdo</label><input id="d-nav-inicio" placeholder="Ej: Inicio"></div>
+                  <div><label>Botón central (mesero)</label><input id="d-nav-mesero" placeholder="Ej: Mesero"></div>
+                </div>
+                <div class="row">
+                  <div><label>Botón derecho</label><input id="d-nav-pedidos" placeholder="Ej: Pedidos"></div>
+                </div>
+
+                <p class="hint" style="margin-top:16px;">Categorías (pastillas debajo del hero). Puedes tener entre 2 y 6.</p>
+                <div id="d-categorias-lista"></div>
+                <button type="button" id="d-cat-agregar" class="secondary" style="margin-top:6px;">+ Agregar categoría</button>
+
+                <p class="hint" style="margin-top:16px;">Los 4 recuadros de beneficios (franja debajo de "Nuestros Favoritos").</p>
+                <div id="d-beneficios-lista"></div>
+              </div>
+
               <div><button type="submit">Guardar cambios</button> <div class="msg" id="d-msg"></div></div>
             </form>
 
@@ -561,6 +615,67 @@ document.querySelectorAll('.subtab').forEach(btn => {
   });
 });
 
+// ===================================================
+// TEXTOS DEL HOME: categorías y beneficios (filas dinámicas)
+// ===================================================
+// Antes, categorías y beneficios solo se llenaban al crear el negocio (con
+// el texto de ejemplo del nicho elegido) y no había forma de editarlos
+// después. Estas funciones dibujan filas editables (nombre + descripción)
+// y permiten agregar/quitar categorías (los beneficios son siempre 4, por
+// el diseño fijo de esa franja en el home).
+
+function renderizarCategoriasForm(nombres, descs) {
+  const wrap = $('#d-categorias-lista');
+  if (!nombres.length) nombres = ['', ''];
+  wrap.innerHTML = nombres.map((nombre, i) => `
+    <div class="row cat-row" style="align-items:flex-end;margin-bottom:6px;">
+      <div><label>${i === 0 ? 'Nombre categoría' : ''}</label><input class="cat-nombre" value="${(nombre || '').replace(/"/g, '&quot;')}" placeholder="Ej: Granizados"></div>
+      <div><label>${i === 0 ? 'Descripción corta' : ''}</label><input class="cat-desc" value="${(descs[i] || '').replace(/"/g, '&quot;')}" placeholder="Ej: Helados, frutales y refrescantes."></div>
+      <div style="flex:0;"><button type="button" class="secondary cat-quitar" ${nombres.length <= 2 ? 'disabled title="Mínimo 2 categorías"' : ''}>✕</button></div>
+    </div>
+  `).join('');
+  wrap.querySelectorAll('.cat-quitar').forEach(btn => {
+    btn.addEventListener('click', () => { btn.closest('.cat-row').remove(); });
+  });
+}
+
+$('#d-cat-agregar').addEventListener('click', () => {
+  const wrap = $('#d-categorias-lista');
+  const filas = wrap.querySelectorAll('.cat-row').length;
+  if (filas >= 6) { alert('Máximo 6 categorías.'); return; }
+  const nombresActuales = Array.from(wrap.querySelectorAll('.cat-nombre')).map(i => i.value);
+  const descsActuales = Array.from(wrap.querySelectorAll('.cat-desc')).map(i => i.value);
+  nombresActuales.push(''); descsActuales.push('');
+  renderizarCategoriasForm(nombresActuales, descsActuales);
+});
+
+function leerCategoriasForm() {
+  const wrap = $('#d-categorias-lista');
+  const nombres = Array.from(wrap.querySelectorAll('.cat-nombre')).map(i => i.value.trim());
+  const descs = Array.from(wrap.querySelectorAll('.cat-desc')).map(i => i.value.trim());
+  const categorias = [], categorias_desc = [];
+  nombres.forEach((n, i) => { if (n) { categorias.push(n); categorias_desc.push(descs[i] || ''); } });
+  return { categorias, categorias_desc };
+}
+
+function renderizarBeneficiosForm(nombres, descs) {
+  const wrap = $('#d-beneficios-lista');
+  const base = [0, 1, 2, 3];
+  wrap.innerHTML = base.map(i => `
+    <div class="row" style="align-items:flex-end;margin-bottom:6px;">
+      <div><label>${i === 0 ? 'Nombre' : ''}</label><input class="ben-nombre" value="${(nombres[i] || '').replace(/"/g, '&quot;')}" placeholder="Ej: Delivery exprés"></div>
+      <div><label>${i === 0 ? 'Descripción corta' : ''}</label><input class="ben-desc" value="${(descs[i] || '').replace(/"/g, '&quot;')}" placeholder="Ej: Ingredientes de calidad"></div>
+    </div>
+  `).join('');
+}
+
+function leerBeneficiosForm() {
+  const wrap = $('#d-beneficios-lista');
+  const nombres = Array.from(wrap.querySelectorAll('.ben-nombre')).map(i => i.value.trim());
+  const descs = Array.from(wrap.querySelectorAll('.ben-desc')).map(i => i.value.trim());
+  return { beneficios: nombres, beneficios_desc: descs };
+}
+
 async function seleccionarNegocio(id) {
   ACTIVO_ID = id;
   const r = await fetch(`/admin/api/tenants/${encodeURIComponent(id)}`);
@@ -588,6 +703,21 @@ async function seleccionarNegocio(id) {
   $('#d-color-acento2').value = tema.acento2 || '#00e5ff';
   $('#d-sin-neon').checked = !!(t.contenido && t.contenido.sin_neon);
   $('#d-logo-file').value = '';
+
+  // Textos del Home (bloque nuevo)
+  const c = t.contenido || {};
+  $('#d-hero-titulo').value = c.hero_titulo || '';
+  $('#d-tagline').value = c.tagline || '';
+  $('#d-hero-boton').value = c.hero_boton_texto || '';
+  $('#d-hero-titulo-tamano').value = c.hero_titulo_tamano || 'auto';
+  $('#d-fuente-titulo').value = c.fuente_titulo || 'default';
+  $('#d-fav-titulo').value = c.favoritos_titulo || '';
+  $('#d-fav-vertodos').value = c.favoritos_ver_todos || '';
+  $('#d-nav-inicio').value = c.nav_inicio_texto || '';
+  $('#d-nav-mesero').value = c.nav_mesero_texto || '';
+  $('#d-nav-pedidos').value = c.nav_pedidos_texto || '';
+  renderizarCategoriasForm(c.categorias || [], c.categorias_desc || []);
+  renderizarBeneficiosForm(c.beneficios || [], c.beneficios_desc || []);
 
   const promo = (t.contenido && t.contenido.promo) || {};
   $('#d-hero-imagen').value = (t.contenido && t.contenido.hero_imagen_url) || '';
@@ -720,12 +850,29 @@ $('#form-datos').addEventListener('submit', async (e) => {
   // Partimos del "contenido" ya guardado (tagline, hero_titulo, categorias, beneficios...)
   // y solo reemplazamos hero_imagen_url y promo, para no perder lo demás.
   const contenidoActual = (NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.contenido) || {};
+  const { categorias, categorias_desc } = leerCategoriasForm();
+  const { beneficios, beneficios_desc } = leerBeneficiosForm();
   const contenido = {
     ...contenidoActual,
     hero_imagen_url,
     hero_video_url: $('#d-hero-video').value.trim() || null,
     logo_tamano: $('#d-logo-tamano').value,
     sin_neon: $('#d-sin-neon').checked,
+    // Textos del Home
+    hero_titulo: $('#d-hero-titulo').value.trim() || contenidoActual.hero_titulo,
+    tagline: $('#d-tagline').value.trim() || contenidoActual.tagline,
+    hero_boton_texto: $('#d-hero-boton').value.trim() || null,
+    hero_titulo_tamano: $('#d-hero-titulo-tamano').value,
+    fuente_titulo: $('#d-fuente-titulo').value,
+    favoritos_titulo: $('#d-fav-titulo').value.trim() || null,
+    favoritos_ver_todos: $('#d-fav-vertodos').value.trim() || null,
+    nav_inicio_texto: $('#d-nav-inicio').value.trim() || null,
+    nav_mesero_texto: $('#d-nav-mesero').value.trim() || null,
+    nav_pedidos_texto: $('#d-nav-pedidos').value.trim() || null,
+    categorias: categorias.length ? categorias : contenidoActual.categorias,
+    categorias_desc: categorias.length ? categorias_desc : contenidoActual.categorias_desc,
+    beneficios,
+    beneficios_desc,
     promo: {
       activa: $('#d-promo-activa').checked,
       titulo: $('#d-promo-titulo').value.trim(),

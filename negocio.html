@@ -22,6 +22,7 @@
     --text-on-bg:#ffffff;
     --border-cyan: rgba(34,211,245,.45);
     --border-pink: rgba(255,45,135,.45);
+    --font-titulos:'Arial Black', Impact, sans-serif;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   html,body{
@@ -212,7 +213,7 @@
     max-width:280px;
   }
   .hero-headline{
-    font-family:'Arial Black', Impact, sans-serif;
+    font-family:var(--font-titulos);
     font-size:30px;
     line-height:1.08;
     letter-spacing:.3px;
@@ -222,8 +223,12 @@
      "FRÍOS. INTENSOS. EXPLOSIVOS." Con un texto largo (como el de café:
      "Disfruta lo simple, disfruta lo extraordinario.") se desbordaba y se
      veía apretado/ilegible, sobre todo en pantallas anchas. Ahora, si el
-     texto total es largo, se aplica automáticamente un tamaño más chico. */
+     texto total es largo, se aplica automáticamente un tamaño más chico —
+     y el negocio también puede forzar un tamaño manual desde el admin. */
   .hero-headline.texto-largo{ font-size:24px; line-height:1.15; }
+  .hero-headline.tam-pequeno{ font-size:22px !important; line-height:1.15; }
+  .hero-headline.tam-mediano{ font-size:30px !important; line-height:1.08; }
+  .hero-headline.tam-grande{ font-size:36px !important; line-height:1.05; }
   .hero-headline .l1{color:var(--cyan); text-shadow:0 0 18px rgba(34,211,245,.5);}
   .hero-headline .l2{color:#fff; display:block;}
   .hero-headline .l3{color:var(--pink); display:block; text-shadow:0 0 18px rgba(255,45,135,.55);}
@@ -367,9 +372,9 @@
      adapta al tema por defecto, y solo se fuerza blanco cuando SÍ hay foto.
      También se bajó el tamaño y se permite partir palabras largas, para que
      un título tipo "Día perfecto" no se desborde como sí pasaba con "2X1". */
-  .promo-left .num{ font-family:'Arial Black',Impact,sans-serif; font-size:32px; color:var(--white); line-height:1.1; overflow-wrap:break-word; max-width:220px; }
+  .promo-left .num{ font-family:var(--font-titulos); font-size:32px; color:var(--white); line-height:1.1; overflow-wrap:break-word; max-width:220px; }
   .promo.promo-con-foto .promo-left .num{ color:#fff; }
-  .promo-left .desc{ font-family:'Arial Black',Impact,sans-serif; font-size:16px; color:var(--pink); line-height:1.2; margin-top:4px; overflow-wrap:break-word; max-width:220px; }
+  .promo-left .desc{ font-family:var(--font-titulos); font-size:16px; color:var(--pink); line-height:1.2; margin-top:4px; overflow-wrap:break-word; max-width:220px; }
   .promo-left .time{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--gray); margin-top:10px; }
   .promo-shots{ display:flex; gap:6px; align-items:flex-end; min-width:120px; min-height:78px; flex-shrink:0; }
   .mini-shot{ width:26px; height:70px; border-radius:3px 3px 10px 10px; border:1px solid rgba(255,255,255,.25); }
@@ -399,7 +404,7 @@
      FAVORITOS
      =================================================== */
   .section-head{ display:flex; justify-content:space-between; align-items:center; margin:0 18px 14px; }
-  .section-head h2{ font-family:'Arial Black',Impact,sans-serif; font-size:16px; letter-spacing:1px; }
+  .section-head h2{ font-family:var(--font-titulos); font-size:16px; letter-spacing:1px; }
   .see-all{ font-size:11px; font-weight:700; letter-spacing:.5px; color:var(--pink); display:flex; align-items:center; gap:4px; }
 
   .fav-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; padding:0 18px; margin-bottom:22px; }
@@ -735,7 +740,7 @@
       </h1>
       <p class="hero-copy">Granizados helados y shots que encienden tu momento.</p>
       <a href="#menu" class="cta" id="verMenuBtn">
-        VER MENÚ
+        <span id="verMenuTxt">VER MENÚ</span>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </a>
     </div>
@@ -772,7 +777,7 @@
 
   <!-- FAVORITES -->
   <div class="section-head" id="favSectionHead">
-    <h2>NUESTROS FAVORITOS</h2>
+    <h2 id="favTitulo">NUESTROS FAVORITOS</h2>
     <a href="#" class="see-all" id="verTodosBtn">VER TODOS →</a>
   </div>
 
@@ -858,7 +863,7 @@
   <nav class="bottom-nav">
     <button class="nav-item active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></svg>
-      Inicio
+      <span id="navInicioTxt">Inicio</span>
       <span class="underline"></span>
     </button>
 
@@ -867,12 +872,12 @@
       <button class="nav-center" id="callWaiterBtn" aria-label="Llamar al mesero">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14l-2 9a5 5 0 0 1-10 0L5 3Z"/><path d="M9 21h6"/><path d="M12 15v6"/></svg>
       </button>
-      <span class="nav-center-label">Mesero</span>
+      <span class="nav-center-label" id="navMeseroTxt">Mesero</span>
     </div>
 
     <a href="#" class="nav-item" id="navPedidosBtn">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-      Pedidos
+      <span id="navPedidosTxt">Pedidos</span>
       <span class="badge-nav">0</span>
     </a>
   </nav>
@@ -1037,6 +1042,45 @@
       if (l1El && data.tema.acento2) l1El.style.color = colorLegibleSobreFoto(data.tema.acento2);
       if (l3El && data.tema.acento1) l3El.style.color = colorLegibleSobreFoto(data.tema.acento1);
 
+      // ===================================================
+      // TEXTOS EDITABLES DEL HOME (bloque nuevo)
+      // ===================================================
+      // Antes, "VER MENÚ", "NUESTROS FAVORITOS", "VER TODOS", y las etiquetas
+      // del nav inferior (Inicio/Mesero/Pedidos) estaban fijas en el HTML, sin
+      // ninguna forma de cambiarlas desde el admin. Ahora, si el negocio
+      // definió un texto propio, se usa ese; si no, se queda el texto de
+      // siempre (compatibilidad total con negocios ya creados).
+      const setTexto = (id, valor) => { const el = document.getElementById(id); if (el && valor) el.textContent = valor; };
+      setTexto('verMenuTxt', data.contenido.hero_boton_texto);
+      setTexto('favTitulo', data.contenido.favoritos_titulo);
+      setTexto('navInicioTxt', data.contenido.nav_inicio_texto);
+      setTexto('navMeseroTxt', data.contenido.nav_mesero_texto);
+      setTexto('navPedidosTxt', data.contenido.nav_pedidos_texto);
+      const verTodosEl = document.getElementById('verTodosBtn');
+      if (verTodosEl && data.contenido.favoritos_ver_todos) {
+        verTodosEl.textContent = data.contenido.favoritos_ver_todos + ' →';
+      }
+
+      // Tamaño de letra del titular: por defecto es automático (según el
+      // largo del texto, ver más abajo), pero el negocio puede forzar un
+      // tamaño específico desde el admin si lo prefiere.
+      const tamanoTitular = data.contenido.hero_titulo_tamano || 'auto';
+
+      // Tipografía del sitio: si el negocio eligió una fuente distinta a la
+      // de siempre (Arial Black/Impact), la cargamos desde Google Fonts y la
+      // aplicamos a los títulos de todo el sitio.
+      if (data.contenido.fuente_titulo && data.contenido.fuente_titulo !== 'default') {
+        const fuente = data.contenido.fuente_titulo;
+        if (!document.getElementById('fuenteGoogleLink')) {
+          const link = document.createElement('link');
+          link.id = 'fuenteGoogleLink';
+          link.rel = 'stylesheet';
+          link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fuente)}:wght@700;900&display=swap`;
+          document.head.appendChild(link);
+        }
+        document.documentElement.style.setProperty('--font-titulos', `'${fuente}', 'Arial Black', Impact, sans-serif`);
+      }
+
       // Fix: el texto de toda la plantilla (--white) era un color casi blanco FIJO,
       // sin importar el tema. En temas oscuros (granizados) se ve bien, pero en
       // temas claros (café, fondo crema/blanco) el texto casi blanco se vuelve
@@ -1076,12 +1120,19 @@
         }
       });
 
-      // Si el texto total del título es largo, usamos una letra más chica
-      // para que no se desborde (ver .texto-largo en el CSS).
+      // Tamaño de letra del titular: si el negocio eligió un tamaño manual
+      // desde el admin, ese manda. Si eligió "auto" (o no eligió nada), se
+      // decide solo según qué tan largo sea el texto (ver .texto-largo).
       const heroHeadlineEl = document.querySelector('.hero-headline');
       if (heroHeadlineEl) {
-        const totalCaracteres = partesTitulo.join(' ').length;
-        heroHeadlineEl.classList.toggle('texto-largo', totalCaracteres > 38);
+        heroHeadlineEl.classList.remove('texto-largo', 'tam-pequeno', 'tam-mediano', 'tam-grande');
+        if (tamanoTitular === 'pequeno') heroHeadlineEl.classList.add('tam-pequeno');
+        else if (tamanoTitular === 'mediano') heroHeadlineEl.classList.add('tam-mediano');
+        else if (tamanoTitular === 'grande') heroHeadlineEl.classList.add('tam-grande');
+        else {
+          const totalCaracteres = partesTitulo.join(' ').length;
+          heroHeadlineEl.classList.toggle('texto-largo', totalCaracteres > 38);
+        }
       }
 
       const heroCopy = document.querySelector('.hero-copy');
