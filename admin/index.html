@@ -234,6 +234,10 @@
                   <div><label>Acento 1 (bordes/detalles principales)</label><input id="d-color-acento1" type="color"></div>
                   <div><label>Acento 2 (bordes/detalles secundarios)</label><input id="d-color-acento2" type="color"></div>
                 </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+                  <input type="checkbox" id="d-sin-neon" style="width:auto;"> <label for="d-sin-neon" style="margin:0;">Desactivar efectos de neón (brillos y sombras luminosas)</label>
+                </div>
+                <p class="hint">Actívalo para negocios con estilo elegante/clásico (café, restaurantes finos, etc.) — quita los brillos neón de bordes, íconos y texto en TODO el sitio. Déjalo apagado para negocios con estilo urbano/nocturno (bares, granizados, discotecas).</p>
               </div>
 
               <div class="seccion">
@@ -294,7 +298,7 @@
                   <div><label>Subir foto de fondo de la promo (opcional)</label><input id="d-promo-bg-file" type="file" accept="image/*"></div>
                   <div><label>O pega una URL de imagen (foto de fondo)</label><input id="d-promo-bg-imagen" placeholder="https://.../shots-fila.jpg"></div>
                 </div>
-                <p class="hint">Esta foto ahora cubre TODA la sección de la promo (de lado a lado, como el hero) — puedes subirla en 16:9, 4:3 o la proporción que quieras, siempre se rellena sin dejar huecos vacíos. Deja espacio oscuro/vacío de un lado en tu foto si quieres que el texto se lea cómodo ahí, como en tu referencia.</p>
+                <p class="hint">📐 El banner de la promo usa proporción <strong>16:9</strong> (horizontal, ej. 1280×720px) — sube tu foto en ese formato para que se vea nítida, sin recortes raros ni verse "gigante". Si quieres dejar espacio para que el texto se lea cómodo de un lado (como en tu referencia), deja esa zona de tu foto oscura/vacía.</p>
                 <img id="d-promo-bg-preview" class="img-preview" alt="Vista previa de la foto de fondo guardada">
                 <div class="row">
                   <div><label>O usa un video de fondo en vez de foto (URL, opcional)</label><input id="d-promo-bg-video" placeholder="https://.../promo-video.mp4"></div>
@@ -582,6 +586,7 @@ async function seleccionarNegocio(id) {
   $('#d-color-texto').value = tema.texto || '#ffffff';
   $('#d-color-acento1').value = tema.acento1 || '#ff2fb0';
   $('#d-color-acento2').value = tema.acento2 || '#00e5ff';
+  $('#d-sin-neon').checked = !!(t.contenido && t.contenido.sin_neon);
   $('#d-logo-file').value = '';
 
   const promo = (t.contenido && t.contenido.promo) || {};
@@ -720,6 +725,7 @@ $('#form-datos').addEventListener('submit', async (e) => {
     hero_imagen_url,
     hero_video_url: $('#d-hero-video').value.trim() || null,
     logo_tamano: $('#d-logo-tamano').value,
+    sin_neon: $('#d-sin-neon').checked,
     promo: {
       activa: $('#d-promo-activa').checked,
       titulo: $('#d-promo-titulo').value.trim(),
