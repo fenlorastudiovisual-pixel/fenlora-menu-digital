@@ -218,6 +218,12 @@
     letter-spacing:.3px;
     margin-bottom:12px;
   }
+  /* Fix: el tamaño de letra era fijo, pensado para textos cortos tipo
+     "FRÍOS. INTENSOS. EXPLOSIVOS." Con un texto largo (como el de café:
+     "Disfruta lo simple, disfruta lo extraordinario.") se desbordaba y se
+     veía apretado/ilegible, sobre todo en pantallas anchas. Ahora, si el
+     texto total es largo, se aplica automáticamente un tamaño más chico. */
+  .hero-headline.texto-largo{ font-size:24px; line-height:1.15; }
   .hero-headline .l1{color:var(--cyan); text-shadow:0 0 18px rgba(34,211,245,.5);}
   .hero-headline .l2{color:#fff; display:block;}
   .hero-headline .l3{color:var(--pink); display:block; text-shadow:0 0 18px rgba(255,45,135,.55);}
@@ -257,6 +263,7 @@
     margin:16px 18px 14px;
     display:grid;
     grid-template-columns:repeat(2,1fr);
+    gap:0;
     border:1.5px solid var(--pink);
     border-radius:16px;
     background:rgba(255,255,255,.02);
@@ -271,6 +278,22 @@
     border-bottom:1px solid rgba(255,45,135,.25);
   }
   .cat:nth-child(odd){border-right:1px solid rgba(255,45,135,.25);}
+  /* Fix: con muchos rubros (café llega a 6 categorías) el grid de 2 columnas
+     ocupaba 3 filas completas — mucho espacio vertical desperdiciado. Con
+     4 categorías o más, se pasa automáticamente a 3 columnas (ícono arriba,
+     texto abajo, todo más compacto) — igual que hicimos con la franja de
+     beneficios. Con 2-3 categorías se queda el diseño de siempre. */
+  .categories.cat-3col{ grid-template-columns:repeat(3,1fr); }
+  .categories.cat-3col .cat{
+    flex-direction:column; text-align:center; gap:5px;
+    padding:12px 6px;
+  }
+  .categories.cat-3col .cat:nth-child(odd){ border-right:none; }
+  .categories.cat-3col .cat:not(:nth-child(3n)){ border-right:1px solid rgba(255,45,135,.25); }
+  .categories.cat-3col .cat-ic{ width:30px; height:30px; }
+  .categories.cat-3col .cat-ic svg{ width:14px; height:14px; }
+  .categories.cat-3col .cat-text strong{ font-size:10.5px; }
+  .categories.cat-3col .cat-text span{ font-size:8.5px; }
   .cat-ic{
     width:38px; height:38px;
     border-radius:50%;
@@ -315,7 +338,15 @@
      que ocupe el texto"), así el tamaño siempre queda controlado y previsible
      — ni gigante ni distorsionada, sin importar cuánto texto tenga la promo.
      El admin ahora recomienda subir la foto ya en 16:9 para que se vea nítida. */
-  .promo.promo-con-foto{ aspect-ratio:16/9; display:flex; flex-direction:column; justify-content:flex-end; }
+  /* Fix: aspect-ratio fijo + overflow:hidden recortaba el contenido cuando el
+     título era una frase larga (ej. "Día perfecto") en vez de un código corto
+     como "2X1" — el texto se desbordaba de la caja y la parte de arriba
+     (la descripción) desaparecía, recortada. Ahora se usa min-height en vez
+     de una proporción estricta: la foto sigue viéndose bien y del tamaño
+     correcto con textos cortos, pero si el negocio escribe un título largo,
+     la caja crece para que SIEMPRE se vea todo el texto completo, nunca se
+     recorta contenido. */
+  .promo.promo-con-foto{ min-height:170px; display:flex; flex-direction:column; justify-content:flex-end; }
   .promo.promo-con-foto::before{
     content:'';
     position:absolute; inset:0;
@@ -333,10 +364,12 @@
      oscuro fijo detrás (línea de arriba), así que ahí blanco fijo está bien.
      Pero si el negocio NO carga foto, la tarjeta usa el fondo del tema — y en
      temas claros (como café) ese blanco fijo se volvía invisible. Ahora se
-     adapta al tema por defecto, y solo se fuerza blanco cuando SÍ hay foto. */
-  .promo-left .num{ font-family:'Arial Black',Impact,sans-serif; font-size:44px; color:var(--white); line-height:1; }
+     adapta al tema por defecto, y solo se fuerza blanco cuando SÍ hay foto.
+     También se bajó el tamaño y se permite partir palabras largas, para que
+     un título tipo "Día perfecto" no se desborde como sí pasaba con "2X1". */
+  .promo-left .num{ font-family:'Arial Black',Impact,sans-serif; font-size:32px; color:var(--white); line-height:1.1; overflow-wrap:break-word; max-width:220px; }
   .promo.promo-con-foto .promo-left .num{ color:#fff; }
-  .promo-left .desc{ font-family:'Arial Black',Impact,sans-serif; font-size:19px; color:var(--pink); line-height:1.15; margin-top:4px; }
+  .promo-left .desc{ font-family:'Arial Black',Impact,sans-serif; font-size:16px; color:var(--pink); line-height:1.2; margin-top:4px; overflow-wrap:break-word; max-width:220px; }
   .promo-left .time{ display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--gray); margin-top:10px; }
   .promo-shots{ display:flex; gap:6px; align-items:flex-end; min-width:120px; min-height:78px; flex-shrink:0; }
   .mini-shot{ width:26px; height:70px; border-radius:3px 3px 10px 10px; border:1px solid rgba(255,255,255,.25); }
@@ -546,7 +579,15 @@
     body{ max-width:820px; border-left:1px solid rgba(255,255,255,.06); border-right:1px solid rgba(255,255,255,.06); padding-bottom:96px; }
     .hero-wrap{ height:520px; }
     .hero-headline{ font-size:40px; }
+    .hero-headline.texto-largo{ font-size:30px; }
     .hero-content{ max-width:400px; padding:140px 30px 30px; }
+    /* Fix: en pantallas anchas el texto es más ancho (max-width:400px vs
+       280px en móvil) y llegaba más lejos hacia la derecha — pasando la
+       zona oscura del degradado (calibrada para el ancho de móvil) y
+       cayendo directo sobre la foto sin protección, por eso se veía
+       ilegible/fantasma. Aquí se extiende la zona oscura para que cubra
+       todo el ancho real del texto en pantallas anchas también. */
+    .hero-scrim{ background:linear-gradient(90deg, rgba(4,4,6,.94) 0%, rgba(4,4,6,.8) 48%, rgba(4,4,6,.25) 68%, transparent 85%); }
   /* Fix: esta regla usaba el selector genérico ".logo-slot img", que por venir
      después en el CSS (y aplicar siempre) le ganaba a las clases de tamaño
      (.logo-pequeno/.logo-grande) y las dejaba sin efecto en pantallas anchas
@@ -986,6 +1027,14 @@
         }
       });
 
+      // Si el texto total del título es largo, usamos una letra más chica
+      // para que no se desborde (ver .texto-largo en el CSS).
+      const heroHeadlineEl = document.querySelector('.hero-headline');
+      if (heroHeadlineEl) {
+        const totalCaracteres = partesTitulo.join(' ').length;
+        heroHeadlineEl.classList.toggle('texto-largo', totalCaracteres > 38);
+      }
+
       const heroCopy = document.querySelector('.hero-copy');
       if (heroCopy && data.contenido.tagline) heroCopy.textContent = data.contenido.tagline;
 
@@ -1003,6 +1052,7 @@
         '<path d="M5 3h14l-2 9a5 5 0 0 1-10 0L5 3Z"/><path d="M9 21h6"/><path d="M12 15v6"/>'
       ];
       if (categoriasWrap) {
+        categoriasWrap.classList.toggle('cat-3col', categorias.length >= 4);
         categoriasWrap.innerHTML = categorias.map((nombre, i) => `
           <div class="cat ${i % 2 === 0 ? 'cyan' : 'pink'}">
             <div class="cat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconosCat[i % iconosCat.length]}</svg></div>
@@ -1153,6 +1203,29 @@
 
     // ---- Carrito real: refresca los badges con lo que ya haya en el navegador ----
     Carrito.actualizarBadges(getTenantSlug());
+
+    // ---- Vista previa en vivo desde el admin (sin necesidad de guardar) ----
+    // El admin (en la pestaña Datos) manda los valores del formulario tal cual
+    // los vas escribiendo, vía postMessage, y acá se combinan con los datos
+    // reales ya cargados y se vuelven a pintar al instante — sin recargar la
+    // página ni tocar el servidor. Solo funciona dentro del iframe de vista
+    // previa del admin (mismo origen); en la página pública normal este
+    // mensaje nunca llega, así que no cambia nada del comportamiento normal.
+    window.addEventListener('message', (e) => {
+      if (e.origin !== window.location.origin) return;
+      if (!e.data || e.data.type !== 'preview-live-update' || !TENANT_DATA) return;
+      const cambios = e.data.payload || {};
+      const combinado = {
+        ...TENANT_DATA,
+        ...cambios,
+        contenido: { ...TENANT_DATA.contenido, ...(cambios.contenido || {}) },
+        tema: { ...TENANT_DATA.tema, ...(cambios.tema || {}) }
+      };
+      if (cambios.contenido && cambios.contenido.promo) {
+        combinado.contenido.promo = { ...TENANT_DATA.contenido.promo, ...cambios.contenido.promo };
+      }
+      aplicarTenant(combinado);
+    });
   </script>
 
 </body>
