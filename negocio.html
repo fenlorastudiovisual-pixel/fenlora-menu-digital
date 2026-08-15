@@ -267,7 +267,7 @@
   .categories{
     margin:16px 18px 14px;
     display:grid;
-    grid-template-columns:repeat(2,1fr);
+    grid-template-columns:repeat(2,1fr); /* valor por defecto; el JS lo ajusta según la cantidad real */
     gap:0;
     border:1.5px solid var(--pink);
     border-radius:16px;
@@ -280,25 +280,31 @@
     align-items:center;
     gap:9px;
     padding:13px 10px;
-    border-bottom:1px solid rgba(255,45,135,.25);
   }
-  .cat:nth-child(odd){border-right:1px solid rgba(255,45,135,.25);}
-  /* Fix: con muchos rubros (café llega a 6 categorías) el grid de 2 columnas
-     ocupaba 3 filas completas — mucho espacio vertical desperdiciado. Con
-     4 categorías o más, se pasa automáticamente a 3 columnas (ícono arriba,
-     texto abajo, todo más compacto) — igual que hicimos con la franja de
-     beneficios. Con 2-3 categorías se queda el diseño de siempre. */
-  .categories.cat-3col{ grid-template-columns:repeat(3,1fr); }
-  .categories.cat-3col .cat{
+  /* Fix: antes esto asumía siempre 2 columnas fijas (o 3 si había 4+), lo
+     que dejaba categorías "huérfanas" solas en su propia fila (ej. con
+     exactamente 3, quedaba 2+1 desbalanceado y feo). Ahora SIEMPRE van
+     TODAS en una sola fila, con tantas columnas como categorías reales
+     tenga el negocio (el JS pone el número exacto). El borde derecho ahora
+     es universal (todas menos la última), sin importar cuántas sean. */
+  .cat:not(:last-child){ border-right:1px solid rgba(255,45,135,.25); }
+  /* A partir de 3 categorías, el diseño se vuelve compacto (ícono arriba,
+     texto abajo, todo más chico) para que sigan cabiendo bien en una fila
+     incluso en pantallas angostas. Con 2 se queda el diseño horizontal. */
+  .categories.cat-compacto .cat{
     flex-direction:column; text-align:center; gap:5px;
-    padding:12px 6px;
+    padding:12px 4px;
   }
-  .categories.cat-3col .cat:nth-child(odd){ border-right:none; }
-  .categories.cat-3col .cat:not(:nth-child(3n)){ border-right:1px solid rgba(255,45,135,.25); }
-  .categories.cat-3col .cat-ic{ width:30px; height:30px; }
-  .categories.cat-3col .cat-ic svg{ width:14px; height:14px; }
-  .categories.cat-3col .cat-text strong{ font-size:10.5px; }
-  .categories.cat-3col .cat-text span{ font-size:8.5px; }
+  .categories.cat-compacto .cat-ic{ width:28px; height:28px; }
+  .categories.cat-compacto .cat-ic svg{ width:13px; height:13px; }
+  .categories.cat-compacto .cat-text strong{ font-size:9.5px; }
+  .categories.cat-compacto .cat-text span{ font-size:7.5px; }
+  /* Con 5 o 6 categorías, un paso más compacto todavía para que quepan sin
+     que el texto se encime. */
+  .categories.cat-super-compacto .cat-ic{ width:24px; height:24px; }
+  .categories.cat-super-compacto .cat-ic svg{ width:11px; height:11px; }
+  .categories.cat-super-compacto .cat-text strong{ font-size:8px; letter-spacing:0; }
+  .categories.cat-super-compacto .cat-text span{ display:none; } /* con 5-6, la descripción ya no cabe */
   .cat-ic{
     width:38px; height:38px;
     border-radius:50%;
@@ -506,20 +512,24 @@
   }
   .nav-item{ display:flex; flex-direction:column; align-items:center; gap:4px; color:var(--gray); font-size:9.5px; font-weight:600; position:relative; flex:1; background:none; border:none; }
   .nav-item svg{ width:20px; height:20px; }
-  .nav-item.active{ color:var(--cyan); }
-  .nav-item.active .underline{ position:absolute; bottom:-8px; width:16px; height:2px; border-radius:2px; background:var(--cyan); }
+  /* Fix: usaba var(--cyan) directo — con acentos apagados (café, temas
+     elegantes) el ícono/texto activo se volvía casi invisible sobre el
+     fondo oscuro fijo de esta barra. --nav-activo-color es una versión
+     siempre legible del acento, calculada igual que en el titular del hero. */
+  .nav-item.active{ color:var(--nav-activo-color, var(--cyan)); }
+  .nav-item.active .underline{ position:absolute; bottom:-8px; width:16px; height:2px; border-radius:2px; background:var(--nav-activo-color, var(--cyan)); }
   .nav-item .badge-nav{ position:absolute; top:-4px; right:14px; background:var(--pink); color:#fff; font-size:8px; font-weight:800; width:14px; height:14px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
   .nav-center-wrap{ display:flex; flex-direction:column; align-items:center; gap:2px; flex:none; }
   .nav-center{
     width:56px; height:56px; border-radius:50%;
-    border:2px solid var(--pink);
+    border:2px solid var(--nav-mesero-color, var(--pink));
     background:#0a0a0e;
     display:flex; align-items:center; justify-content:center;
     margin-top:-26px;
     box-shadow:0 0 18px rgba(255,45,135,.45);
   }
-  .nav-center svg{ width:24px; height:24px; color:var(--cyan); }
-  .nav-center-label{ font-size:9px; font-weight:700; color:var(--pink); letter-spacing:.3px; }
+  .nav-center svg{ width:24px; height:24px; color:var(--nav-activo-color, var(--cyan)); }
+  .nav-center-label{ font-size:9px; font-weight:700; color:var(--nav-mesero-color, var(--pink)); letter-spacing:.3px; }
 
   /* ===================================================
      DRAWER — menú hamburguesa
@@ -639,6 +649,7 @@
   body.sin-neon .feature-ic,
   body.sin-neon .add-btn,
   body.sin-neon .icon-btn,
+  body.sin-neon .nav-center,
   body.sin-neon .promo-dots span.on{
     box-shadow:none !important;
   }
@@ -1042,6 +1053,12 @@
       if (l1El && data.tema.acento2) l1El.style.color = colorLegibleSobreFoto(data.tema.acento2);
       if (l3El && data.tema.acento1) l3El.style.color = colorLegibleSobreFoto(data.tema.acento1);
 
+      // Mismo arreglo para la barra de navegación inferior: su fondo SIEMPRE
+      // es oscuro fijo, así que el ícono activo y "Mesero" necesitan una
+      // versión siempre legible del acento, no el acento crudo del tema.
+      if (data.tema.acento2) root.setProperty('--nav-activo-color', colorLegibleSobreFoto(data.tema.acento2));
+      if (data.tema.acento1) root.setProperty('--nav-mesero-color', colorLegibleSobreFoto(data.tema.acento1));
+
       // ===================================================
       // TEXTOS EDITABLES DEL HOME (bloque nuevo)
       // ===================================================
@@ -1152,7 +1169,12 @@
         '<path d="M5 3h14l-2 9a5 5 0 0 1-10 0L5 3Z"/><path d="M9 21h6"/><path d="M12 15v6"/>'
       ];
       if (categoriasWrap) {
-        categoriasWrap.classList.toggle('cat-3col', categorias.length >= 4);
+        // Fix: ahora SIEMPRE van todas en una sola fila, con el número
+        // exacto de columnas = número de categorías reales (nunca queda
+        // ninguna "huérfana" sola en una segunda fila).
+        categoriasWrap.style.gridTemplateColumns = `repeat(${categorias.length || 2},1fr)`;
+        categoriasWrap.classList.toggle('cat-compacto', categorias.length >= 3);
+        categoriasWrap.classList.toggle('cat-super-compacto', categorias.length >= 5);
         categoriasWrap.innerHTML = categorias.map((nombre, i) => `
           <div class="cat ${i % 2 === 0 ? 'cyan' : 'pink'}">
             <div class="cat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconosCat[i % iconosCat.length]}</svg></div>
