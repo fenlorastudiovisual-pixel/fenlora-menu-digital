@@ -516,7 +516,12 @@
      elegantes) el ícono/texto activo se volvía casi invisible sobre el
      fondo oscuro fijo de esta barra. --nav-activo-color es una versión
      siempre legible del acento, calculada igual que en el titular del hero. */
-  .nav-item.active{ color:var(--nav-activo-color, var(--cyan)); }
+  /* Fix: "Inicio" (activo) se veía muy distinto de "Pedidos" (inactivo) —
+     un color de acento fuerte contra un gris neutro, se sentían dos barras
+     distintas. Ahora solo el botón central "Mesero" resalta con color;
+     Inicio y Pedidos comparten el mismo gris, y el subrayado (más sutil)
+     es la única señal de cuál está activo. */
+  .nav-item.active{ color:var(--gray); }
   .nav-item.active .underline{ position:absolute; bottom:-8px; width:16px; height:2px; border-radius:2px; background:var(--nav-activo-color, var(--cyan)); }
   .nav-item .badge-nav{ position:absolute; top:-4px; right:14px; background:var(--pink); color:#fff; font-size:8px; font-weight:800; width:14px; height:14px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
   .nav-center-wrap{ display:flex; flex-direction:column; align-items:center; gap:2px; flex:none; }
@@ -530,6 +535,24 @@
   }
   .nav-center svg{ width:24px; height:24px; color:var(--nav-activo-color, var(--cyan)); }
   .nav-center-label{ font-size:9px; font-weight:700; color:var(--nav-mesero-color, var(--pink)); letter-spacing:.3px; }
+
+  /* ===================================================
+     ANIMACIÓN "LLAMAR AL MESERO" — taza/copa que se llena
+     ===================================================
+     Adaptado del mismo truco que usa el sistema de tarjetas de fidelidad
+     de Fenlora: un rectángulo de relleno dentro de un clipPath, que
+     empieza escondido abajo (translateY positivo) y sube a su lugar
+     (translateY casi 0) con una curva elástica — así se ve como si el
+     líquido subiera llenando el vaso/taza al tocar el botón. */
+  .nav-center .icono-espera{ width:24px; height:24px; display:block; }
+  .nav-center .icono-espera .cw-fill{
+    transform:translateY(20px);
+    transition:transform .6s cubic-bezier(.25,1.15,.4,1);
+  }
+  .nav-center.llamando .icono-espera .cw-fill{ transform:translateY(0); }
+  .nav-center .icono-espera .cw-borde{
+    stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;
+  }
 
   /* ===================================================
      DRAWER — menú hamburguesa
@@ -653,6 +676,13 @@
   body.sin-neon .promo-dots span.on{
     box-shadow:none !important;
   }
+  /* Fix: estos bordes y flashes usaban rosa/cyan FIJO (no ligado al tema),
+     así que ni elegir otros colores ni apagar el neón los quitaba — se
+     colaban en las divisiones de categorías, beneficios, y el flash del
+     botón "+" al tocarlo. Ahora sí se apagan con el interruptor. */
+  body.sin-neon .cat:not(:last-child),
+  body.sin-neon .feature:not(:last-child){ border-right-color:rgba(120,120,130,.25) !important; }
+  body.sin-neon .add-btn:active{ background:rgba(120,120,130,.15) !important; }
 </style>
 <script src="/carrito.js"></script>
 </head>
@@ -881,7 +911,22 @@
     <!-- Botón central = LLAMAR AL MESERO -->
     <div class="nav-center-wrap">
       <button class="nav-center" id="callWaiterBtn" aria-label="Llamar al mesero">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14l-2 9a5 5 0 0 1-10 0L5 3Z"/><path d="M9 21h6"/><path d="M12 15v6"/></svg>
+        <!-- Taza de café (nicho café) -->
+        <svg class="icono-espera" id="iconoTaza" viewBox="0 0 100 94" style="display:none;">
+          <defs><clipPath id="clipTaza"><path d="M25,33 Q25,57 37,66 Q50,71 63,66 Q75,57 75,33 Z"/></clipPath></defs>
+          <ellipse class="cw-borde" cx="50" cy="77" rx="26" ry="3"/>
+          <g clip-path="url(#clipTaza)"><rect class="cw-fill" x="16" y="31" width="68" height="52" fill="currentColor" opacity=".85"/></g>
+          <path class="cw-borde" d="M21,31 Q21,59 36,68 Q50,74 64,68 Q79,59 79,31"/>
+          <ellipse class="cw-borde" cx="50" cy="31" rx="29" ry="5.5"/>
+          <path class="cw-borde" d="M79,39 Q93,41 93,50 Q93,59 78,56"/>
+        </svg>
+        <!-- Copa/vaso de granizado (resto de nichos, incluido granizados/bar) -->
+        <svg class="icono-espera" id="iconoCopa" viewBox="0 0 100 118" style="display:none;">
+          <defs><clipPath id="clipCopa"><path d="M35,34 L39,102 L61,102 L65,34 Z"/></clipPath></defs>
+          <g clip-path="url(#clipCopa)"><rect class="cw-fill" x="30" y="36" width="40" height="74" fill="currentColor" opacity=".85"/></g>
+          <path class="cw-borde" d="M32,34 L36,104 Q36,108 40,108 L60,108 Q64,108 64,104 L68,34"/>
+          <line class="cw-borde" x1="30" y1="34" x2="70" y2="34"/>
+        </svg>
       </button>
       <span class="nav-center-label" id="navMeseroTxt">Mesero</span>
     </div>
@@ -1298,6 +1343,7 @@
       }
 
       pintarFavoritos(data.destacados);
+      if (typeof actualizarIconoMesero === 'function') actualizarIconoMesero();
     }
 
     fetch(`/menu/${getTenantSlug()}`)
@@ -1339,12 +1385,36 @@
     });
 
     // ---- Botón central: Llamar al mesero ----
+    // Ícono según el nicho: taza que se llena para café, copa que se llena
+    // para el resto (granizados, bares, etc.) — mismo truco de animación
+    // que el sistema de tarjetas de fidelidad (clipPath + fill que sube).
+    function actualizarIconoMesero() {
+      const nichoNegocio = (TENANT_DATA?.nicho || '').toLowerCase();
+      const esCafe = nichoNegocio.indexOf('caf') >= 0;
+      const iconoTaza = document.getElementById('iconoTaza');
+      const iconoCopa = document.getElementById('iconoCopa');
+      if (iconoTaza && iconoCopa) {
+        iconoTaza.style.display = esCafe ? '' : 'none';
+        iconoCopa.style.display = esCafe ? 'none' : '';
+      }
+    }
+    actualizarIconoMesero();
+
     const toast = document.getElementById('toast');
-    let toastTimeout;
-    document.getElementById('callWaiterBtn').addEventListener('click', ()=>{
+    let toastTimeout, llamandoTimeout;
+    document.getElementById('callWaiterBtn').addEventListener('click', function(){
       toast.classList.add('show');
       clearTimeout(toastTimeout);
       toastTimeout = setTimeout(()=> toast.classList.remove('show'), 2400);
+
+      // Dispara la animación de llenado; se queda "lleno" unos segundos
+      // (como confirmación visual de que el mesero ya fue avisado) y
+      // luego vuelve a vaciarse, listo para la próxima llamada.
+      this.classList.remove('llamando');
+      void this.offsetWidth; // fuerza el reinicio de la animación si se toca varias veces seguidas
+      this.classList.add('llamando');
+      clearTimeout(llamandoTimeout);
+      llamandoTimeout = setTimeout(() => this.classList.remove('llamando'), 3200);
     });
 
     // ---- Carrito real: refresca los badges con lo que ya haya en el navegador ----
