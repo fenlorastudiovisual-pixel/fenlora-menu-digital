@@ -1049,9 +1049,22 @@
         return `rgb(${rr},${gg},${bb})`;
       }
       const l1El = document.querySelector('.hero-headline .l1');
+      const l2El = document.querySelector('.hero-headline .l2');
       const l3El = document.querySelector('.hero-headline .l3');
-      if (l1El && data.tema.acento2) l1El.style.color = colorLegibleSobreFoto(data.tema.acento2);
-      if (l3El && data.tema.acento1) l3El.style.color = colorLegibleSobreFoto(data.tema.acento1);
+      // Fix: el selector de color del título en el admin se guardaba, pero
+      // esta página nunca lo leía — siempre usaba el color automático sin
+      // importar lo que eligieras. Ahora: si hay un color manual guardado,
+      // se usa ese en las 3 líneas; si no, se sigue calculando uno legible
+      // automático como antes.
+      if (data.contenido.hero_titulo_color) {
+        const colorManual = data.contenido.hero_titulo_color;
+        if (l1El) l1El.style.color = colorManual;
+        if (l2El) l2El.style.color = colorManual;
+        if (l3El) l3El.style.color = colorManual;
+      } else {
+        if (l1El && data.tema.acento2) l1El.style.color = colorLegibleSobreFoto(data.tema.acento2);
+        if (l3El && data.tema.acento1) l3El.style.color = colorLegibleSobreFoto(data.tema.acento1);
+      }
 
       // Mismo arreglo para la barra de navegación inferior: su fondo SIEMPRE
       // es oscuro fijo, así que el ícono activo y "Mesero" necesitan una
@@ -1076,6 +1089,13 @@
       const verTodosEl = document.getElementById('verTodosBtn');
       if (verTodosEl && data.contenido.favoritos_ver_todos) {
         verTodosEl.textContent = data.contenido.favoritos_ver_todos + ' →';
+      }
+      // Colores manuales opcionales para título de favoritos y etiquetas del nav.
+      const favTituloEl = document.getElementById('favTitulo');
+      if (favTituloEl && data.contenido.favoritos_titulo_color) favTituloEl.style.color = data.contenido.favoritos_titulo_color;
+      if (data.contenido.nav_color) {
+        root.setProperty('--nav-activo-color', data.contenido.nav_color);
+        root.setProperty('--nav-mesero-color', data.contenido.nav_color);
       }
 
       // Tamaño de letra del titular: por defecto es automático (según el
@@ -1154,6 +1174,7 @@
 
       const heroCopy = document.querySelector('.hero-copy');
       if (heroCopy && data.contenido.tagline) heroCopy.textContent = data.contenido.tagline;
+      if (heroCopy && data.contenido.tagline_color) heroCopy.style.color = data.contenido.tagline_color;
 
       // Fix: antes esto solo llenaba 2 casillas de categoría fijas en el HTML.
       // Nichos como café tienen hasta 6 categorías — las demás se perdían
@@ -1176,7 +1197,7 @@
         categoriasWrap.classList.toggle('cat-compacto', categorias.length >= 3);
         categoriasWrap.classList.toggle('cat-super-compacto', categorias.length >= 5);
         categoriasWrap.innerHTML = categorias.map((nombre, i) => `
-          <div class="cat ${i % 2 === 0 ? 'cyan' : 'pink'}">
+          <div class="cat ${i % 2 === 0 ? 'cyan' : 'pink'}" ${data.contenido.categorias_color ? `style="color:${data.contenido.categorias_color}"` : ''}>
             <div class="cat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconosCat[i % iconosCat.length]}</svg></div>
             <div class="cat-text">
               <strong>${nombre.toUpperCase()}</strong>
@@ -1189,6 +1210,9 @@
       const featStrongs = document.querySelectorAll('.feature-text strong');
       const featSpans = document.querySelectorAll('.feature-text span');
       const beneficiosDesc = data.contenido.beneficios_desc || [];
+      if (data.contenido.beneficios_color) {
+        document.querySelectorAll('.feature-ic').forEach(el => { el.style.color = data.contenido.beneficios_color; el.style.borderColor = data.contenido.beneficios_color; });
+      }
       (data.contenido.beneficios || []).forEach((texto, i) => {
         if (featStrongs[i]) featStrongs[i].textContent = texto.toUpperCase();
         // Fix: el subtexto ("Ingredientes de calidad", etc.) siempre se

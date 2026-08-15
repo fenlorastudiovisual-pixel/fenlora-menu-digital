@@ -228,8 +228,9 @@
                 <p class="hint">Se autocompletan según el nicho elegido al crear el negocio. Cámbialos si quieres afinar la marca de este negocio en particular.</p>
                 <div class="row">
                   <div><label>Fondo</label><input id="d-color-fondo" type="color"></div>
-                  <div><label>Texto</label><input id="d-color-texto" type="color"></div>
+                  <div><label>Texto (opcional — deja "automático" salvo que quieras forzar uno)</label><input id="d-color-texto" type="color"></div>
                 </div>
+                <button type="button" id="d-color-texto-reset" class="secondary" style="margin-top:-6px;margin-bottom:10px;">Usar color de texto automático</button>
                 <div class="row">
                   <div><label>Acento 1 (bordes/detalles principales)</label><input id="d-color-acento1" type="color"></div>
                   <div><label>Acento 2 (bordes/detalles secundarios)</label><input id="d-color-acento2" type="color"></div>
@@ -238,6 +239,21 @@
                   <input type="checkbox" id="d-sin-neon" style="width:auto;"> <label for="d-sin-neon" style="margin:0;">Desactivar efectos de neón (brillos y sombras luminosas)</label>
                 </div>
                 <p class="hint">Actívalo para negocios con estilo elegante/clásico (café, restaurantes finos, etc.) — quita los brillos neón de bordes, íconos y texto en TODO el sitio. Déjalo apagado para negocios con estilo urbano/nocturno (bares, granizados, discotecas).</p>
+                <div class="row" style="margin-top:10px;">
+                  <div><label>Tipografía de los títulos</label>
+                    <select id="d-fuente-titulo">
+                      <option value="default" selected>Por defecto (Arial Black)</option>
+                      <option value="Poppins">Poppins (redondeada, moderna)</option>
+                      <option value="Montserrat">Montserrat (geométrica, limpia)</option>
+                      <option value="Playfair Display">Playfair Display (elegante, serif)</option>
+                      <option value="Bebas Neue">Bebas Neue (condensada, impacto)</option>
+                      <option value="Oswald">Oswald (condensada, moderna)</option>
+                      <option value="Pacifico">Pacifico (manuscrita, casual)</option>
+                      <option value="Raleway">Raleway (fina, minimalista)</option>
+                    </select>
+                  </div>
+                </div>
+                <p class="hint">Aplica a los títulos grandes de todo el sitio (hero, "Nuestros Favoritos", promo).</p>
               </div>
 
               <div class="seccion">
@@ -262,8 +278,30 @@
               </div>
 
               <div class="seccion">
-                <h3>🌆 Imagen principal (hero del home)</h3>
-                <p class="hint">Si la dejas vacía, se muestra la ilustración genérica de la plantilla.</p>
+                <h3>🌆 Hero del home (imagen + texto principal)</h3>
+                <p class="hint">Título grande — hasta 3 frases, una por línea (ej. "Fríos." / "Intensos." / "Explosivos."). Si pones menos de 3, las demás simplemente no aparecen.</p>
+                <textarea id="d-hero-titulo" rows="3" placeholder="Frase 1&#10;Frase 2&#10;Frase 3" style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;"></textarea>
+                <div class="row" style="margin-top:10px;">
+                  <div><label>Color del título (opcional)</label><input id="d-hero-titulo-color" type="color"></div>
+                  <div><label>&nbsp;</label><button type="button" id="d-hero-titulo-color-reset" class="secondary">Usar color automático</button></div>
+                </div>
+                <p class="hint">Si no eliges color, se calcula uno que siempre se lea bien sobre tu foto (según los acentos del tema). Elige uno manual solo si quieres algo distinto.</p>
+                <div class="row" style="margin-top:12px;">
+                  <div><label>Subtítulo del hero</label><input id="d-tagline" placeholder="Ej: Granizados helados y shots que encienden tu momento."></div>
+                  <div><label>Color del subtítulo (opcional)</label><input id="d-tagline-color" type="color"></div>
+                </div>
+                <div class="row">
+                  <div><label>Texto del botón principal</label><input id="d-hero-boton" placeholder="Ej: VER MENÚ"></div>
+                  <div><label>Tamaño del texto del título</label>
+                    <select id="d-hero-titulo-tamano">
+                      <option value="auto" selected>Automático (recomendado)</option>
+                      <option value="pequeno">Pequeño</option>
+                      <option value="mediano">Mediano</option>
+                      <option value="grande">Grande</option>
+                    </select>
+                  </div>
+                </div>
+                <p class="hint" style="margin-top:14px;">Imagen o video de fondo. Si la dejas vacía, se muestra la ilustración genérica de la plantilla.</p>
                 <div class="row">
                   <div><label>Subir foto</label><input id="d-hero-file" type="file" accept="image/*"></div>
                   <div><label>O pega una URL de imagen</label><input id="d-hero-imagen" placeholder="https://.../foto-hero.jpg"></div>
@@ -307,57 +345,46 @@
               </div>
 
               <div class="seccion">
-                <h3>📝 Textos del Home</h3>
-                <p class="hint">Título grande del hero — hasta 3 frases, una por línea (ej. "Fríos." / "Intensos." / "Explosivos."). Si pones menos de 3, las demás simplemente no aparecen.</p>
-                <textarea id="d-hero-titulo" rows="3" placeholder="Frase 1&#10;Frase 2&#10;Frase 3" style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;"></textarea>
-                <div class="row" style="margin-top:10px;">
-                  <div><label>Subtítulo del hero</label><input id="d-tagline" placeholder="Ej: Granizados helados y shots que encienden tu momento."></div>
-                  <div><label>Texto del botón principal</label><input id="d-hero-boton" placeholder="Ej: VER MENÚ"></div>
+                <h3>🏷️ Categorías (pastillas debajo del hero)</h3>
+                <p class="hint">Puedes tener entre 2 y 6. Siempre se acomodan solas en una sola fila, sin importar cuántas elijas.</p>
+                <div id="d-categorias-lista"></div>
+                <button type="button" id="d-cat-agregar" class="secondary" style="margin-top:6px;">+ Agregar categoría</button>
+                <div class="row" style="margin-top:12px;">
+                  <div><label>Color del texto (opcional)</label><input id="d-categorias-color" type="color"></div>
+                  <div><label>&nbsp;</label><button type="button" id="d-categorias-color-reset" class="secondary">Usar colores automáticos</button></div>
                 </div>
-                <div class="row">
-                  <div><label>Tamaño del texto del hero</label>
-                    <select id="d-hero-titulo-tamano">
-                      <option value="auto" selected>Automático (recomendado)</option>
-                      <option value="pequeno">Pequeño</option>
-                      <option value="mediano">Mediano</option>
-                      <option value="grande">Grande</option>
-                    </select>
-                  </div>
-                  <div><label>Tipografía de los títulos</label>
-                    <select id="d-fuente-titulo">
-                      <option value="default" selected>Por defecto (Arial Black)</option>
-                      <option value="Poppins">Poppins (redondeada, moderna)</option>
-                      <option value="Montserrat">Montserrat (geométrica, limpia)</option>
-                      <option value="Playfair Display">Playfair Display (elegante, serif)</option>
-                      <option value="Bebas Neue">Bebas Neue (condensada, impacto)</option>
-                      <option value="Oswald">Oswald (condensada, moderna)</option>
-                      <option value="Pacifico">Pacifico (manuscrita, casual)</option>
-                      <option value="Raleway">Raleway (fina, minimalista)</option>
-                    </select>
-                  </div>
-                </div>
+                <p class="hint">Si no eliges color, se alternan los 2 acentos del tema (como ahora). Si eliges uno, se aplica igual a todas.</p>
+              </div>
 
-                <p class="hint" style="margin-top:16px;">Título y texto "Ver todos" de la sección de destacados del home.</p>
+              <div class="seccion">
+                <h3>✅ Beneficios (franja de 4 debajo de Nuestros Favoritos)</h3>
+                <div id="d-beneficios-lista"></div>
+                <div class="row" style="margin-top:12px;">
+                  <div><label>Color de los íconos (opcional)</label><input id="d-beneficios-color" type="color"></div>
+                  <div><label>&nbsp;</label><button type="button" id="d-beneficios-color-reset" class="secondary">Usar colores automáticos</button></div>
+                </div>
+              </div>
+
+              <div class="seccion">
+                <h3>🧭 Navegación y encabezados</h3>
                 <div class="row">
-                  <div><label>Título de la sección</label><input id="d-fav-titulo" placeholder="Ej: NUESTROS FAVORITOS"></div>
+                  <div><label>Título de "Nuestros Favoritos"</label><input id="d-fav-titulo" placeholder="Ej: NUESTROS FAVORITOS"></div>
+                  <div><label>Color del título (opcional)</label><input id="d-fav-titulo-color" type="color"></div>
+                </div>
+                <div class="row">
                   <div><label>Texto del enlace "ver más"</label><input id="d-fav-vertodos" placeholder="Ej: VER TODOS"></div>
                 </div>
-
-                <p class="hint" style="margin-top:16px;">Etiquetas de los 3 botones de la barra inferior.</p>
+                <p class="hint" style="margin-top:10px;">Etiquetas de los 3 botones de la barra inferior.</p>
                 <div class="row">
                   <div><label>Botón izquierdo</label><input id="d-nav-inicio" placeholder="Ej: Inicio"></div>
                   <div><label>Botón central (mesero)</label><input id="d-nav-mesero" placeholder="Ej: Mesero"></div>
                 </div>
                 <div class="row">
                   <div><label>Botón derecho</label><input id="d-nav-pedidos" placeholder="Ej: Pedidos"></div>
+                  <div><label>Color del ícono/texto activo (opcional)</label><input id="d-nav-color" type="color"></div>
                 </div>
-
-                <p class="hint" style="margin-top:16px;">Categorías (pastillas debajo del hero). Puedes tener entre 2 y 6.</p>
-                <div id="d-categorias-lista"></div>
-                <button type="button" id="d-cat-agregar" class="secondary" style="margin-top:6px;">+ Agregar categoría</button>
-
-                <p class="hint" style="margin-top:16px;">Los 4 recuadros de beneficios (franja debajo de "Nuestros Favoritos").</p>
-                <div id="d-beneficios-lista"></div>
+                <button type="button" id="d-nav-color-reset" class="secondary" style="margin-top:6px;">Usar color automático</button>
+                <p class="hint">Esta barra siempre tiene fondo oscuro fijo, así que el color automático se calcula para que siempre se lea bien ahí, sin importar el tema del resto del sitio.</p>
               </div>
 
               <div><button type="submit">Guardar cambios</button> <div class="msg" id="d-msg"></div></div>
@@ -639,6 +666,30 @@ function renderizarCategoriasForm(nombres, descs) {
   });
 }
 
+// Color del título del hero: "automático" por defecto (se calcula solo,
+// siempre legible sobre la foto). Si el usuario toca el selector de color,
+// pasa a manual. El botón permite volver a automático en cualquier momento.
+const inputHeroTituloColor = document.getElementById('d-hero-titulo-color');
+if (inputHeroTituloColor) {
+  inputHeroTituloColor.addEventListener('input', () => { inputHeroTituloColor.dataset.auto = 'false'; });
+}
+document.getElementById('d-hero-titulo-color-reset')?.addEventListener('click', () => {
+  if (inputHeroTituloColor) inputHeroTituloColor.dataset.auto = 'true';
+});
+
+// Mismo patrón "auto/manual" para categorías, beneficios y nav.
+function conectarColorAuto(inputId, resetBtnId) {
+  const input = document.getElementById(inputId);
+  if (input) input.addEventListener('input', () => { input.dataset.auto = 'false'; });
+  document.getElementById(resetBtnId)?.addEventListener('click', () => {
+    if (input) input.dataset.auto = 'true';
+  });
+}
+conectarColorAuto('d-categorias-color', 'd-categorias-color-reset');
+conectarColorAuto('d-beneficios-color', 'd-beneficios-color-reset');
+conectarColorAuto('d-nav-color', 'd-nav-color-reset');
+
+
 $('#d-cat-agregar').addEventListener('click', () => {
   const wrap = $('#d-categorias-lista');
   const filas = wrap.querySelectorAll('.cat-row').length;
@@ -698,16 +749,22 @@ async function seleccionarNegocio(id) {
 
   const tema = t.tema || {};
   $('#d-color-fondo').value = tema.fondo || '#0a0a0e';
-  $('#d-color-texto').value = tema.texto || '#ffffff';
+  const inputColorTexto = $('#d-color-texto');
+  if (tema.texto) { inputColorTexto.value = tema.texto; inputColorTexto.dataset.auto = 'false'; }
+  else { inputColorTexto.value = '#ffffff'; inputColorTexto.dataset.auto = 'true'; }
   $('#d-color-acento1').value = tema.acento1 || '#ff2fb0';
   $('#d-color-acento2').value = tema.acento2 || '#00e5ff';
   $('#d-sin-neon').checked = !!(t.contenido && t.contenido.sin_neon);
   $('#d-logo-file').value = '';
 
-  // Textos del Home (bloque nuevo)
+  // Textos del Home
   const c = t.contenido || {};
   $('#d-hero-titulo').value = c.hero_titulo || '';
+  const inputTituloColor = $('#d-hero-titulo-color');
+  if (c.hero_titulo_color) { inputTituloColor.value = c.hero_titulo_color; inputTituloColor.dataset.auto = 'false'; }
+  else { inputTituloColor.value = '#ffffff'; inputTituloColor.dataset.auto = 'true'; }
   $('#d-tagline').value = c.tagline || '';
+  $('#d-tagline-color').value = c.tagline_color || '#d8d8de';
   $('#d-hero-boton').value = c.hero_boton_texto || '';
   $('#d-hero-titulo-tamano').value = c.hero_titulo_tamano || 'auto';
   $('#d-fuente-titulo').value = c.fuente_titulo || 'default';
@@ -718,6 +775,20 @@ async function seleccionarNegocio(id) {
   $('#d-nav-pedidos').value = c.nav_pedidos_texto || '';
   renderizarCategoriasForm(c.categorias || [], c.categorias_desc || []);
   renderizarBeneficiosForm(c.beneficios || [], c.beneficios_desc || []);
+
+  const inputCatColor = $('#d-categorias-color');
+  if (c.categorias_color) { inputCatColor.value = c.categorias_color; inputCatColor.dataset.auto = 'false'; }
+  else { inputCatColor.value = '#ff2fb0'; inputCatColor.dataset.auto = 'true'; }
+
+  const inputBenColor = $('#d-beneficios-color');
+  if (c.beneficios_color) { inputBenColor.value = c.beneficios_color; inputBenColor.dataset.auto = 'false'; }
+  else { inputBenColor.value = '#00e5ff'; inputBenColor.dataset.auto = 'true'; }
+
+  $('#d-fav-titulo-color').value = c.favoritos_titulo_color || '#ffffff';
+
+  const inputNavColor = $('#d-nav-color');
+  if (c.nav_color) { inputNavColor.value = c.nav_color; inputNavColor.dataset.auto = 'false'; }
+  else { inputNavColor.value = '#00e5ff'; inputNavColor.dataset.auto = 'true'; }
 
   const promo = (t.contenido && t.contenido.promo) || {};
   $('#d-hero-imagen').value = (t.contenido && t.contenido.hero_imagen_url) || '';
@@ -860,7 +931,9 @@ $('#form-datos').addEventListener('submit', async (e) => {
     sin_neon: $('#d-sin-neon').checked,
     // Textos del Home
     hero_titulo: $('#d-hero-titulo').value.trim() || contenidoActual.hero_titulo,
+    hero_titulo_color: (document.getElementById('d-hero-titulo-color')?.dataset.auto === 'false') ? $('#d-hero-titulo-color').value : null,
     tagline: $('#d-tagline').value.trim() || contenidoActual.tagline,
+    tagline_color: $('#d-tagline-color').value || null,
     hero_boton_texto: $('#d-hero-boton').value.trim() || null,
     hero_titulo_tamano: $('#d-hero-titulo-tamano').value,
     fuente_titulo: $('#d-fuente-titulo').value,
@@ -871,8 +944,12 @@ $('#form-datos').addEventListener('submit', async (e) => {
     nav_pedidos_texto: $('#d-nav-pedidos').value.trim() || null,
     categorias: categorias.length ? categorias : contenidoActual.categorias,
     categorias_desc: categorias.length ? categorias_desc : contenidoActual.categorias_desc,
+    categorias_color: (document.getElementById('d-categorias-color')?.dataset.auto === 'false') ? $('#d-categorias-color').value : null,
     beneficios,
     beneficios_desc,
+    beneficios_color: (document.getElementById('d-beneficios-color')?.dataset.auto === 'false') ? $('#d-beneficios-color').value : null,
+    favoritos_titulo_color: $('#d-fav-titulo-color').value || null,
+    nav_color: (document.getElementById('d-nav-color')?.dataset.auto === 'false') ? $('#d-nav-color').value : null,
     promo: {
       activa: $('#d-promo-activa').checked,
       titulo: $('#d-promo-titulo').value.trim(),
