@@ -524,35 +524,59 @@
   .nav-item.active{ color:var(--gray); }
   .nav-item.active .underline{ position:absolute; bottom:-8px; width:16px; height:2px; border-radius:2px; background:var(--nav-activo-color, var(--cyan)); }
   .nav-item .badge-nav{ position:absolute; top:-4px; right:14px; background:var(--pink); color:#fff; font-size:8px; font-weight:800; width:14px; height:14px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
-  .nav-center-wrap{ display:flex; flex-direction:column; align-items:center; gap:2px; flex:none; }
+  .nav-center-wrap{ display:flex; flex-direction:column; align-items:center; gap:2px; flex:none; position:relative; }
+  /* Fix: el botón era demasiado chico (56px) para lo importante que es —
+     ahora es notablemente más grande, con el ícono ocupando casi todo el
+     círculo, para que se note al primer vistazo. */
   .nav-center{
-    width:56px; height:56px; border-radius:50%;
-    border:2px solid var(--nav-mesero-color, var(--pink));
+    width:74px; height:74px; border-radius:50%;
+    border:2.5px solid var(--nav-mesero-color, var(--pink));
     background:#0a0a0e;
     display:flex; align-items:center; justify-content:center;
-    margin-top:-26px;
-    box-shadow:0 0 18px rgba(255,45,135,.45);
+    margin-top:-36px;
+    box-shadow:0 0 22px rgba(255,45,135,.5);
+    overflow:visible;
   }
-  .nav-center svg{ width:24px; height:24px; color:var(--nav-activo-color, var(--cyan)); }
   .nav-center-label{ font-size:9px; font-weight:700; color:var(--nav-mesero-color, var(--pink)); letter-spacing:.3px; }
 
   /* ===================================================
      ANIMACIÓN "LLAMAR AL MESERO" — taza/copa que se llena
      ===================================================
-     Adaptado del mismo truco que usa el sistema de tarjetas de fidelidad
-     de Fenlora: un rectángulo de relleno dentro de un clipPath, que
-     empieza escondido abajo (translateY positivo) y sube a su lugar
-     (translateY casi 0) con una curva elástica — así se ve como si el
-     líquido subiera llenando el vaso/taza al tocar el botón. */
-  .nav-center .icono-espera{ width:24px; height:24px; display:block; }
-  .nav-center .icono-espera .cw-fill{
-    transform:translateY(20px);
-    transition:transform .6s cubic-bezier(.25,1.15,.4,1);
+     Réplica del sistema de tarjetas de fidelidad de Fenlora: relleno con
+     clipPath que sube, más los detalles reales que ya tenían esos diseños
+     (vapor de humo en la taza; pitillo, hielo y líquido de color en la
+     copa) — no solo el relleno básico de antes. */
+  .icono-espera-wrap{ position:relative; width:52px; height:52px; }
+  .icono-espera{ width:100%; height:100%; display:block; overflow:visible; }
+
+  /* --- Taza de café --- */
+  .tz-cup,.tz-rim,.tz-handle{ fill:none; stroke:var(--nav-activo-color,#e6d6bb); stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round; }
+  .tz-plato{ fill:none; stroke:var(--nav-activo-color,#e6d6bb); stroke-width:2; opacity:.6; }
+  .tz-fill rect{ fill:#6b4226; }
+  .tz-crema{ fill:#d8b98a; }
+  .tz-fill{ transform:translateY(46px); transition:transform .65s cubic-bezier(.25,1.15,.4,1); }
+  .nav-center.llamando .tz-fill{ transform:translateY(3px); }
+  .tz-vapor{ position:absolute; top:-14px; left:50%; width:5px; height:20px; border-radius:99px;
+    background:linear-gradient(to top, rgba(255,255,255,.65), transparent); opacity:0; filter:blur(1.2px); }
+  .tz-vapor.v1{ margin-left:-9px; }
+  .tz-vapor.v2{ margin-left:-1px; }
+  .tz-vapor.v3{ margin-left:7px; }
+  .nav-center.llamando .tz-vapor{ animation:tzVapor 2.4s ease-in-out infinite; }
+  .nav-center.llamando .tz-vapor.v2{ animation-delay:.6s; }
+  .nav-center.llamando .tz-vapor.v3{ animation-delay:1.2s; }
+  @keyframes tzVapor{
+    0%{ opacity:0; transform:translateY(20%) scaleY(.5); }
+    35%{ opacity:.7; }
+    100%{ opacity:0; transform:translateY(-90%) scaleY(1.4); }
   }
-  .nav-center.llamando .icono-espera .cw-fill{ transform:translateY(0); }
-  .nav-center .icono-espera .cw-borde{
-    stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;
-  }
+
+  /* --- Copa de granizado/cóctel --- */
+  .ck-glass{ fill:none; stroke:var(--nav-activo-color,#dffaff); stroke-width:2.8; stroke-linejoin:round; stroke-linecap:round; }
+  .ck-straw{ fill:none; stroke:var(--nav-mesero-color,#ff7fbf); stroke-width:3; stroke-linecap:round; }
+  .ck-fill{ transform:translateY(58px); opacity:0; transition:transform .62s cubic-bezier(.28,1.15,.4,1) .1s, opacity .01s .1s; }
+  .nav-center.llamando .ck-fill{ transform:translateY(3px); opacity:1; }
+  .ck-ice{ fill:rgba(255,255,255,.55); stroke:#eaf7fa; stroke-width:1; }
+  .ck-oring{ fill:#f5a623; } .ck-ocen{ fill:#ffd98a; } .ck-oseg{ stroke:#f5a623; stroke-width:.9; }
 
   /* ===================================================
      DRAWER — menú hamburguesa
@@ -911,22 +935,43 @@
     <!-- Botón central = LLAMAR AL MESERO -->
     <div class="nav-center-wrap">
       <button class="nav-center" id="callWaiterBtn" aria-label="Llamar al mesero">
-        <!-- Taza de café (nicho café) -->
-        <svg class="icono-espera" id="iconoTaza" viewBox="0 0 100 94" style="display:none;">
-          <defs><clipPath id="clipTaza"><path d="M25,33 Q25,57 37,66 Q50,71 63,66 Q75,57 75,33 Z"/></clipPath></defs>
-          <ellipse class="cw-borde" cx="50" cy="77" rx="26" ry="3"/>
-          <g clip-path="url(#clipTaza)"><rect class="cw-fill" x="16" y="31" width="68" height="52" fill="currentColor" opacity=".85"/></g>
-          <path class="cw-borde" d="M21,31 Q21,59 36,68 Q50,74 64,68 Q79,59 79,31"/>
-          <ellipse class="cw-borde" cx="50" cy="31" rx="29" ry="5.5"/>
-          <path class="cw-borde" d="M79,39 Q93,41 93,50 Q93,59 78,56"/>
-        </svg>
-        <!-- Copa/vaso de granizado (resto de nichos, incluido granizados/bar) -->
-        <svg class="icono-espera" id="iconoCopa" viewBox="0 0 100 118" style="display:none;">
-          <defs><clipPath id="clipCopa"><path d="M35,34 L39,102 L61,102 L65,34 Z"/></clipPath></defs>
-          <g clip-path="url(#clipCopa)"><rect class="cw-fill" x="30" y="36" width="40" height="74" fill="currentColor" opacity=".85"/></g>
-          <path class="cw-borde" d="M32,34 L36,104 Q36,108 40,108 L60,108 Q64,108 64,104 L68,34"/>
-          <line class="cw-borde" x1="30" y1="34" x2="70" y2="34"/>
-        </svg>
+        <div class="icono-espera-wrap" id="iconoTaza" style="display:none;">
+          <!-- Vapor de calor (solo se anima cuando está "llamando") -->
+          <span class="tz-vapor v1"></span><span class="tz-vapor v2"></span><span class="tz-vapor v3"></span>
+          <svg class="icono-espera" viewBox="0 0 100 94">
+            <defs><clipPath id="clipTaza"><path d="M25,33 Q25,57 37,66 Q50,71 63,66 Q75,57 75,33 Z"/></clipPath></defs>
+            <ellipse class="tz-plato" cx="50" cy="77" rx="27" ry="3"/>
+            <g clip-path="url(#clipTaza)"><g class="tz-fill"><rect x="16" y="31" width="68" height="52"/><ellipse class="tz-crema" cx="50" cy="32" rx="25" ry="3.6"/></g></g>
+            <path class="tz-cup" d="M21,31 Q21,59 36,68 Q50,74 64,68 Q79,59 79,31"/>
+            <ellipse class="tz-rim" cx="50" cy="31" rx="29" ry="5.5"/>
+            <path class="tz-handle" d="M79,39 Q93,41 93,50 Q93,59 78,56"/>
+          </svg>
+        </div>
+        <div class="icono-espera-wrap" id="iconoCopa">
+          <svg class="icono-espera" viewBox="0 0 100 122">
+            <defs>
+              <clipPath id="clipCopa"><path d="M35,32 L37,107 L63,107 L65,32 Z"/></clipPath>
+              <linearGradient id="gradCopa" x1="0" y1="1" x2="0" y2="0">
+                <stop offset="0" stop-color="var(--nav-mesero-color,#ff2d87)"/>
+                <stop offset="1" stop-color="var(--nav-activo-color,#22d3f5)"/>
+              </linearGradient>
+            </defs>
+            <g clip-path="url(#clipCopa)"><g class="ck-fill">
+              <rect fill="url(#gradCopa)" x="30" y="34" width="40" height="80"/>
+              <!-- rodaja de naranja como garnish -->
+              <circle class="ck-oring" cx="45" cy="82" r="9"/><circle class="ck-ocen" cx="45" cy="82" r="6"/>
+              <line class="ck-oseg" x1="45" y1="76" x2="45" y2="88"/><line class="ck-oseg" x1="39" y1="82" x2="51" y2="82"/>
+              <line class="ck-oseg" x1="41" y1="78" x2="49" y2="86"/><line class="ck-oseg" x1="49" y1="78" x2="41" y2="86"/>
+            </g></g>
+            <g class="ck-grp">
+              <line class="ck-straw" x1="47" y1="98" x2="30" y2="14"/>
+              <path class="ck-glass" d="M33,30 L35,108 Q35,112 39,112 L61,112 Q65,112 65,108 L67,30"/>
+              <ellipse class="ck-glass" cx="50" cy="30" rx="17" ry="3.5"/>
+              <rect class="ck-ice" x="41" y="35" width="9" height="9" rx="1.5" transform="rotate(-8 45 40)"/>
+              <rect class="ck-ice" x="52" y="39" width="8" height="8" rx="1.5" transform="rotate(10 56 43)"/>
+            </g>
+          </svg>
+        </div>
       </button>
       <span class="nav-center-label" id="navMeseroTxt">Mesero</span>
     </div>
