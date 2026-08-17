@@ -392,6 +392,19 @@
                 <p class="hint">Esta barra siempre tiene fondo oscuro fijo, así que el color automático se calcula para que siempre se lea bien ahí, sin importar el tema del resto del sitio.</p>
               </div>
 
+              <div class="seccion">
+                <h3>📋 Información del negocio (menú hamburguesa)</h3>
+                <p class="hint">Este texto aparece cuando el cliente toca "Ubicación y Horarios", "Métodos de Pago", "Sobre Nosotros" o "Ayuda y Soporte" desde el menú lateral. Si lo dejas vacío, el cliente ve un aviso de que aún no está cargado.</p>
+                <label>Ubicación y horarios</label>
+                <textarea id="d-info-ubicacion" rows="3" placeholder="Ej: Cra 45 #12-30, Ibagué.&#10;Lun a sáb, 8:00am - 8:00pm." style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;margin-bottom:12px;"></textarea>
+                <label>Métodos de pago</label>
+                <textarea id="d-info-pago" rows="2" placeholder="Ej: Efectivo, Nequi, Daviplata, tarjeta débito/crédito." style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;margin-bottom:12px;"></textarea>
+                <label>Sobre nosotros</label>
+                <textarea id="d-info-nosotros" rows="3" placeholder="Cuéntale al cliente algo sobre tu negocio." style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;margin-bottom:12px;"></textarea>
+                <label>Ayuda y soporte</label>
+                <textarea id="d-info-ayuda" rows="2" placeholder="Ej: Escríbenos por WhatsApp al 300 123 4567 si tienes algún problema con tu pedido." style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;"></textarea>
+              </div>
+
               <div><button type="submit">Guardar cambios</button> <div class="msg" id="d-msg"></div></div>
             </form>
 
@@ -781,6 +794,10 @@ function recopilarPayloadLive() {
       nav_inicio_texto: $('#d-nav-inicio').value.trim() || null,
       nav_mesero_texto: $('#d-nav-mesero').value.trim() || null,
       nav_pedidos_texto: $('#d-nav-pedidos').value.trim() || null,
+      info_ubicacion: $('#d-info-ubicacion').value.trim() || null,
+      info_pago: $('#d-info-pago').value.trim() || null,
+      info_nosotros: $('#d-info-nosotros').value.trim() || null,
+      info_ayuda: $('#d-info-ayuda').value.trim() || null,
       categorias: catForm.categorias.length ? catForm.categorias : contenidoActual.categorias,
       categorias_desc: catForm.categorias.length ? catForm.categorias_desc : contenidoActual.categorias_desc,
       categorias_color: (document.getElementById('d-categorias-color')?.dataset.auto === 'false') ? $('#d-categorias-color').value : null,
@@ -875,6 +892,10 @@ async function seleccionarNegocio(id) {
   $('#d-nav-inicio').value = c.nav_inicio_texto || '';
   $('#d-nav-mesero').value = c.nav_mesero_texto || '';
   $('#d-nav-pedidos').value = c.nav_pedidos_texto || '';
+  $('#d-info-ubicacion').value = c.info_ubicacion || '';
+  $('#d-info-pago').value = c.info_pago || '';
+  $('#d-info-nosotros').value = c.info_nosotros || '';
+  $('#d-info-ayuda').value = c.info_ayuda || '';
   renderizarCategoriasForm(c.categorias || [], c.categorias_desc || []);
   renderizarBeneficiosForm(c.beneficios || [], c.beneficios_desc || []);
 
@@ -1044,6 +1065,10 @@ $('#form-datos').addEventListener('submit', async (e) => {
     nav_inicio_texto: $('#d-nav-inicio').value.trim() || null,
     nav_mesero_texto: $('#d-nav-mesero').value.trim() || null,
     nav_pedidos_texto: $('#d-nav-pedidos').value.trim() || null,
+    info_ubicacion: $('#d-info-ubicacion').value.trim() || null,
+    info_pago: $('#d-info-pago').value.trim() || null,
+    info_nosotros: $('#d-info-nosotros').value.trim() || null,
+    info_ayuda: $('#d-info-ayuda').value.trim() || null,
     categorias: categorias.length ? categorias : contenidoActual.categorias,
     categorias_desc: categorias.length ? categorias_desc : contenidoActual.categorias_desc,
     categorias_color: (document.getElementById('d-categorias-color')?.dataset.auto === 'false') ? $('#d-categorias-color').value : null,
