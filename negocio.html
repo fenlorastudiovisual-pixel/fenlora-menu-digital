@@ -643,6 +643,14 @@
   .info-modal-head h3{ font-size:17px; font-weight:800; color:var(--white); }
   .info-modal-body{ font-size:13.5px; line-height:1.6; color:var(--gray); white-space:pre-wrap; }
   .info-modal-body.vacio{ font-style:italic; opacity:.7; }
+  .info-modal-mapa{ width:100%; aspect-ratio:16/10; border:0; border-radius:12px; margin-bottom:14px; display:block; background:#1a1a20; }
+  .info-modal-ir{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; padding:12px; margin-bottom:14px; border-radius:12px;
+    border:1.5px solid var(--cyan); color:var(--cyan); background:transparent;
+    font-weight:700; font-size:13px; text-decoration:none;
+  }
+  .info-modal-ir svg{ width:16px; height:16px; }
 
   /* Toast simple para el botón "Llamar mesero" */
   .toast{
@@ -1470,13 +1478,33 @@
       const contenido = (TENANT_DATA && TENANT_DATA.contenido) || {};
       const texto = (contenido['info_' + clave] || '').trim();
       infoModalTitulo.textContent = INFO_TITULOS[clave] || 'Información';
-      if (texto) {
-        infoModalBody.textContent = texto;
-        infoModalBody.classList.remove('vacio');
-      } else {
-        infoModalBody.textContent = 'Este negocio todavía no cargó esta información.';
-        infoModalBody.classList.add('vacio');
+
+      // Caso especial: "ubicación" además muestra el mapa (a partir de la
+      // dirección) y un botón "Cómo llegar", antes del texto de horarios.
+      let html = '';
+      if (clave === 'ubicacion') {
+        const direccion = (contenido.info_direccion || '').trim();
+        if (direccion) {
+          const q = encodeURIComponent(direccion);
+          // Mapa embebido gratuito (sin necesitar una API key de Google) +
+          // enlace que abre la navegación real en la app de Google Maps.
+          html += `<iframe class="info-modal-mapa" src="https://www.google.com/maps?q=${q}&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>`;
+          html += `<a class="info-modal-ir" href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-6.5 7-11.5A7 7 0 0 0 5 9.5C5 14.5 12 21 12 21Z"/></svg>
+            Cómo llegar</a>`;
+        }
       }
+
+      if (texto) {
+        html += `<div>${texto.replace(/</g, '&lt;')}</div>`;
+        infoModalBody.classList.remove('vacio');
+      } else if (!html) {
+        html = 'Este negocio todavía no cargó esta información.';
+        infoModalBody.classList.add('vacio');
+      } else {
+        infoModalBody.classList.remove('vacio');
+      }
+      infoModalBody.innerHTML = html;
       infoModalOverlay.classList.add('open');
     }
     function cerrarInfoModal() { infoModalOverlay.classList.remove('open'); }
