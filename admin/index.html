@@ -727,6 +727,98 @@ function leerBeneficiosForm() {
   return { beneficios: nombres, beneficios_desc: descs };
 }
 
+// ===================================================
+// VISTA PREVIA EN TIEMPO REAL (sin necesidad de guardar)
+// ===================================================
+// negocio.html YA tenía el receptor de estos mensajes construido (recibe
+// "preview-live-update" y repinta al instante) — lo que faltaba era que el
+// admin realmente se lo mandara. Esta función lee el formulario tal como
+// está en este momento (sin guardar nada) y se lo manda al iframe cada vez
+// que se escribe o se cambia algo. Las imágenes/videos que subes como
+// ARCHIVO (no como URL pegada) no se pueden previsualizar en vivo sin
+// subirlas primero — para esos casos, sigue haciendo falta "Guardar".
+function recopilarPayloadLive() {
+  if (!ACTIVO_ID || !NEGOCIO_ACTUAL) return null;
+  const contenidoActual = (NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.contenido) || {};
+  const catForm = document.getElementById('d-categorias-lista') ? leerCategoriasForm() : { categorias: [], categorias_desc: [] };
+  const benForm = document.getElementById('d-beneficios-lista') ? leerBeneficiosForm() : { beneficios: [], beneficios_desc: [] };
+  const hero_imagen_url = $('#d-hero-imagen').value.trim() || contenidoActual.hero_imagen_url || null;
+  const logo_url = $('#d-logo-imagen').value.trim() || (NEGOCIO_ACTUAL.logo_url || null);
+  const promoActual = contenidoActual.promo || {};
+  const promo_imagen_url = $('#d-promo-imagen').value.trim() || promoActual.imagen_url || null;
+  const promo_imagen_fondo_url = $('#d-promo-bg-imagen').value.trim() || promoActual.imagen_fondo_url || null;
+
+  return {
+    nombre: $('#d-nombre').value.trim(),
+    logo_url,
+    tema: {
+      fondo: $('#d-color-fondo').value,
+      texto: $('#d-color-texto').value,
+      acento1: $('#d-color-acento1').value,
+      acento2: $('#d-color-acento2').value
+    },
+    contenido: {
+      hero_imagen_url,
+      hero_video_url: $('#d-hero-video').value.trim() || null,
+      logo_tamano: $('#d-logo-tamano').value,
+      sin_neon: $('#d-sin-neon').checked,
+      hero_titulo: $('#d-hero-titulo').value.trim() || contenidoActual.hero_titulo,
+      hero_titulo_color: (document.getElementById('d-hero-titulo-color')?.dataset.auto === 'false') ? $('#d-hero-titulo-color').value : null,
+      tagline: $('#d-tagline').value.trim() || contenidoActual.tagline,
+      tagline_color: $('#d-tagline-color').value || null,
+      hero_boton_texto: $('#d-hero-boton').value.trim() || null,
+      hero_titulo_tamano: $('#d-hero-titulo-tamano').value,
+      fuente_titulo: $('#d-fuente-titulo').value,
+      favoritos_titulo: $('#d-fav-titulo').value.trim() || null,
+      favoritos_ver_todos: $('#d-fav-vertodos').value.trim() || null,
+      nav_inicio_texto: $('#d-nav-inicio').value.trim() || null,
+      nav_mesero_texto: $('#d-nav-mesero').value.trim() || null,
+      nav_pedidos_texto: $('#d-nav-pedidos').value.trim() || null,
+      categorias: catForm.categorias.length ? catForm.categorias : contenidoActual.categorias,
+      categorias_desc: catForm.categorias.length ? catForm.categorias_desc : contenidoActual.categorias_desc,
+      categorias_color: (document.getElementById('d-categorias-color')?.dataset.auto === 'false') ? $('#d-categorias-color').value : null,
+      beneficios: benForm.beneficios,
+      beneficios_desc: benForm.beneficios_desc,
+      beneficios_color: (document.getElementById('d-beneficios-color')?.dataset.auto === 'false') ? $('#d-beneficios-color').value : null,
+      favoritos_titulo_color: $('#d-fav-titulo-color').value || null,
+      nav_color: (document.getElementById('d-nav-color')?.dataset.auto === 'false') ? $('#d-nav-color').value : null,
+      promo: {
+        activa: $('#d-promo-activa').checked,
+        titulo: $('#d-promo-titulo').value.trim(),
+        etiqueta: $('#d-promo-etiqueta').value.trim(),
+        descripcion: $('#d-promo-descripcion').value.trim(),
+        horario: $('#d-promo-horario').value.trim(),
+        imagen_url: promo_imagen_url,
+        imagen_fondo_url: promo_imagen_fondo_url,
+        video_fondo_url: $('#d-promo-bg-video').value.trim() || null
+      }
+    }
+  };
+}
+
+function enviarPreviewLive() {
+  const frame = document.getElementById('previewFrame');
+  if (!frame || !frame.contentWindow) return;
+  const payload = recopilarPayloadLive();
+  if (!payload) return;
+  frame.contentWindow.postMessage({ type: 'preview-live-update', payload }, window.location.origin);
+}
+
+let _liveDebounce;
+const _formDatosLive = document.getElementById('form-datos');
+if (_formDatosLive) {
+  // "input" cubre texto/colores mientras se escriben; "change" cubre
+  // checkboxes y selects (que no disparan "input" en todos los navegadores).
+  _formDatosLive.addEventListener('input', () => {
+    clearTimeout(_liveDebounce);
+    _liveDebounce = setTimeout(enviarPreviewLive, 180);
+  });
+  _formDatosLive.addEventListener('change', () => {
+    clearTimeout(_liveDebounce);
+    _liveDebounce = setTimeout(enviarPreviewLive, 50);
+  });
+}
+
 async function seleccionarNegocio(id) {
   ACTIVO_ID = id;
   const r = await fetch(`/admin/api/tenants/${encodeURIComponent(id)}`);
