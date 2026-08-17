@@ -235,6 +235,11 @@
                   <div><label>Acento 1 (bordes/detalles principales)</label><input id="d-color-acento1" type="color"></div>
                   <div><label>Acento 2 (bordes/detalles secundarios)</label><input id="d-color-acento2" type="color"></div>
                 </div>
+                <div class="row">
+                  <div><label>Texto secundario / descripciones (opcional)</label><input id="d-color-gris" type="color"></div>
+                  <div><label>&nbsp;</label><button type="button" id="d-color-gris-reset" class="secondary">Usar color automático</button></div>
+                </div>
+                <p class="hint">Este es el color de las descripciones cortas (bajo el nombre de cada categoría, cada producto destacado y cada beneficio). Si no eliges uno, usa un gris neutro por defecto.</p>
                 <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
                   <input type="checkbox" id="d-sin-neon" style="width:auto;"> <label for="d-sin-neon" style="margin:0;">Desactivar efectos de neón (brillos y sombras luminosas)</label>
                 </div>
@@ -688,6 +693,7 @@ function conectarColorAuto(inputId, resetBtnId) {
 conectarColorAuto('d-categorias-color', 'd-categorias-color-reset');
 conectarColorAuto('d-beneficios-color', 'd-beneficios-color-reset');
 conectarColorAuto('d-nav-color', 'd-nav-color-reset');
+conectarColorAuto('d-color-gris', 'd-color-gris-reset');
 
 
 $('#d-cat-agregar').addEventListener('click', () => {
@@ -753,9 +759,10 @@ function recopilarPayloadLive() {
     logo_url,
     tema: {
       fondo: $('#d-color-fondo').value,
-      texto: $('#d-color-texto').value,
+      texto: (document.getElementById('d-color-texto')?.dataset.auto === 'false') ? $('#d-color-texto').value : null,
       acento1: $('#d-color-acento1').value,
-      acento2: $('#d-color-acento2').value
+      acento2: $('#d-color-acento2').value,
+      gris: (document.getElementById('d-color-gris')?.dataset.auto === 'false') ? $('#d-color-gris').value : null
     },
     contenido: {
       hero_imagen_url,
@@ -846,6 +853,9 @@ async function seleccionarNegocio(id) {
   else { inputColorTexto.value = '#ffffff'; inputColorTexto.dataset.auto = 'true'; }
   $('#d-color-acento1').value = tema.acento1 || '#ff2fb0';
   $('#d-color-acento2').value = tema.acento2 || '#00e5ff';
+  const inputColorGris = $('#d-color-gris');
+  if (tema.gris) { inputColorGris.value = tema.gris; inputColorGris.dataset.auto = 'false'; }
+  else { inputColorGris.value = '#9a9aa5'; inputColorGris.dataset.auto = 'true'; }
   $('#d-sin-neon').checked = !!(t.contenido && t.contenido.sin_neon);
   $('#d-logo-file').value = '';
 
@@ -1067,9 +1077,10 @@ $('#form-datos').addEventListener('submit', async (e) => {
       tema: {
         ...(NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.tema),
         fondo: $('#d-color-fondo').value,
-        texto: $('#d-color-texto').value,
+        texto: (document.getElementById('d-color-texto')?.dataset.auto === 'false') ? $('#d-color-texto').value : null,
         acento1: $('#d-color-acento1').value,
-        acento2: $('#d-color-acento2').value
+        acento2: $('#d-color-acento2').value,
+        gris: (document.getElementById('d-color-gris')?.dataset.auto === 'false') ? $('#d-color-gris').value : null
       },
       contenido
     })

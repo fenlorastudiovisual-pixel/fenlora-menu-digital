@@ -1224,6 +1224,20 @@
         const brillo = (r * 299 + g * 587 + b * 114) / 1000; // percepción de luminosidad
         root.setProperty('--white', brillo > 150 ? '#17171a' : '#f5f5f7');
       }
+      // Fix: el campo "Texto" del admin (tema.texto) se guardaba pero esta
+      // página nunca lo leía — por eso elegir un color ahí no cambiaba nada.
+      // Si el negocio forzó un color manual, ese manda sobre el automático
+      // de arriba.
+      if (data.tema.texto) {
+        root.setProperty('--white', data.tema.texto);
+      }
+      // Fix: el texto gris secundario (descripciones de categorías, de
+      // "Nuestros Favoritos" y de beneficios) usaba un color FIJO sin
+      // ningún campo en el admin para cambiarlo — por eso no se podía
+      // tocar. Ahora, si el negocio elige un color manual, se aplica aquí.
+      if (data.tema.gris) {
+        root.setProperty('--gray', data.tema.gris);
+      }
 
       // Fix crítico: el markup trae 3 <span> de ejemplo (FRÍOS./INTENSOS./EXPLOSIVOS.)
       // como placeholder visual. Antes, si el hero_titulo del negocio tenía menos de
