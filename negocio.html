@@ -651,6 +651,13 @@
     font-weight:700; font-size:13px; text-decoration:none;
   }
   .info-modal-ir svg{ width:16px; height:16px; }
+  /* Insignias de métodos de pago (color de marca, sin usar el logo oficial) */
+  .metodos-pago-badges{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .metodo-pago-badge{
+    display:flex; align-items:center; gap:6px;
+    padding:8px 13px; border-radius:99px; font-size:12.5px; font-weight:700;
+    color:#fff;
+  }
 
   /* Toast simple para el botón "Llamar mesero" */
   .toast{
@@ -952,7 +959,7 @@
     </button>
 
     <!-- Botón central = LLAMAR AL MESERO -->
-    <div class="nav-center-wrap">
+    <div class="nav-center-wrap" id="navCenterWrap">
       <button class="nav-center" id="callWaiterBtn" aria-label="Llamar al mesero">
         <div class="icono-espera-wrap" id="iconoTaza" style="display:none;">
           <!-- Vapor de calor (solo se anima cuando está "llamando") -->
@@ -1433,6 +1440,35 @@
 
       pintarFavoritos(data.destacados);
       if (typeof actualizarIconoMesero === 'function') actualizarIconoMesero();
+
+      // ===================================================
+      // MODO DEL NEGOCIO — local / domicilio / ambos
+      // ===================================================
+      // Por defecto ("ambos" o sin valor guardado) NO cambia nada — así
+      // ningún negocio ya creado se ve afectado. Solo si el negocio elige
+      // explícitamente "local" o "domicilio" se ocultan estas dos piezas
+      // concretas (nada más se toca).
+      const modoNegocio = data.contenido.modo_negocio || 'ambos';
+      const hamburgerBtnEl = document.getElementById('hamburgerBtn');
+      const headerSpacerEl = document.querySelector('.header-spacer');
+      const navCenterWrapEl = document.getElementById('navCenterWrap');
+      if (modoNegocio === 'local') {
+        // Solo en el local: no hace falta el menú hamburguesa (ubicación,
+        // pago a domicilio, etc. no aplican) — el mesero es lo protagonista.
+        if (hamburgerBtnEl) hamburgerBtnEl.style.display = 'none';
+        if (headerSpacerEl) headerSpacerEl.style.display = 'none';
+        if (navCenterWrapEl) navCenterWrapEl.style.display = '';
+      } else if (modoNegocio === 'domicilio') {
+        // Solo domicilio: no hay mesero físico al que llamar.
+        if (hamburgerBtnEl) hamburgerBtnEl.style.display = '';
+        if (headerSpacerEl) headerSpacerEl.style.display = '';
+        if (navCenterWrapEl) navCenterWrapEl.style.display = 'none';
+      } else {
+        // "ambos" (o sin definir): comportamiento de siempre, todo visible.
+        if (hamburgerBtnEl) hamburgerBtnEl.style.display = '';
+        if (headerSpacerEl) headerSpacerEl.style.display = '';
+        if (navCenterWrapEl) navCenterWrapEl.style.display = '';
+      }
     }
 
     fetch(`/menu/${getTenantSlug()}`)
@@ -1474,6 +1510,18 @@
       nosotros: 'Sobre nosotros',
       ayuda: 'Ayuda y soporte'
     };
+    // Mismo catálogo que en el admin — no reproducimos los logos oficiales
+    // (son marca registrada de cada empresa), así que cada método se ve
+    // como una insignia con su color de marca + nombre.
+    const CATALOGO_METODOS_PAGO = {
+      efectivo: { nombre: 'Efectivo', color: '#1FA971' },
+      nequi: { nombre: 'Nequi', color: '#D6006C' },
+      daviplata: { nombre: 'Daviplata', color: '#E4032E' },
+      bancolombia: { nombre: 'Bancolombia', color: '#FFD100', textoOscuro: true },
+      breb: { nombre: 'Bre-B', color: '#00A99D' },
+      pse: { nombre: 'PSE', color: '#003D79' },
+      tarjeta: { nombre: 'Tarjeta débito/crédito', color: '#3a3a46' }
+    };
     function abrirInfoModal(clave) {
       const contenido = (TENANT_DATA && TENANT_DATA.contenido) || {};
       const texto = (contenido['info_' + clave] || '').trim();
@@ -1492,6 +1540,20 @@
           html += `<a class="info-modal-ir" href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 21s7-6.5 7-11.5A7 7 0 0 0 5 9.5C5 14.5 12 21 12 21Z"/></svg>
             Cómo llegar</a>`;
+        }
+      }
+
+      // Caso especial: "pago" muestra las insignias de métodos aceptados
+      // (marcados por el negocio en el admin) antes de la nota de texto.
+      if (clave === 'pago') {
+        const metodos = contenido.metodos_pago || [];
+        if (metodos.length) {
+          const badges = metodos
+            .map(k => CATALOGO_METODOS_PAGO[k])
+            .filter(Boolean)
+            .map(m => `<span class="metodo-pago-badge" style="background:${m.color};${m.textoOscuro ? 'color:#141414;' : ''}">${m.nombre}</span>`)
+            .join('');
+          html += `<div class="metodos-pago-badges">${badges}</div>`;
         }
       }
 

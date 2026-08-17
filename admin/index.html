@@ -221,6 +221,17 @@
                   <div><label>Precio mensual del servicio (cobranza — opcional)</label><input id="d-precio-mensual" type="number" step="0.01" placeholder="Ej: 30000"></div>
                   <div><label>Día de cobro (1-28)</label><input id="d-dia-cobro" type="number" min="1" max="28" placeholder="Ej: 5"></div>
                 </div>
+                <div class="row">
+                  <div>
+                    <label>¿Cómo se usa este menú?</label>
+                    <select id="d-modo-negocio">
+                      <option value="ambos">Ambos — en el local y a domicilio</option>
+                      <option value="local">Solo en el local (mesa/POS) — sin menú hamburguesa, resalta "Llamar al mesero"</option>
+                      <option value="domicilio">Solo a domicilio — sin "Llamar al mesero", con menú hamburguesa completo</option>
+                    </select>
+                  </div>
+                </div>
+                <p class="hint">Cambia qué se muestra en el home según cómo atiende este negocio. "Ambos" es el valor de siempre — no cambia nada si no lo tocas.</p>
               </div>
 
               <div class="seccion">
@@ -400,8 +411,11 @@
                 <p class="hint" style="margin-top:-6px;">Escribe la dirección tal como la buscarías en Google Maps. Con esto se arma solo el mapa y el botón "Cómo llegar" — no hace falta pegar ningún link.</p>
                 <label>Horario y notas de ubicación</label>
                 <textarea id="d-info-ubicacion" rows="3" placeholder="Ej: Lun a sáb, 8:00am - 8:00pm. Frente al parque." style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;margin-bottom:12px;"></textarea>
-                <label>Métodos de pago</label>
-                <textarea id="d-info-pago" rows="2" placeholder="Ej: Efectivo, Nequi, Daviplata, tarjeta débito/crédito." style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;margin-bottom:12px;"></textarea>
+                <label>Métodos de pago que aceptas</label>
+                <div id="d-metodos-pago" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
+                <p class="hint" style="margin-top:-4px;">Marca los que acepta este negocio — al cliente le aparecen como insignias con el color de cada marca, no solo texto.</p>
+                <label>Nota extra sobre pagos (opcional)</label>
+                <textarea id="d-info-pago" rows="2" placeholder="Ej: Solo transferencias arriba de $20.000." style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;margin-bottom:12px;"></textarea>
                 <label>Sobre nosotros</label>
                 <textarea id="d-info-nosotros" rows="3" placeholder="Cuéntale al cliente algo sobre tu negocio." style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;margin-bottom:12px;"></textarea>
                 <label>Ayuda y soporte</label>
@@ -750,6 +764,39 @@ function leerBeneficiosForm() {
 }
 
 // ===================================================
+// MÉTODOS DE PAGO (insignias con el color de cada marca)
+// ===================================================
+// No reproducimos los logos oficiales (son marca registrada) — en vez de
+// eso, cada método se muestra como una insignia con su color de marca +
+// nombre, que el cliente reconoce igual de rápido sin usar el logo real.
+// Esta misma lista (clave, nombre, color) se repite en negocio.html para
+// pintar las insignias en el sitio público.
+const CATALOGO_METODOS_PAGO = [
+  { key: 'efectivo', nombre: 'Efectivo', color: '#1FA971' },
+  { key: 'nequi', nombre: 'Nequi', color: '#D6006C' },
+  { key: 'daviplata', nombre: 'Daviplata', color: '#E4032E' },
+  { key: 'bancolombia', nombre: 'Bancolombia', color: '#FFD100', textoOscuro: true },
+  { key: 'breb', nombre: 'Bre-B', color: '#00A99D' },
+  { key: 'pse', nombre: 'PSE', color: '#003D79' },
+  { key: 'tarjeta', nombre: 'Tarjeta débito/crédito', color: '#3a3a46' },
+];
+function renderMetodosPagoForm(activos) {
+  const wrap = $('#d-metodos-pago');
+  if (!wrap) return;
+  activos = activos || [];
+  wrap.innerHTML = CATALOGO_METODOS_PAGO.map(m => `
+    <label style="display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:9px;background:#0f0f14;border:1px solid #333;cursor:pointer;font-size:13px;">
+      <input type="checkbox" class="metodo-pago-chk" value="${m.key}" ${activos.indexOf(m.key) >= 0 ? 'checked' : ''} style="width:auto;">
+      <span style="width:10px;height:10px;border-radius:50%;background:${m.color};display:inline-block;flex-shrink:0;"></span>
+      ${m.nombre}
+    </label>
+  `).join('');
+}
+function leerMetodosPagoForm() {
+  return Array.from(document.querySelectorAll('.metodo-pago-chk:checked')).map(el => el.value);
+}
+
+// ===================================================
 // VISTA PREVIA EN TIEMPO REAL (sin necesidad de guardar)
 // ===================================================
 // negocio.html YA tenía el receptor de estos mensajes construido (recibe
@@ -784,6 +831,7 @@ function recopilarPayloadLive() {
       hero_imagen_url,
       hero_video_url: $('#d-hero-video').value.trim() || null,
       logo_tamano: $('#d-logo-tamano').value,
+      modo_negocio: $('#d-modo-negocio').value,
       sin_neon: $('#d-sin-neon').checked,
       hero_titulo: $('#d-hero-titulo').value.trim() || contenidoActual.hero_titulo,
       hero_titulo_color: (document.getElementById('d-hero-titulo-color')?.dataset.auto === 'false') ? $('#d-hero-titulo-color').value : null,
@@ -800,6 +848,7 @@ function recopilarPayloadLive() {
       info_direccion: $('#d-info-direccion').value.trim() || null,
       info_ubicacion: $('#d-info-ubicacion').value.trim() || null,
       info_pago: $('#d-info-pago').value.trim() || null,
+      metodos_pago: leerMetodosPagoForm(),
       info_nosotros: $('#d-info-nosotros').value.trim() || null,
       info_ayuda: $('#d-info-ayuda').value.trim() || null,
       categorias: catForm.categorias.length ? catForm.categorias : contenidoActual.categorias,
@@ -864,6 +913,7 @@ async function seleccionarNegocio(id) {
   $('#d-moneda').value = t.moneda || 'COP';
   $('#d-precio-mensual').value = t.precio_mensual || '';
   $('#d-dia-cobro').value = t.dia_cobro || '';
+  $('#d-modo-negocio').value = (t.contenido && t.contenido.modo_negocio) || 'ambos';
 
   $('#d-logo-imagen').value = (t.logo_url && !t.logo_url.includes('logo-placeholder')) ? t.logo_url : '';
 
@@ -898,6 +948,7 @@ async function seleccionarNegocio(id) {
   $('#d-nav-pedidos').value = c.nav_pedidos_texto || '';
   $('#d-info-direccion').value = c.info_direccion || '';
   $('#d-info-ubicacion').value = c.info_ubicacion || '';
+  renderMetodosPagoForm(c.metodos_pago || []);
   $('#d-info-pago').value = c.info_pago || '';
   $('#d-info-nosotros').value = c.info_nosotros || '';
   $('#d-info-ayuda').value = c.info_ayuda || '';
@@ -1056,6 +1107,7 @@ $('#form-datos').addEventListener('submit', async (e) => {
     hero_imagen_url,
     hero_video_url: $('#d-hero-video').value.trim() || null,
     logo_tamano: $('#d-logo-tamano').value,
+    modo_negocio: $('#d-modo-negocio').value,
     sin_neon: $('#d-sin-neon').checked,
     // Textos del Home
     hero_titulo: $('#d-hero-titulo').value.trim() || contenidoActual.hero_titulo,
@@ -1073,6 +1125,7 @@ $('#form-datos').addEventListener('submit', async (e) => {
     info_direccion: $('#d-info-direccion').value.trim() || null,
     info_ubicacion: $('#d-info-ubicacion').value.trim() || null,
     info_pago: $('#d-info-pago').value.trim() || null,
+    metodos_pago: leerMetodosPagoForm(),
     info_nosotros: $('#d-info-nosotros').value.trim() || null,
     info_ayuda: $('#d-info-ayuda').value.trim() || null,
     categorias: categorias.length ? categorias : contenidoActual.categorias,
