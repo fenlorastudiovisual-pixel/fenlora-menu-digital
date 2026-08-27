@@ -10,6 +10,10 @@ node_modules/
 # Carpeta sobrante de una sesión vieja, no es parte del sitio
 mnt/
 
+# Archivos residuales (respaldo por si aún quedan en la carpeta) — no son del sitio
+*.rar
+assetsignore
+
 # Migraciones de base de datos y documentación interna — no son del sitio público
 *.sql
 README.md
