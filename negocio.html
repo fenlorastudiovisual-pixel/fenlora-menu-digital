@@ -1452,9 +1452,11 @@
       const hamburgerBtnEl = document.getElementById('hamburgerBtn');
       const headerSpacerEl = document.querySelector('.header-spacer');
       const navCenterWrapEl = document.getElementById('navCenterWrap');
-      if (modoNegocio === 'local') {
-        // Solo en el local: no hace falta el menú hamburguesa (ubicación,
-        // pago a domicilio, etc. no aplican) — el mesero es lo protagonista.
+      if (modoNegocio === 'local' || modoNegocio === 'pos') {
+        // Solo en el local / Con POS: no hace falta el menú hamburguesa
+        // (ubicación, pago a domicilio, etc. no aplican) — el mesero es lo
+        // protagonista. En modo "pos" además el catálogo se alimentará del
+        // sistema POS por API (conexión pendiente).
         if (hamburgerBtnEl) hamburgerBtnEl.style.display = 'none';
         if (headerSpacerEl) headerSpacerEl.style.display = 'none';
         if (navCenterWrapEl) navCenterWrapEl.style.display = '';

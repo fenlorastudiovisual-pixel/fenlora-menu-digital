@@ -163,6 +163,16 @@
           <div><label for="whatsapp">WhatsApp (código de país, sin +)</label><input id="whatsapp" placeholder="Ej: 573001234567"></div>
         </div>
         <div><label for="nicho">Nicho / plantilla base</label><select id="nicho" required></select></div>
+        <div>
+          <label for="n-modo-negocio">Tipo de negocio</label>
+          <select id="n-modo-negocio">
+            <option value="ambos">Autónomo · Ambos — en el local y a domicilio (productos en el panel)</option>
+            <option value="local">Autónomo · Solo local — mesero, sin hamburguesa (productos en el panel)</option>
+            <option value="domicilio">Autónomo · Solo domicilio — hamburguesa, sin mesero (productos en el panel)</option>
+            <option value="pos">Con POS — productos del sistema POS (mesero, sin hamburguesa, mesas QR/NFC)</option>
+          </select>
+          <p class="hint">Elige "Con POS" solo para negocios que usarán el sistema POS de Fenlora: sus productos vienen del POS (no se editan aquí). Lo puedes cambiar luego en la pestaña Datos.</p>
+        </div>
         <div class="row">
           <div><label for="pago_url">Link de pago (Wompi, Bold, etc. — opcional)</label><input id="pago_url" placeholder="https://checkout.wompi.co/l/xxxxx"></div>
           <div><label for="moneda">Moneda</label>
@@ -223,15 +233,16 @@
                 </div>
                 <div class="row">
                   <div>
-                    <label>¿Cómo se usa este menú?</label>
+                    <label>Tipo de negocio</label>
                     <select id="d-modo-negocio">
-                      <option value="ambos">Ambos — en el local y a domicilio</option>
-                      <option value="local">Solo en el local (mesa/POS) — sin menú hamburguesa, resalta "Llamar al mesero"</option>
-                      <option value="domicilio">Solo a domicilio — sin "Llamar al mesero", con menú hamburguesa completo</option>
+                      <option value="ambos">Autónomo · Ambos — en el local y a domicilio (productos en el panel)</option>
+                      <option value="local">Autónomo · Solo local — mesero, sin hamburguesa (productos en el panel)</option>
+                      <option value="domicilio">Autónomo · Solo domicilio — hamburguesa, sin mesero (productos en el panel)</option>
+                      <option value="pos">Con POS — productos del sistema POS (mesero, sin hamburguesa, mesas QR/NFC)</option>
                     </select>
                   </div>
                 </div>
-                <p class="hint">Cambia qué se muestra en el home según cómo atiende este negocio. "Ambos" es el valor de siempre — no cambia nada si no lo tocas.</p>
+                <p class="hint">Cambia qué se muestra en el home y de dónde salen los productos. "Autónomo · Ambos" es el valor de siempre — no cambia nada si no lo tocas. "Con POS" oculta la hamburguesa, resalta "Llamar al mesero" y bloquea la edición manual de productos (vienen del POS por API).</p>
               </div>
 
               <div class="seccion">
@@ -444,6 +455,10 @@
       </div>
 
       <div id="sub-productos" class="subpanel">
+        <div id="pos-productos-aviso" class="seccion" style="display:none;border:1px solid var(--line);background:rgba(255,180,0,.06);">
+          <h3>🔌 Productos gestionados por el POS</h3>
+          <p class="hint" style="margin:0;">Este negocio es <strong>"Con POS"</strong>: su catálogo (productos, precios, disponibilidad) se alimenta del sistema POS de Fenlora por API. Por eso la edición manual de productos está desactivada aquí, para evitar que dos fuentes se pisen. <br><em>La conexión con el POS todavía está pendiente de enchufar.</em> Si necesitas manejar los productos desde este panel, cambia el "Tipo de negocio" en la pestaña Datos.</p>
+        </div>
         <div class="seccion">
           <h3>➕ Agregar / editar producto</h3>
           <form id="form-producto">
@@ -653,6 +668,7 @@ $('#form-nuevo').addEventListener('submit', async (e) => {
     nombre: $('#nombre').value.trim(),
     whatsapp: $('#whatsapp').value.trim(),
     nicho: $('#nicho').value,
+    modo_negocio: $('#n-modo-negocio').value,
     pago_url: $('#pago_url').value.trim() || null,
     moneda: $('#moneda').value
   };
@@ -1002,8 +1018,27 @@ async function seleccionarNegocio(id) {
   if (previewFrame) previewFrame.src = `/${t.id}?_=${Date.now()}`;
 
   $('#panel-detalle').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  cargarProductos(id);
+  const esPOS = (t.contenido && t.contenido.modo_negocio) === 'pos';
+  aplicarModoPOSproductos(esPOS);
+  if (!esPOS) cargarProductos(id);
   cargarPedidos(id);
+}
+
+// Cuando el negocio es "Con POS", su catálogo viene del sistema POS por API,
+// así que aquí se bloquea la edición manual: se muestra el aviso, se oculta el
+// formulario de producto y la lista, y se deshabilitan sus campos (para que ni
+// siquiera un submit accidental cree productos que el POS luego pisaría).
+function aplicarModoPOSproductos(esPOS) {
+  const aviso = document.getElementById('pos-productos-aviso');
+  const form = document.getElementById('form-producto');
+  const seccionForm = form ? form.closest('.seccion') : null;
+  const seccionLista = document.getElementById('productos-wrap')?.closest('.seccion');
+  if (aviso) aviso.style.display = esPOS ? '' : 'none';
+  if (seccionForm) seccionForm.style.display = esPOS ? 'none' : '';
+  if (seccionLista) seccionLista.style.display = esPOS ? 'none' : '';
+  if (form) {
+    form.querySelectorAll('input, button, textarea, select').forEach(el => { el.disabled = esPOS; });
+  }
 }
 
 function refrescarPreview() {

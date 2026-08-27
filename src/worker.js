@@ -69,7 +69,7 @@ async function getResumen(env) {
 
 async function createTenant(request, env) {
   const body = await request.json();
-  const { nombre, nicho, whatsapp, pago_url, moneda } = body;
+  const { nombre, nicho, whatsapp, pago_url, moneda, modo_negocio } = body;
 
   if (!nombre || !nicho) return json({ error: "Falta 'nombre' o 'nicho'" }, 400);
   const preset = NICHOS[nicho];
@@ -80,7 +80,11 @@ async function createTenant(request, env) {
   const existe = await env.DB.prepare("SELECT id FROM tenants WHERE id = ?").bind(id).first();
   if (existe) id = `${id}-${Date.now().toString(36)}`;
 
-  const contenido = { ...preset.contenido_ejemplo, nombre_negocio: nombre };
+  // Tipo de negocio: ambos (default) | local | domicilio | pos.
+  // Se guarda dentro del contenido (JSON), sin necesidad de migrar la BD.
+  const modosValidos = ["ambos", "local", "domicilio", "pos"];
+  const modo = modosValidos.includes(modo_negocio) ? modo_negocio : "ambos";
+  const contenido = { ...preset.contenido_ejemplo, nombre_negocio: nombre, modo_negocio: modo };
 
   await env.DB.prepare(
     `INSERT INTO tenants (id, nombre, nicho, whatsapp, logo_url, tema, contenido, pago_url, moneda)
