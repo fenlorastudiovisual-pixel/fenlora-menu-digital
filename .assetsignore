@@ -16,6 +16,5 @@ assetsignore
 
 # Migraciones de base de datos y documentación interna — no son del sitio público
 *.sql
-README.md
-README-ADMIN.md
+*.md
 wrangler.toml
