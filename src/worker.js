@@ -63,10 +63,10 @@ async function getJwks(teamDomain) {
 
 async function verifyAccessJwt(token, env) {
   const teamDomain = env.ACCESS_TEAM_DOMAIN;
-  const aud = env.ACCESS_AUD;
-  if (!teamDomain || !aud || teamDomain.includes("REEMPLAZAR") || aud.includes("REEMPLAZAR")) {
-    throw new Error("SIN_CONFIG");
-  }
+  let aud = env.ACCESS_AUD;
+  // El dominio de equipo es obligatorio; el AUD es opcional (más estricto si se pone).
+  if (!teamDomain || teamDomain.includes("REEMPLAZAR")) throw new Error("SIN_CONFIG");
+  if (aud && aud.includes("REEMPLAZAR")) aud = "";
   const parts = String(token || "").split(".");
   if (parts.length !== 3) return false;
 
@@ -77,8 +77,10 @@ async function verifyAccessJwt(token, env) {
   // Claims
   const now = Math.floor(Date.now() / 1000);
   if (payload.iss !== `https://${teamDomain}`) return false;
-  const auds = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
-  if (!auds.includes(aud)) return false;
+  if (aud) {
+    const auds = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+    if (!auds.includes(aud)) return false;
+  }
   if (payload.exp && now >= payload.exp) return false;
   if (payload.nbf && now < payload.nbf - 60) return false;
 
