@@ -55,5 +55,14 @@ const Carrito = {
       b.style.display = n > 0 ? 'flex' : 'none';
     });
     document.querySelectorAll('.carrito-flotante-count').forEach(b => { b.textContent = n; });
+  },
+
+  // ── Mesa (modo POS): se lee del QR (?mesa=) y se recuerda entre páginas ──
+  _mesaKey(slug) { return `fenlora_mesa_${slug}`; },
+  setMesa(slug, mesa) { try { if (mesa) localStorage.setItem(this._mesaKey(slug), String(mesa)); } catch (e) {} },
+  getMesa(slug) { try { return localStorage.getItem(this._mesaKey(slug)) || ''; } catch (e) { return ''; } },
+  // Llama en cada página: si la URL trae ?mesa=, la guarda.
+  captarMesa(slug) {
+    try { const m = new URLSearchParams(location.search).get('mesa'); if (m) this.setMesa(slug, m); } catch (e) {}
   }
 };

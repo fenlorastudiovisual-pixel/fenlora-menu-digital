@@ -102,6 +102,7 @@
     }
     const SLUG = getTenantSlug();
     document.getElementById('backBtn').href = `/${SLUG}/menu`;
+    Carrito.captarMesa(SLUG);   // recuerda la mesa si vino del QR
 
     let TENANT = null;
 
@@ -190,18 +191,18 @@
       const moneda = TENANT?.moneda || 'COP';
 
       try {
+        const esPos = TENANT?.modo === 'pos';
         const r = await fetch(`/menu/${SLUG}/pedido`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items, total, cliente_nota: nota })
+          body: JSON.stringify({ items, total, cliente_nota: nota, mesa: Carrito.getMesa(SLUG) })
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error || 'No se pudo registrar el pedido');
 
-        // Guardamos el pedido siempre (queda en tu admin y disponible para el día
-        // que lo conectes a un POS real). Además, si el negocio tiene WhatsApp,
-        // abrimos el chat con el detalle ya escrito.
-        if (TENANT.whatsapp) {
+        // En modo POS el pedido ya entró como comanda a la cocina; no abrimos WhatsApp.
+        // En modo autónomo, si hay WhatsApp, abrimos el chat con el detalle ya escrito.
+        if (TENANT.whatsapp && !esPos) {
           const mensaje = construirMensajeWhatsapp(items, total, nota, data.id, moneda);
           window.open(`https://wa.me/${TENANT.whatsapp}?text=${mensaje}`, '_blank');
         }
@@ -210,8 +211,9 @@
         mostrarConfirmacion(data.id, total);
       } catch (err) {
         btn.disabled = false;
-        btn.textContent = TENANT?.whatsapp ? 'ENVIAR PEDIDO POR WHATSAPP' : 'CONFIRMAR PEDIDO';
-        alert('No se pudo enviar el pedido. Intenta de nuevo.');
+        btn.textContent = TENANT?.whatsapp && TENANT?.modo !== 'pos' ? 'ENVIAR PEDIDO POR WHATSAPP' : 'CONFIRMAR PEDIDO';
+        if (String(err.message).includes('mesa')) alert('Escanea el código QR de tu mesa para hacer el pedido.');
+        else alert('No se pudo enviar el pedido. Intenta de nuevo.');
         console.warn(err);
       }
     }
@@ -219,6 +221,22 @@
     function mostrarConfirmacion(pedidoId, total) {
       document.getElementById('resumenBar')?.remove();
       const moneda = TENANT?.moneda || 'COP';
+
+      // Modo POS: el pedido ya está en la cocina, en la mesa del cliente.
+      if (TENANT?.modo === 'pos') {
+        const mesa = Carrito.getMesa(SLUG);
+        document.getElementById('contenido').innerHTML = `
+          <div class="confirmacion">
+            <h2>¡Pedido enviado a la cocina! 👨‍🍳</h2>
+            <p>
+              ${mesa ? ('Mesa <strong>' + mesa + '</strong> · ') : ''}Total: <strong>${formatearPrecio(total, moneda)}</strong><br><br>
+              Tu pedido ya entró a la cocina. El mesero te lo llevará a la mesa. ¡Buen provecho!
+            </p>
+            <a class="cta" href="/${SLUG}">VOLVER AL MENÚ</a>
+          </div>`;
+        return;
+      }
+
       const tienePago = !!TENANT?.pago_url;
       const tieneWhatsapp = !!TENANT?.whatsapp;
 

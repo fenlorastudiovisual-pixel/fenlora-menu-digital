@@ -20,6 +20,26 @@ function json(data, status = 200) {
 }
 
 // ────────────────────────────────────────────────────────────────────
+// ENLACE con el POS (contrato v1). El Worker llama a las funciones (RPC) del
+// Supabase del POS con la api_key del negocio, que vive SOLO aquí (servidor);
+// el navegador del cliente nunca la ve.
+//   Vars necesarias: SUPABASE_URL, SUPABASE_ANON_KEY.
+// ────────────────────────────────────────────────────────────────────
+async function posRpc(env, fn, args) {
+  const base = env.SUPABASE_URL, key = env.SUPABASE_ANON_KEY;
+  if (!base || !key) throw new Error("POS_SIN_CONFIG");
+  const r = await fetch(base.replace(/\/$/, "") + "/rest/v1/rpc/" + fn, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "apikey": key, "Authorization": "Bearer " + key },
+    body: JSON.stringify(args)
+  });
+  const txt = await r.text();
+  let data; try { data = txt ? JSON.parse(txt) : null; } catch { data = txt; }
+  if (!r.ok) throw new Error((data && (data.message || data.error)) || ("POS_HTTP_" + r.status));
+  return data;
+}
+
+// ────────────────────────────────────────────────────────────────────
 // SEGURIDAD · Cabeceras defensivas en TODAS las respuestas
 // ────────────────────────────────────────────────────────────────────
 function harden(res) {
@@ -219,10 +239,12 @@ async function updateTenant(id, request, env) {
   const dia_cobro = body.dia_cobro ?? row.dia_cobro;
   const tema = body.tema ? JSON.stringify(body.tema) : row.tema;
   const contenido = body.contenido ? JSON.stringify(body.contenido) : row.contenido;
+  const modo_pos = (body.modo_pos != null) ? (body.modo_pos ? 1 : 0) : row.modo_pos;
+  const pos_api_key = (body.pos_api_key !== undefined) ? (body.pos_api_key || null) : row.pos_api_key;
 
   await env.DB.prepare(
-    `UPDATE tenants SET nombre=?, whatsapp=?, logo_url=?, tema=?, contenido=?, activo=?, pago_url=?, moneda=?, precio_mensual=?, dia_cobro=? WHERE id=?`
-  ).bind(nombre, whatsapp, logo_url, tema, contenido, activo, pago_url, moneda, precio_mensual, dia_cobro, id).run();
+    `UPDATE tenants SET nombre=?, whatsapp=?, logo_url=?, tema=?, contenido=?, activo=?, pago_url=?, moneda=?, precio_mensual=?, dia_cobro=?, modo_pos=?, pos_api_key=? WHERE id=?`
+  ).bind(nombre, whatsapp, logo_url, tema, contenido, activo, pago_url, moneda, precio_mensual, dia_cobro, modo_pos, pos_api_key, id).run();
 
   return json({ ok: true });
 }
@@ -412,7 +434,7 @@ async function deleteProduct(id, env) {
 // BLINDADO: el servidor recalcula precios y total desde la base. NO confía en el
 // precio ni el total que manda el navegador (evita "pedido por $0").
 async function crearPedido(slug, request, env) {
-  const tenant = await env.DB.prepare("SELECT id FROM tenants WHERE id = ? AND activo = 1").bind(slug).first();
+  const tenant = await env.DB.prepare("SELECT id, modo_pos, pos_api_key FROM tenants WHERE id = ? AND activo = 1").bind(slug).first();
   if (!tenant) return json({ error: "Negocio no encontrado" }, 404);
 
   let body;
@@ -420,6 +442,22 @@ async function crearPedido(slug, request, env) {
   const items = body && body.items;
   if (!Array.isArray(items) || items.length === 0) return json({ error: "Pedido vacío" }, 400);
   if (items.length > MAX_ITEMS) return json({ error: "Demasiados productos en el pedido" }, 400);
+
+  // ── Modo POS: el pedido entra como COMANDA en la mesa del POS ──
+  if (tenant.modo_pos && tenant.pos_api_key) {
+    const mesa = (body.mesa != null ? String(body.mesa) : "").trim();
+    if (!mesa) return json({ error: "mesa_requerida" }, 400);
+    const itemsPos = items.map(it => ({ producto_id: it.producto_id, cantidad: parseInt(it.cantidad, 10) || 0 }));
+    try {
+      const r = await posRpc(env, "menu_crear_comanda", {
+        p_api_key: tenant.pos_api_key, p_mesa: mesa, p_items: itemsPos,
+        p_nota: (typeof body.cliente_nota === "string" ? body.cliente_nota.slice(0, MAX_NOTA) : null)
+      });
+      return json({ id: r.comanda_id, total: r.total, modo: "pos" }, 201);
+    } catch (e) {
+      return json({ error: "pos_error", detalle: String(e.message || e) }, 502);
+    }
+  }
 
   // Normaliza y valida cantidades; junta ids para buscarlos en la base
   const pedido = [];
@@ -501,22 +539,66 @@ async function uploadFile(request, env) {
   return json({ url, key }, 201);
 }
 
+// ---------- /menu/:slug/mesero (público, solo modo POS) ----------
+async function llamarMesero(slug, request, env) {
+  const t = await env.DB.prepare("SELECT id, modo_pos, pos_api_key FROM tenants WHERE id = ? AND activo = 1").bind(slug).first();
+  if (!t) return json({ error: "Negocio no encontrado" }, 404);
+  if (!t.modo_pos || !t.pos_api_key) return json({ error: "no_pos" }, 400);
+  let body = {}; try { body = await request.json(); } catch {}
+  const mesa = (body.mesa != null ? String(body.mesa) : "").trim();
+  if (!mesa) return json({ error: "mesa_requerida" }, 400);
+  const motivo = (typeof body.motivo === "string" && body.motivo) ? body.motivo.slice(0, 40) : "llamado";
+  try {
+    await posRpc(env, "menu_llamar_mesero", { p_api_key: t.pos_api_key, p_mesa: mesa, p_motivo: motivo });
+    return json({ ok: true });
+  } catch (e) {
+    return json({ error: "pos_error", detalle: String(e.message || e) }, 502);
+  }
+}
+
 async function getMenuPublico(slug, env) {
   const row = await env.DB.prepare(
-    "SELECT nombre, nicho, whatsapp, logo_url, tema, contenido, pago_url, moneda FROM tenants WHERE id = ? AND activo = 1"
+    "SELECT nombre, nicho, whatsapp, logo_url, tema, contenido, pago_url, moneda, modo_pos, pos_api_key FROM tenants WHERE id = ? AND activo = 1"
   ).bind(slug).first();
   if (!row) return json({ error: "Negocio no encontrado" }, 404);
 
+  const base = {
+    nombre: row.nombre, nicho: row.nicho, whatsapp: row.whatsapp, logo_url: row.logo_url,
+    tema: JSON.parse(row.tema), contenido: JSON.parse(row.contenido),
+    pago_url: row.pago_url, moneda: row.moneda || "COP"
+  };
+
+  // ── Modo POS: la carta viene del POS (el diseño/tema sigue siendo del menú) ──
+  if (row.modo_pos && row.pos_api_key) {
+    try {
+      const cat = await posRpc(env, "menu_catalogo", { p_api_key: row.pos_api_key });
+      if (cat && Array.isArray(cat.productos)) {
+        const productos = cat.productos;
+        return json({
+          ...base,
+          nombre: (cat.negocio && cat.negocio.nombre) || base.nombre,
+          moneda: (cat.negocio && cat.negocio.moneda) || base.moneda,
+          productos,
+          destacados: productos.filter(p => p.destacado),
+          modo: "pos"
+        });
+      }
+    } catch (e) {
+      // Si el POS está caído, caemos a la carta local como respaldo (mejor eso que nada)
+      console.warn("menu_catalogo POS falló, uso respaldo local:", String(e));
+    }
+  }
+
+  // ── Modo autónomo: la carta es del propio menú (D1) ──
   const { results: productos } = await env.DB.prepare(
     "SELECT id, categoria, nombre, descripcion, precio, imagen_url, destacado, orden FROM productos WHERE tenant_id = ? AND activo = 1 ORDER BY categoria, orden, id"
   ).bind(slug).all();
 
   return json({
-    nombre: row.nombre, nicho: row.nicho, whatsapp: row.whatsapp, logo_url: row.logo_url,
-    tema: JSON.parse(row.tema), contenido: JSON.parse(row.contenido),
-    pago_url: row.pago_url, moneda: row.moneda || "COP",
+    ...base,
     productos,
-    destacados: productos.filter(p => p.destacado)
+    destacados: productos.filter(p => p.destacado),
+    modo: (row.modo_pos ? "pos" : "autonomo")
   });
 }
 
@@ -594,6 +676,11 @@ async function route(request, env) {
   const crearPedidoMatch = path.match(/^\/menu\/([^/]+)\/pedido$/);
   if (crearPedidoMatch && method === "POST") {
     return await crearPedido(decodeURIComponent(crearPedidoMatch[1]), request, env);
+  }
+
+  const meseroMatch = path.match(/^\/menu\/([^/]+)\/mesero$/);
+  if (meseroMatch && method === "POST") {
+    return await llamarMesero(decodeURIComponent(meseroMatch[1]), request, env);
   }
 
   const menuMatch = path.match(/^\/menu\/([^/]+)$/);

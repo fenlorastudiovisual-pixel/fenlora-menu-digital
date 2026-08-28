@@ -1085,8 +1085,18 @@
 
     let TENANT_DATA = null;
 
+    // Modo POS → sin hamburguesa, con botón de mesero real.
+    // Modo autónomo → con hamburguesa, sin botón de mesero.
+    function _aplicarModo(esPos){
+      const hb=document.getElementById('hamburgerBtn');
+      const wc=document.getElementById('navCenterWrap');
+      if(esPos){ if(hb)hb.style.display='none'; if(wc)wc.style.display=''; }
+      else{ if(hb)hb.style.display=''; if(wc)wc.style.display='none'; }
+    }
+
     function aplicarTenant(data) {
       TENANT_DATA = data;
+      try{ _aplicarModo(data.modo==='pos'); }catch(e){}
       document.title = `${data.nombre} — ${data.contenido.tagline || ''}`;
       document.querySelectorAll('.tenant-logo').forEach(img => {
         if (data.logo_url) { img.src = data.logo_url; img.style.display = ''; }
@@ -1452,11 +1462,9 @@
       const hamburgerBtnEl = document.getElementById('hamburgerBtn');
       const headerSpacerEl = document.querySelector('.header-spacer');
       const navCenterWrapEl = document.getElementById('navCenterWrap');
-      if (modoNegocio === 'local' || modoNegocio === 'pos') {
-        // Solo en el local / Con POS: no hace falta el menú hamburguesa
-        // (ubicación, pago a domicilio, etc. no aplican) — el mesero es lo
-        // protagonista. En modo "pos" además el catálogo se alimentará del
-        // sistema POS por API (conexión pendiente).
+      if (modoNegocio === 'local') {
+        // Solo en el local: no hace falta el menú hamburguesa (ubicación,
+        // pago a domicilio, etc. no aplican) — el mesero es lo protagonista.
         if (hamburgerBtnEl) hamburgerBtnEl.style.display = 'none';
         if (headerSpacerEl) headerSpacerEl.style.display = 'none';
         if (navCenterWrapEl) navCenterWrapEl.style.display = '';
@@ -1473,6 +1481,7 @@
       }
     }
 
+    try{ Carrito.captarMesa(getTenantSlug()); }catch(e){}   // guarda la mesa si vino del QR (?mesa=)
     fetch(`/menu/${getTenantSlug()}`)
       .then(r => r.ok ? r.json() : Promise.reject(new Error('Negocio no encontrado')))
       .then(aplicarTenant)
@@ -1622,6 +1631,23 @@
       toast.classList.add('show');
       clearTimeout(toastTimeout);
       toastTimeout = setTimeout(()=> toast.classList.remove('show'), 2400);
+
+      // En modo POS: aviso REAL al mesero (a través del Worker → POS). Sin mesa no se puede avisar.
+      try {
+        if (TENANT_DATA && TENANT_DATA.modo === 'pos') {
+          const mesa = Carrito.getMesa(getTenantSlug());
+          const txt = document.getElementById('toastText');
+          if (!mesa) { if (txt) txt.textContent = 'Escanea el QR de tu mesa'; }
+          else {
+            if (txt) txt.textContent = 'Llamando al mesero...';
+            fetch(`/menu/${getTenantSlug()}/mesero`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ mesa, motivo: 'llamado' })
+            }).then(r => { if (!r.ok && txt) txt.textContent = 'No se pudo avisar, intenta de nuevo'; })
+              .catch(() => { if (txt) txt.textContent = 'Sin conexión, intenta de nuevo'; });
+          }
+        }
+      } catch (e) {}
 
       // Dispara la animación de llenado; se queda "lleno" unos segundos
       // (como confirmación visual de que el mesero ya fue avisado) y

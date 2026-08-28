@@ -25,3 +25,7 @@ bucket_name = "fenlora-menus-digitales"
 [vars]
 ACCESS_TEAM_DOMAIN = "white-grass-9523.cloudflareaccess.com"
 ACCESS_AUD = "92e58f5f1abc0e1a5c5545da7d9aa5c8fdcaf46cb41869a9cdc04de26d7f1415"
+# ── Enlace con el POS (Supabase). La clave anónima es pública (va también en el POS).
+#    La seguridad real de cada negocio es su api_key, guardada por tenant en D1.
+SUPABASE_URL = "https://adyqqfasfexuknwrcfic.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFkeXFxZmFzZmV4dWtud3JjZmljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0NjM0OTcsImV4cCI6MjA5NDAzOTQ5N30.Ef5Rwyt3VY0K2Lg0Zle5-qi1X8VXEaxNsHGP8QzqjDg"
