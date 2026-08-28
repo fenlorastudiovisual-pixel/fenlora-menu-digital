@@ -15,3 +15,12 @@ database_id = "f86f89ac-f1ba-4d1b-82c6-b8a99cf315b0"
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "fenlora-menus-digitales"
+
+# ── Seguridad del panel: verificación del token de Cloudflare Access dentro del Worker ──
+# Reemplaza estos dos valores con los tuyos (ver instrucciones):
+#   ACCESS_TEAM_DOMAIN = tu dominio de equipo Zero Trust, ej: "fenlora.cloudflareaccess.com"
+#   ACCESS_AUD         = el "Application Audience (AUD) Tag" de la aplicación de Access que protege /admin
+# Mientras estén vacíos, la API del panel responde 503 (falla cerrada, no queda abierta).
+[vars]
+ACCESS_TEAM_DOMAIN = "REEMPLAZAR.cloudflareaccess.com"
+ACCESS_AUD = "REEMPLAZAR_AUD_TAG"

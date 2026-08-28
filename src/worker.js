@@ -6,6 +6,12 @@ const PUBLIC_R2_URL = "https://pub-6509f754158640c68cc33a2321f3387e.r2.dev";
 // Rutas reservadas: ningún negocio puede usar estos slugs.
 const RESERVADOS = new Set(["admin", "menu", "assets", "carrito.js", "logo.png", "favicon.ico", "negocio.html", "menu.html", "checkout.html"]);
 
+// Límites anti-abuso del pedido público
+const MAX_ITEMS = 60;        // renglones distintos por pedido
+const MAX_QTY   = 99;        // cantidad máxima por renglón
+const MAX_NOTA  = 300;       // caracteres de la nota del cliente
+const MAX_ITEM_NOTA = 200;
+
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -13,10 +19,106 @@ function json(data, status = 200) {
   });
 }
 
+// ────────────────────────────────────────────────────────────────────
+// SEGURIDAD · Cabeceras defensivas en TODAS las respuestas
+// ────────────────────────────────────────────────────────────────────
+function harden(res) {
+  const h = new Headers(res.headers);
+  h.set("X-Content-Type-Options", "nosniff");
+  h.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  h.set("X-Frame-Options", "SAMEORIGIN");            // el admin usa iframe del MISMO origen (preview)
+  h.set("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+  h.set("Cross-Origin-Opener-Policy", "same-origin");
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
+}
+
+// ────────────────────────────────────────────────────────────────────
+// SEGURIDAD · Verificación del token de Cloudflare Access (JWT RS256)
+// Segunda capa por si Access se desconfigura o alguien intenta saltárselo.
+// Requiere dos variables en el Worker:
+//   ACCESS_TEAM_DOMAIN  ej: "fenlora.cloudflareaccess.com"
+//   ACCESS_AUD          el "Application Audience (AUD) Tag" de la app de Access
+// ────────────────────────────────────────────────────────────────────
+let _jwks = { keys: [], exp: 0 };
+
+function b64urlToBytes(s) {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function b64urlToString(s) { return new TextDecoder().decode(b64urlToBytes(s)); }
+
+async function getJwks(teamDomain) {
+  const now = Date.now();
+  if (_jwks.keys.length && _jwks.exp > now) return _jwks.keys;
+  const r = await fetch(`https://${teamDomain}/cdn-cgi/access/certs`);
+  if (!r.ok) throw new Error("no se pudo leer JWKS de Access");
+  const data = await r.json();
+  _jwks = { keys: data.keys || [], exp: now + 10 * 60 * 1000 }; // cache 10 min
+  return _jwks.keys;
+}
+
+async function verifyAccessJwt(token, env) {
+  const teamDomain = env.ACCESS_TEAM_DOMAIN;
+  const aud = env.ACCESS_AUD;
+  if (!teamDomain || !aud || teamDomain.includes("REEMPLAZAR") || aud.includes("REEMPLAZAR")) {
+    throw new Error("SIN_CONFIG");
+  }
+  const parts = String(token || "").split(".");
+  if (parts.length !== 3) return false;
+
+  const header = JSON.parse(b64urlToString(parts[0]));
+  const payload = JSON.parse(b64urlToString(parts[1]));
+  if (header.alg !== "RS256" || !header.kid) return false;
+
+  // Claims
+  const now = Math.floor(Date.now() / 1000);
+  if (payload.iss !== `https://${teamDomain}`) return false;
+  const auds = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+  if (!auds.includes(aud)) return false;
+  if (payload.exp && now >= payload.exp) return false;
+  if (payload.nbf && now < payload.nbf - 60) return false;
+
+  // Firma
+  const keys = await getJwks(teamDomain);
+  const jwk = keys.find(k => k.kid === header.kid);
+  if (!jwk) return false;
+  const key = await crypto.subtle.importKey(
+    "jwk", jwk, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["verify"]
+  );
+  const data = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
+  const sig = b64urlToBytes(parts[2]);
+  return await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, sig, data);
+}
+
+// Devuelve null si el admin está autenticado; o una Response de error si no.
+async function requireAdmin(request, env) {
+  const token = request.headers.get("Cf-Access-Jwt-Assertion") || _cookie(request, "CF_Authorization");
+  try {
+    const ok = await verifyAccessJwt(token, env);
+    if (ok) return null;
+    return json({ error: "no_autorizado" }, 403);
+  } catch (e) {
+    if (String(e.message) === "SIN_CONFIG") {
+      // Falla cerrada: la API del panel NO responde hasta configurar la seguridad.
+      return json({ error: "panel_sin_seguridad", detalle: "Configura ACCESS_TEAM_DOMAIN y ACCESS_AUD en el Worker antes de usar el panel." }, 503);
+    }
+    return json({ error: "no_autorizado" }, 403);
+  }
+}
+function _cookie(request, name) {
+  const c = request.headers.get("Cookie") || "";
+  const m = c.match(new RegExp("(?:^|;\\s*)" + name + "=([^;]+)"));
+  return m ? m[1] : null;
+}
+
 function slugify(texto) {
   return texto
     .toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
@@ -69,7 +171,7 @@ async function getResumen(env) {
 
 async function createTenant(request, env) {
   const body = await request.json();
-  const { nombre, nicho, whatsapp, pago_url, moneda, modo_negocio } = body;
+  const { nombre, nicho, whatsapp, pago_url, moneda } = body;
 
   if (!nombre || !nicho) return json({ error: "Falta 'nombre' o 'nicho'" }, 400);
   const preset = NICHOS[nicho];
@@ -80,11 +182,7 @@ async function createTenant(request, env) {
   const existe = await env.DB.prepare("SELECT id FROM tenants WHERE id = ?").bind(id).first();
   if (existe) id = `${id}-${Date.now().toString(36)}`;
 
-  // Tipo de negocio: ambos (default) | local | domicilio | pos.
-  // Se guarda dentro del contenido (JSON), sin necesidad de migrar la BD.
-  const modosValidos = ["ambos", "local", "domicilio", "pos"];
-  const modo = modosValidos.includes(modo_negocio) ? modo_negocio : "ambos";
-  const contenido = { ...preset.contenido_ejemplo, nombre_negocio: nombre, modo_negocio: modo };
+  const contenido = { ...preset.contenido_ejemplo, nombre_negocio: nombre };
 
   await env.DB.prepare(
     `INSERT INTO tenants (id, nombre, nicho, whatsapp, logo_url, tema, contenido, pago_url, moneda)
@@ -135,7 +233,13 @@ async function marcarPago(id, env) {
 }
 
 async function deleteTenant(id, env) {
-  await env.DB.prepare("DELETE FROM tenants WHERE id = ?").bind(id).run();
+  // Borrado EN CASCADA — evita productos/pedidos/visitas huérfanos (D1 no fuerza FKs).
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM productos WHERE tenant_id = ?").bind(id),
+    env.DB.prepare("DELETE FROM pedidos WHERE tenant_id = ?").bind(id),
+    env.DB.prepare("DELETE FROM visitas WHERE tenant_id = ?").bind(id),
+    env.DB.prepare("DELETE FROM tenants WHERE id = ?").bind(id)
+  ]);
   return json({ ok: true });
 }
 
@@ -147,9 +251,6 @@ async function listDemos(env) {
   return json({ demos: results });
 }
 
-// Crea (si no existe) un negocio de muestra por cada nicho del catálogo,
-// con slug fijo "demo-<nicho>", para mostrarle a un prospecto cómo se ve
-// su rubro sin tener que crear un negocio real todavía.
 async function generarDemos(env) {
   const creados = [];
   for (const [nichoId, preset] of Object.entries(NICHOS)) {
@@ -171,8 +272,6 @@ async function generarDemos(env) {
 }
 
 // ---------- /admin/api/cobranza ----------
-// Un negocio está "vencido" si tiene precio_mensual y dia_cobro configurados,
-// ya pasó ese día en el mes actual, y no hay un pago registrado este mes.
 async function getCobranza(env) {
   const { results } = await env.DB.prepare(`
     SELECT id, nombre, precio_mensual, dia_cobro, fecha_ultimo_pago, moneda
@@ -268,11 +367,13 @@ async function createProduct(tenantId, request, env) {
   if (!categoria || !nombre || precio == null) {
     return json({ error: "Faltan 'categoria', 'nombre' o 'precio'" }, 400);
   }
+  const precioNum = Number(precio);
+  if (!isFinite(precioNum) || precioNum < 0) return json({ error: "Precio inválido" }, 400);
   const r = await env.DB.prepare(
     `INSERT INTO productos (tenant_id, categoria, nombre, descripcion, precio, imagen_url, destacado, orden)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
-    tenantId, categoria, nombre, body.descripcion || "", precio,
+    tenantId, categoria, nombre, body.descripcion || "", precioNum,
     body.imagen_url || null, body.destacado ? 1 : 0, body.orden || 0
   ).run();
   return json({ id: r.meta.last_row_id }, 201);
@@ -306,21 +407,54 @@ async function deleteProduct(id, env) {
 }
 
 // ---------- /menu/:slug/pedido (público) ----------
+// BLINDADO: el servidor recalcula precios y total desde la base. NO confía en el
+// precio ni el total que manda el navegador (evita "pedido por $0").
 async function crearPedido(slug, request, env) {
   const tenant = await env.DB.prepare("SELECT id FROM tenants WHERE id = ? AND activo = 1").bind(slug).first();
   if (!tenant) return json({ error: "Negocio no encontrado" }, 404);
 
-  const body = await request.json();
-  const { items, total, cliente_nota } = body;
-  if (!items || !Array.isArray(items) || items.length === 0 || total == null) {
-    return json({ error: "Pedido vacío o incompleto" }, 400);
+  let body;
+  try { body = await request.json(); } catch { return json({ error: "JSON inválido" }, 400); }
+  const items = body && body.items;
+  if (!Array.isArray(items) || items.length === 0) return json({ error: "Pedido vacío" }, 400);
+  if (items.length > MAX_ITEMS) return json({ error: "Demasiados productos en el pedido" }, 400);
+
+  // Normaliza y valida cantidades; junta ids para buscarlos en la base
+  const pedido = [];
+  for (const it of items) {
+    const pid = parseInt(it && it.producto_id, 10);
+    const qty = parseInt(it && it.cantidad, 10);
+    if (!Number.isInteger(pid) || pid <= 0) return json({ error: "Producto inválido en el pedido" }, 400);
+    if (!Number.isInteger(qty) || qty <= 0 || qty > MAX_QTY) return json({ error: "Cantidad inválida" }, 400);
+    const notas = typeof (it && it.notas) === "string" ? it.notas.slice(0, MAX_ITEM_NOTA) : "";
+    pedido.push({ pid, qty, notas });
   }
+
+  // Precios REALES desde la base (solo productos activos de ESTE negocio)
+  const ids = [...new Set(pedido.map(p => p.pid))];
+  const placeholders = ids.map(() => "?").join(",");
+  const { results: prods } = await env.DB.prepare(
+    `SELECT id, nombre, precio FROM productos WHERE tenant_id = ? AND activo = 1 AND id IN (${placeholders})`
+  ).bind(slug, ...ids).all();
+  const mapa = new Map(prods.map(p => [p.id, p]));
+
+  let total = 0;
+  const itemsSeguros = [];
+  for (const p of pedido) {
+    const prod = mapa.get(p.pid);
+    if (!prod) return json({ error: "Un producto del pedido ya no está disponible" }, 409);
+    const sub = Number(prod.precio) * p.qty;
+    total += sub;
+    itemsSeguros.push({ producto_id: prod.id, nombre: prod.nombre, precio: Number(prod.precio), cantidad: p.qty, notas: p.notas });
+  }
+
+  const nota = typeof (body && body.cliente_nota) === "string" ? body.cliente_nota.slice(0, MAX_NOTA) : null;
 
   const r = await env.DB.prepare(
     `INSERT INTO pedidos (tenant_id, items, total, cliente_nota) VALUES (?, ?, ?, ?)`
-  ).bind(slug, JSON.stringify(items), total, cliente_nota || null).run();
+  ).bind(slug, JSON.stringify(itemsSeguros), total, nota).run();
 
-  return json({ id: r.meta.last_row_id }, 201);
+  return json({ id: r.meta.last_row_id, total }, 201);
 }
 
 // ---------- /admin/api/tenants/:id/pedidos ----------
@@ -335,7 +469,8 @@ async function listPedidos(tenantId, env) {
 // ---------- /admin/api/pedidos/:id ----------
 async function updatePedidoEstado(id, request, env) {
   const body = await request.json();
-  if (!body.estado) return json({ error: "Falta 'estado'" }, 400);
+  const estados = new Set(["pendiente_pago", "pagado", "cancelado"]);
+  if (!body.estado || !estados.has(body.estado)) return json({ error: "Estado inválido" }, 400);
   await env.DB.prepare("UPDATE pedidos SET estado=? WHERE id=?").bind(body.estado, id).run();
   return json({ ok: true });
 }
@@ -347,12 +482,17 @@ async function uploadFile(request, env) {
   const tenantId = form.get("tenant_id");
   if (!file || !tenantId) return json({ error: "Falta 'file' o 'tenant_id'" }, 400);
 
+  // Solo imágenes y con tope de tamaño
+  const tipo = file.type || "";
+  if (!tipo.startsWith("image/")) return json({ error: "Solo se permiten imágenes" }, 400);
+  if (file.size && file.size > 6 * 1024 * 1024) return json({ error: "Imagen demasiado grande (máx 6MB)" }, 400);
+
   const carpeta = form.get("carpeta") === "logo" ? "" : "productos/";
   const nombreArchivo = nombreArchivoSeguro(file.name || "imagen.jpg");
   const key = `${tenantId}/${carpeta}${nombreArchivo}`;
 
   await env.BUCKET.put(key, file.stream(), {
-    httpMetadata: { contentType: file.type || "image/jpeg" }
+    httpMetadata: { contentType: tipo || "image/jpeg" }
   });
 
   const url = `${PUBLIC_R2_URL}/${key}`;
@@ -378,106 +518,118 @@ async function getMenuPublico(slug, env) {
   });
 }
 
+// ---------- Enrutador (devuelve Response; la seguridad de cabeceras se aplica afuera) ----------
+async function route(request, env) {
+  const url = new URL(request.url);
+  const path = url.pathname;
+  const method = request.method;
+
+  // La raíz del dominio siempre lleva al admin (protegido por Cloudflare Access)
+  if (path === "/" && method === "GET") {
+    return Response.redirect(new URL("/admin", url), 302);
+  }
+
+  // ── TODA la API del panel exige token de Access válido (2ª capa) ──
+  if (path.startsWith("/admin/api/")) {
+    const bloqueo = await requireAdmin(request, env);
+    if (bloqueo) return bloqueo;
+  }
+
+  if (path === "/admin/api/nichos" && method === "GET") return getNichos();
+  if (path === "/admin/api/resumen" && method === "GET") return await getResumen(env);
+
+  if (path === "/admin/api/tenants" && method === "GET") return await listTenants(env);
+  if (path === "/admin/api/tenants" && method === "POST") return await createTenant(request, env);
+
+  if (path === "/admin/api/demos" && method === "GET") return await listDemos(env);
+  if (path === "/admin/api/demos/generar" && method === "POST") return await generarDemos(env);
+
+  if (path === "/admin/api/cobranza" && method === "GET") return await getCobranza(env);
+
+  const pagoMatch = path.match(/^\/admin\/api\/tenants\/([^/]+)\/pago$/);
+  if (pagoMatch && method === "POST") return await marcarPago(decodeURIComponent(pagoMatch[1]), env);
+
+  if (path === "/admin/api/config" && method === "GET") return await getConfig(env);
+  if (path === "/admin/api/config" && method === "PUT") return await updateConfig(request, env);
+
+  if (path === "/admin/api/metricas" && method === "GET") return await getMetricas(env);
+
+  const tenantMatch = path.match(/^\/admin\/api\/tenants\/([^/]+)$/);
+  if (tenantMatch) {
+    const id = decodeURIComponent(tenantMatch[1]);
+    if (method === "GET") return await getTenant(id, env);
+    if (method === "PUT") return await updateTenant(id, request, env);
+    if (method === "DELETE") return await deleteTenant(id, env);
+  }
+
+  const productsMatch = path.match(/^\/admin\/api\/tenants\/([^/]+)\/products$/);
+  if (productsMatch) {
+    const tenantId = decodeURIComponent(productsMatch[1]);
+    if (method === "GET") return await listProducts(tenantId, env);
+    if (method === "POST") return await createProduct(tenantId, request, env);
+  }
+
+  const productMatch = path.match(/^\/admin\/api\/products\/([^/]+)$/);
+  if (productMatch) {
+    const id = decodeURIComponent(productMatch[1]);
+    if (method === "PUT") return await updateProduct(id, request, env);
+    if (method === "DELETE") return await deleteProduct(id, env);
+  }
+
+  if (path === "/admin/api/upload" && method === "POST") return await uploadFile(request, env);
+
+  const pedidosMatch = path.match(/^\/admin\/api\/tenants\/([^/]+)\/pedidos$/);
+  if (pedidosMatch && method === "GET") {
+    return await listPedidos(decodeURIComponent(pedidosMatch[1]), env);
+  }
+
+  const pedidoMatch = path.match(/^\/admin\/api\/pedidos\/([^/]+)$/);
+  if (pedidoMatch && method === "PUT") {
+    return await updatePedidoEstado(decodeURIComponent(pedidoMatch[1]), request, env);
+  }
+
+  // ── Endpoints públicos del menú ──
+  const crearPedidoMatch = path.match(/^\/menu\/([^/]+)\/pedido$/);
+  if (crearPedidoMatch && method === "POST") {
+    return await crearPedido(decodeURIComponent(crearPedidoMatch[1]), request, env);
+  }
+
+  const menuMatch = path.match(/^\/menu\/([^/]+)$/);
+  if (menuMatch && method === "GET") {
+    return await getMenuPublico(decodeURIComponent(menuMatch[1]), env);
+  }
+
+  // ---- Páginas públicas del negocio, URLs limpias: /<slug>, /<slug>/menu, /<slug>/checkout ----
+  const checkoutMatch = path.match(/^\/([^/]+)\/checkout$/);
+  if (checkoutMatch && method === "GET" && !RESERVADOS.has(checkoutMatch[1])) {
+    const plantilla = await env.ASSETS.fetch(new URL("/checkout.html", request.url));
+    return new Response(plantilla.body, plantilla);
+  }
+
+  const menuPageMatch = path.match(/^\/([^/]+)\/menu$/);
+  if (menuPageMatch && method === "GET" && !RESERVADOS.has(menuPageMatch[1])) {
+    const plantilla = await env.ASSETS.fetch(new URL("/menu.html", request.url));
+    return new Response(plantilla.body, plantilla);
+  }
+
+  const slugMatch = path.match(/^\/([^/]+)$/);
+  if (slugMatch && method === "GET" && !RESERVADOS.has(slugMatch[1]) && !slugMatch[1].includes(".")) {
+    const plantilla = await env.ASSETS.fetch(new URL("/negocio.html", request.url));
+    return new Response(plantilla.body, plantilla);
+  }
+
+  // Cualquier otra cosa: archivos estáticos reales (admin/index.html, carrito.js, logo.png, etc.)
+  return env.ASSETS.fetch(request);
+}
+
 // ---------- Router principal ----------
 export default {
   async fetch(request, env) {
-    const url = new URL(request.url);
-    const path = url.pathname;
-    const method = request.method;
-
     try {
-      // La raíz del dominio siempre lleva al admin (protegido por Cloudflare Access)
-      if (path === "/" && method === "GET") {
-        return Response.redirect(new URL("/admin", url), 302);
-      }
-
-      if (path === "/admin/api/nichos" && method === "GET") return getNichos();
-      if (path === "/admin/api/resumen" && method === "GET") return await getResumen(env);
-
-      if (path === "/admin/api/tenants" && method === "GET") return await listTenants(env);
-      if (path === "/admin/api/tenants" && method === "POST") return await createTenant(request, env);
-
-      if (path === "/admin/api/demos" && method === "GET") return await listDemos(env);
-      if (path === "/admin/api/demos/generar" && method === "POST") return await generarDemos(env);
-
-      if (path === "/admin/api/cobranza" && method === "GET") return await getCobranza(env);
-
-      const pagoMatch = path.match(/^\/admin\/api\/tenants\/([^/]+)\/pago$/);
-      if (pagoMatch && method === "POST") return await marcarPago(decodeURIComponent(pagoMatch[1]), env);
-
-      if (path === "/admin/api/config" && method === "GET") return await getConfig(env);
-      if (path === "/admin/api/config" && method === "PUT") return await updateConfig(request, env);
-
-      if (path === "/admin/api/metricas" && method === "GET") return await getMetricas(env);
-
-      const tenantMatch = path.match(/^\/admin\/api\/tenants\/([^/]+)$/);
-      if (tenantMatch) {
-        const id = decodeURIComponent(tenantMatch[1]);
-        if (method === "GET") return await getTenant(id, env);
-        if (method === "PUT") return await updateTenant(id, request, env);
-        if (method === "DELETE") return await deleteTenant(id, env);
-      }
-
-      const productsMatch = path.match(/^\/admin\/api\/tenants\/([^/]+)\/products$/);
-      if (productsMatch) {
-        const tenantId = decodeURIComponent(productsMatch[1]);
-        if (method === "GET") return await listProducts(tenantId, env);
-        if (method === "POST") return await createProduct(tenantId, request, env);
-      }
-
-      const productMatch = path.match(/^\/admin\/api\/products\/([^/]+)$/);
-      if (productMatch) {
-        const id = decodeURIComponent(productMatch[1]);
-        if (method === "PUT") return await updateProduct(id, request, env);
-        if (method === "DELETE") return await deleteProduct(id, env);
-      }
-
-      if (path === "/admin/api/upload" && method === "POST") return await uploadFile(request, env);
-
-      const pedidosMatch = path.match(/^\/admin\/api\/tenants\/([^/]+)\/pedidos$/);
-      if (pedidosMatch && method === "GET") {
-        return await listPedidos(decodeURIComponent(pedidosMatch[1]), env);
-      }
-
-      const pedidoMatch = path.match(/^\/admin\/api\/pedidos\/([^/]+)$/);
-      if (pedidoMatch && method === "PUT") {
-        return await updatePedidoEstado(decodeURIComponent(pedidoMatch[1]), request, env);
-      }
-
-      const crearPedidoMatch = path.match(/^\/menu\/([^/]+)\/pedido$/);
-      if (crearPedidoMatch && method === "POST") {
-        return await crearPedido(decodeURIComponent(crearPedidoMatch[1]), request, env);
-      }
-
-      const menuMatch = path.match(/^\/menu\/([^/]+)$/);
-      if (menuMatch && method === "GET") {
-        return await getMenuPublico(decodeURIComponent(menuMatch[1]), env);
-      }
-
-      // ---- Páginas públicas del negocio, URLs limpias: /<slug>, /<slug>/menu, /<slug>/checkout ----
-
-      const checkoutMatch = path.match(/^\/([^/]+)\/checkout$/);
-      if (checkoutMatch && method === "GET" && !RESERVADOS.has(checkoutMatch[1])) {
-        const plantilla = await env.ASSETS.fetch(new URL("/checkout.html", request.url));
-        return new Response(plantilla.body, plantilla);
-      }
-
-      const menuPageMatch = path.match(/^\/([^/]+)\/menu$/);
-      if (menuPageMatch && method === "GET" && !RESERVADOS.has(menuPageMatch[1])) {
-        const plantilla = await env.ASSETS.fetch(new URL("/menu.html", request.url));
-        return new Response(plantilla.body, plantilla);
-      }
-
-      const slugMatch = path.match(/^\/([^/]+)$/);
-      if (slugMatch && method === "GET" && !RESERVADOS.has(slugMatch[1]) && !slugMatch[1].includes(".")) {
-        const plantilla = await env.ASSETS.fetch(new URL("/negocio.html", request.url));
-        return new Response(plantilla.body, plantilla);
-      }
-
-      // Cualquier otra cosa: archivos estáticos reales (admin/index.html, carrito.js, logo.png, etc.)
-      return env.ASSETS.fetch(request);
+      const resp = await route(request, env);
+      return harden(resp);
     } catch (err) {
-      return json({ error: "Error interno", detalle: String(err) }, 500);
+      return harden(json({ error: "Error interno", detalle: String(err) }, 500));
     }
   }
 };
