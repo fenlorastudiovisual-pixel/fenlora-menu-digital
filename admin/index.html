@@ -242,6 +242,9 @@
                     </select>
                   </div>
                 </div>
+                <div class="row">
+                  <div><label>API key del POS <span style="color:#8a8a95;font-weight:400">(solo si es "Con POS")</span></label><input id="d-pos-api-key" placeholder="Pega la clave generada en el POS → Negocios"></div>
+                </div>
                 <p class="hint">Cambia qué se muestra en el home y de dónde salen los productos. "Autónomo · Ambos" es el valor de siempre — no cambia nada si no lo tocas. "Con POS" oculta la hamburguesa, resalta "Llamar al mesero" y bloquea la edición manual de productos (vienen del POS por API).</p>
                 <div class="row">
                   <div>
@@ -940,6 +943,7 @@ async function seleccionarNegocio(id) {
   $('#d-precio-mensual').value = t.precio_mensual || '';
   $('#d-dia-cobro').value = t.dia_cobro || '';
   $('#d-modo-negocio').value = (t.contenido && t.contenido.modo_negocio) || 'ambos';
+  if ($('#d-pos-api-key')) $('#d-pos-api-key').value = t.pos_api_key || '';
   $('#d-menu-estilo').value = (t.contenido && t.contenido.menu_estilo) || 'cuadricula';
 
   $('#d-logo-imagen').value = (t.logo_url && !t.logo_url.includes('logo-placeholder')) ? t.logo_url : '';
@@ -1205,6 +1209,8 @@ $('#form-datos').addEventListener('submit', async (e) => {
       moneda: $('#d-moneda').value,
       precio_mensual: $('#d-precio-mensual').value ? Number($('#d-precio-mensual').value) : null,
       dia_cobro: $('#d-dia-cobro').value ? Number($('#d-dia-cobro').value) : null,
+      modo_pos: ($('#d-modo-negocio') && $('#d-modo-negocio').value === 'pos') ? 1 : 0,
+      pos_api_key: ($('#d-pos-api-key') ? $('#d-pos-api-key').value.trim() : '') || null,
       tema: {
         ...(NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.tema),
         fondo: $('#d-color-fondo').value,
