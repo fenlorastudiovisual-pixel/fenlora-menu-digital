@@ -71,6 +71,23 @@ propio D1).
   mandar la comanda (así no hay que mapear nada).
 - Cacheable unos segundos del lado del Menú (a definir; ej. 30–60s).
 
+#### Producto principal (recomendado) por categoría — PENDIENTE lado POS
+
+El Menú, en modo **Listado**, muestra arriba de cada categoría un **plato
+recomendado con foto grande**, y usa esa misma foto para el cuadro de la
+categoría. Hoy el Menú lo elige así: primer producto con `destacado:true`
+(y foto) de esa categoría; si ninguno, el primero con foto.
+
+Para que el negocio pueda **elegirlo a propósito**, el **POS** debe permitir,
+por producto: (a) marcarlo como **recomendado de su categoría** y (b) que tenga
+**foto** (`imagen_url`). Basta con seguir mandando `destacado`/`imagen_url` en
+`/catalogo` como ya se hace — el Menú no necesita un campo nuevo, solo que el
+POS tenga la UI para marcar el recomendado y subir su foto.
+
+> El lado autónomo (negocios NO POS) tendrá esta misma opción en el admin del
+> Menú Digital (la construye el chat Visual). Ambos lados alimentan el mismo
+> concepto: un recomendado con foto por categoría.
+
 ### (e) Comanda — `POST /comanda`
 
 El Menú manda el pedido; el POS lo inserta en su módulo de Comandas.

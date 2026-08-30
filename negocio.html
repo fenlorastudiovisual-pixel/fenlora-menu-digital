@@ -314,11 +314,10 @@
     box-shadow:0 0 10px currentColor;
   }
   .cat-ic svg{width:18px;height:18px;}
-  /* El acento (cyan/pink) colorea SOLO el ícono de la categoría (línea/detalle),
-     nunca el texto. El NOMBRE de la categoría usa el color de texto (--white) o,
-     si el negocio lo define, su color de sección (categorias_color, aplicado por JS). */
-  .cat.cyan{color:var(--cyan);}
-  .cat.pink{color:var(--pink);}
+  /* El ícono de la categoría usa UN solo color de acento LEGIBLE (--icono-color),
+     no alternando cyan/pink (que en temas claros dejaba unos íconos lavados/grises).
+     El acento sigue en el ícono/borde, nunca en el texto. */
+  .cat-ic{ color:var(--icono-color, var(--pink)); }
   .cat-text strong{display:block; font-size:13px; letter-spacing:.4px; color:var(--white);}
   .cat-text span{display:block; font-size:10.5px; color:var(--gray); margin-top:2px; line-height:1.3;}
 
@@ -487,12 +486,11 @@
   .feature:not(:last-child){ border-right:1px solid rgba(255,45,135,.22); }
   .feature-ic{
     width:28px; height:28px; border-radius:50%;
-    border:1.5px solid var(--cyan); color:var(--cyan);
+    border:1.5px solid var(--icono-color, var(--cyan)); color:var(--icono-color, var(--cyan));
     display:flex; align-items:center; justify-content:center; flex-shrink:0;
     box-shadow:0 0 9px currentColor;
   }
   .feature-ic svg{ width:13px; height:13px; }
-  .feature:nth-child(2) .feature-ic, .feature:nth-child(4) .feature-ic{ border-color:var(--pink); color:var(--pink); }
   .feature-text strong{ display:block; font-size:8.5px; letter-spacing:.2px; line-height:1.15; }
   .feature-text span{ display:block; font-size:7.5px; color:var(--gray); margin-top:2px; line-height:1.2; }
 
@@ -1193,6 +1191,36 @@
         const bb = Math.round(hue2rgb(p, q, h - 1/3) * 255);
         return `rgb(${rr},${gg},${bb})`;
       }
+      // Color de acento LEGIBLE según el fondo del tema: conserva el matiz del
+      // acento pero ajusta su luminosidad para que se lea bien tanto en temas
+      // oscuros como claros (evita íconos "lavados"). Se usa para los íconos de
+      // categorías y beneficios, con UN solo color (sin alternar).
+      function acentoLegibleSobreFondo(hex, fondoHex) {
+        if (!hex) return null;
+        const toRgb = h => { h = h.replace('#',''); return [parseInt(h.substring(0,2),16), parseInt(h.substring(2,4),16), parseInt(h.substring(4,6),16)]; };
+        const [r0,g0,b0] = toRgb(hex);
+        let brilloFondo = 210;
+        if (fondoHex) { const [fr,fg,fb] = toRgb(fondoHex); brilloFondo = (fr*299 + fg*587 + fb*114) / 1000; }
+        const r = r0/255, g = g0/255, b = b0/255;
+        const max = Math.max(r,g,b), min = Math.min(r,g,b);
+        let h = 0, s = 0; let l = (max+min)/2;
+        if (max !== min) {
+          const d = max - min;
+          s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+          if (max === r) h = (g-b)/d + (g < b ? 6 : 0);
+          else if (max === g) h = (b-r)/d + 2;
+          else h = (r-g)/d + 4;
+          h /= 6;
+        }
+        // Fondo claro → el acento no puede quedar muy claro; fondo oscuro → no muy oscuro.
+        if (brilloFondo > 150) l = Math.min(l, 0.42);
+        else l = Math.max(l, 0.62);
+        const hue2rgb = (p,q,t) => { if(t<0)t+=1; if(t>1)t-=1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; };
+        const q = l < 0.5 ? l*(1+s) : l+s-l*s;
+        const p = 2*l - q;
+        const R = Math.round(hue2rgb(p,q,h+1/3)*255), G = Math.round(hue2rgb(p,q,h)*255), B = Math.round(hue2rgb(p,q,h-1/3)*255);
+        return `rgb(${R},${G},${B})`;
+      }
       const l1El = document.querySelector('.hero-headline .l1');
       const l2El = document.querySelector('.hero-headline .l2');
       const l3El = document.querySelector('.hero-headline .l3');
@@ -1216,6 +1244,10 @@
       // versión siempre legible del acento, no el acento crudo del tema.
       if (data.tema.acento2) root.setProperty('--nav-activo-color', colorLegibleSobreFoto(data.tema.acento2));
       if (data.tema.acento1) root.setProperty('--nav-mesero-color', colorLegibleSobreFoto(data.tema.acento1));
+
+      // Un SOLO color de acento legible para los íconos de categorías y beneficios
+      // (antes alternaban cyan/pink y en temas claros unos quedaban lavados).
+      root.setProperty('--icono-color', acentoLegibleSobreFondo(data.tema.acento1 || data.tema.acento2 || '#e2521c', data.tema.fondo));
 
       // ===================================================
       // TEXTOS EDITABLES DEL HOME (bloque nuevo)
