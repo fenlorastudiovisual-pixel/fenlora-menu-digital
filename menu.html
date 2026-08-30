@@ -99,7 +99,7 @@
     <a class="back-btn" id="backBtn" aria-label="Volver">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
     </a>
-    <div class="header-brand">¿Hoy qué se te antoja?</div>
+    <div class="header-brand" id="menuTitulo">¿Hoy qué se te antoja?</div>
   </header>
 
   <nav class="cats" id="catChips"></nav>
@@ -251,10 +251,8 @@
         </div></div>`;
     }
     function filaLista(p, moneda){
-      const bg = p.imagen_url ? `style="background-image:url('${p.imagen_url}')"` : '';
-      const cont = p.imagen_url ? '' : ICON_PH;
+      // Sin miniatura a la izquierda: lista limpia de texto (nombre + precio + "+").
       return `<div class="lrow">
-        <div class="ini" ${bg}>${cont}</div>
         <div class="info"><div class="nom">${p.nombre}</div>${p.descripcion?`<div class="desc">${p.descripcion}</div>`:''}</div>
         <div class="right"><span class="precio">${formatearPrecio(p.precio, moneda)}</span>
           <button class="plus-sm" data-add="${p.id}">+</button></div></div>`;
@@ -305,6 +303,9 @@
       aplicarTema(data.tema || {});
       MODO = (data.contenido && data.contenido.menu_estilo) || 'cuadricula';
       RECO_CFG = (data.contenido && data.contenido.categoria_principal) || {};
+      // Frase del encabezado editable desde el admin (contenido.menu_titulo).
+      const _mt = data.contenido && data.contenido.menu_titulo;
+      if (_mt) { const _el = document.getElementById('menuTitulo'); if (_el) _el.textContent = _mt; }
 
       const productos = data.productos || [];
       if (productos.length === 0){

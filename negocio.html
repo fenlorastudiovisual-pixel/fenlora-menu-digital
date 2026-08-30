@@ -420,8 +420,10 @@
 
   .fav-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; padding:0 18px; margin-bottom:22px; }
   .fav-card{ border-radius:14px; overflow:hidden; background:rgba(255,255,255,.015); transition:transform .15s ease; display:flex; flex-direction:column; }
-  .fav-card.cyan{ border:1.5px solid var(--cyan); box-shadow:0 0 16px rgba(34,211,245,.28); }
-  .fav-card.pink{ border:1.5px solid var(--pink); box-shadow:0 0 16px rgba(255,45,135,.28); }
+  /* Borde de tarjeta de favorito: un solo color de acento legible (sin alternar).
+     El brillo se mantiene para temas con neón; los temas sin-neón lo quitan (más abajo). */
+  .fav-card.cyan,
+  .fav-card.pink{ border:1.5px solid var(--icono-color, var(--cyan)); box-shadow:0 0 16px color-mix(in srgb, var(--icono-color, #22d3f5) 32%, transparent); }
   /* Fix: "contain" mostraba la imagen completa pero dejaba espacios vacíos a
      los lados si la foto no era exactamente cuadrada. Para que se vea como
      la referencia (foto de borde a borde, sin vacíos), usamos una proporción
@@ -447,18 +449,18 @@
      el nombre o la descripción — así todos quedan a la misma altura entre sí. */
   .fav-foot{ display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:8px; }
   .fav-price{ font-size:13px; font-weight:800; color:var(--white); }
+  /* El botón "+" usa UN solo color de acento legible (--icono-color), igual que
+     los íconos — sin alternar cyan/pink (que dejaba los "+" de colores distintos). */
   .add-btn{
     width:32px; height:32px; min-width:32px; border-radius:50%;
-    border:1.5px solid var(--border-cyan);
-    background:transparent; color:var(--cyan); font-size:17px; line-height:1;
+    border:1.5px solid var(--icono-color, var(--cyan));
+    background:transparent; color:var(--icono-color, var(--cyan)); font-size:17px; line-height:1;
     display:flex; align-items:center; justify-content:center; padding:0;
     transition:transform .15s ease, background .15s ease;
     box-shadow:0 0 8px currentColor;
     flex-shrink:0;
   }
-  .add-btn.pink{ border-color:var(--pink); color:var(--pink); }
-  .add-btn:active{ transform:scale(.9); background:rgba(34,211,245,.15); }
-  .add-btn.pink:active{ background:rgba(255,45,135,.18); }
+  .add-btn:active{ transform:scale(.9); background:rgba(128,128,128,.15); }
 
   .img-granizado-tropical{ background:linear-gradient(150deg,#ff2d87 0%,#ff2d87 45%, #22d3f5 55%, #22d3f5 100%); }
   .img-granizado-limonada{ background:linear-gradient(150deg,#9ef01a,#5fb51c); }
