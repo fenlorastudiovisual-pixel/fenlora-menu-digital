@@ -61,7 +61,7 @@
 
   /* MODO LISTADO */
   .reco{margin:4px 16px 14px;background:var(--card);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);}
-  .reco .foto{height:172px;background-size:cover;background-position:center;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:54px;font-weight:900;color:var(--accent);position:relative;}
+  .reco .foto{aspect-ratio:16/9;background-size:cover;background-position:center;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;position:relative;}
   .reco .badge{position:absolute;top:10px;left:10px;background:var(--accent);color:#fff;font-size:11px;font-weight:800;padding:5px 11px;border-radius:20px;box-shadow:0 4px 10px var(--accent-soft);}
   .reco .cuerpo{padding:13px 15px 15px;}
   .reco .nom{font-weight:900;font-size:16px;font-family:var(--font-titulos);}
@@ -164,16 +164,29 @@
       });
       return orden.map(c => ({ nombre:c, items:mapa.get(c) }));
     }
-    // El "recomendado" de una categoría: 1º destacado con foto, luego destacado,
-    // luego cualquiera con foto, luego el primero.
-    function recoDe(items){
+    // Configuración de "recomendado por categoría" elegida en el admin:
+    // { "<categoria>": { producto_id, imagen_url } }
+    let RECO_CFG = {};
+    // El "recomendado" de una categoría: 1º el elegido en el admin; si no,
+    // 1º destacado con foto, luego destacado, luego cualquiera con foto, luego el primero.
+    function recoDe(cat, items){
+      const cfg = RECO_CFG[cat];
+      if (cfg && cfg.producto_id){
+        const elegido = items.find(p => String(p.id) === String(cfg.producto_id));
+        if (elegido) return elegido;
+      }
       return items.find(p=>p.destacado && p.imagen_url)
           || items.find(p=>p.destacado)
           || items.find(p=>p.imagen_url)
           || items[0];
     }
-    function imgCategoria(items){
-      const r = recoDe(items);
+    // Imagen del recomendado: la dedicada del admin manda; si no, la foto del producto.
+    function recoImg(cat, prod){
+      return (RECO_CFG[cat] && RECO_CFG[cat].imagen_url) || (prod && prod.imagen_url) || null;
+    }
+    function imgCategoria(cat, items){
+      if (RECO_CFG[cat] && RECO_CFG[cat].imagen_url) return RECO_CFG[cat].imagen_url;
+      const r = recoDe(cat, items);
       return (r && r.imagen_url) || (items.find(p=>p.imagen_url)||{}).imagen_url || null;
     }
     function inicial(nombre){ return (nombre||'?').trim().charAt(0).toUpperCase(); }
@@ -212,7 +225,7 @@
     function pintarChips(){
       const wrap = document.getElementById('catChips');
       wrap.innerHTML = CATS.map(c => {
-        const img = imgCategoria(c.items);
+        const img = imgCategoria(c.nombre, c.items);
         const bubble = img ? `style="background-image:url('${img}')"` : '';
         const cont = img ? '' : ICON_PH;
         return `<button class="cat ${c.nombre===CAT_ACTIVA?'on':''}" data-cat="${encodeURIComponent(c.nombre)}">
@@ -246,9 +259,9 @@
         <div class="right"><span class="precio">${formatearPrecio(p.precio, moneda)}</span>
           <button class="plus-sm" data-add="${p.id}">+</button></div></div>`;
     }
-    function cardReco(p, moneda){
-      const bg = p.imagen_url ? `style="background-image:url('${p.imagen_url}')"` : '';
-      const cont = p.imagen_url ? '' : ICON_PH;
+    function cardReco(p, moneda, imgUrl){
+      const bg = imgUrl ? `style="background-image:url('${imgUrl}')"` : '';
+      const cont = imgUrl ? '' : ICON_PH;
       return `<div class="reco">
         <div class="foto" ${bg}><span class="badge">⭐ Recomendado</span>${cont}</div>
         <div class="cuerpo"><div class="nom">${p.nombre}</div>
@@ -266,10 +279,10 @@
       let html = `<div class="cat-title">${cat.nombre}</div>`;
 
       if (MODO === 'listado'){
-        const reco = recoDe(items);
+        const reco = recoDe(cat.nombre, items);
         const resto = items.filter(p => p !== reco);
         html += `<div class="cat-sub">Recomendado + carta completa (${items.length})</div>`;
-        if (reco) html += cardReco(reco, moneda);
+        if (reco) html += cardReco(reco, moneda, recoImg(cat.nombre, reco));
         html += `<div class="lista">${resto.map(p=>filaLista(p, moneda)).join('')}</div>`;
       } else {
         html += `<div class="cat-sub">${items.length} producto${items.length!==1?'s':''}</div>`;
@@ -291,6 +304,7 @@
       // logo del negocio sigue intacto en el home (negocio.html).
       aplicarTema(data.tema || {});
       MODO = (data.contenido && data.contenido.menu_estilo) || 'cuadricula';
+      RECO_CFG = (data.contenido && data.contenido.categoria_principal) || {};
 
       const productos = data.productos || [];
       if (productos.length === 0){

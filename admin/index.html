@@ -500,6 +500,12 @@
           <h3>📋 Menú completo — todos los productos por categoría</h3>
           <div id="productos-wrap"><p class="empty">Elige un negocio primero.</p></div>
         </div>
+
+        <div class="seccion" id="reco-cat-seccion">
+          <h3>⭐ Plato recomendado por categoría</h3>
+          <p class="hint">Para el menú en modo <strong>Listado</strong>: elige el producto que se muestra grande arriba de cada categoría y súbele una foto dedicada. 📐 Formato recomendado: <strong>16:9</strong> (horizontal, ej. 1280×720px). Si dejas "Automático", se usa el producto destacado (★) o el primero con foto.</p>
+          <div id="reco-cat-wrap"><p class="empty">Elige un negocio primero.</p></div>
+        </div>
       </div>
 
       <div id="sub-pedidos" class="subpanel">
@@ -1048,9 +1054,13 @@ function aplicarModoPOSproductos(esPOS) {
   const form = document.getElementById('form-producto');
   const seccionForm = form ? form.closest('.seccion') : null;
   const seccionLista = document.getElementById('productos-wrap')?.closest('.seccion');
+  const seccionReco = document.getElementById('reco-cat-seccion');
   if (aviso) aviso.style.display = esPOS ? '' : 'none';
   if (seccionForm) seccionForm.style.display = esPOS ? 'none' : '';
   if (seccionLista) seccionLista.style.display = esPOS ? 'none' : '';
+  if (seccionReco) seccionReco.style.display = esPOS ? 'none' : '';
+  // En POS no se renderiza la sección: limpiamos para no leer datos de otro negocio.
+  if (esPOS) { RECO_CATS = []; const rw = document.getElementById('reco-cat-wrap'); if (rw) rw.innerHTML = ''; }
   if (form) {
     form.querySelectorAll('input, button, textarea, select').forEach(el => { el.disabled = esPOS; });
   }
@@ -1152,8 +1162,10 @@ $('#form-datos').addEventListener('submit', async (e) => {
   const contenidoActual = (NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.contenido) || {};
   const { categorias, categorias_desc } = leerCategoriasForm();
   const { beneficios, beneficios_desc } = leerBeneficiosForm();
+  const categoria_principal = await recolectarRecoCategorias();
   const contenido = {
     ...contenidoActual,
+    categoria_principal,
     hero_imagen_url,
     hero_video_url: $('#d-hero-video').value.trim() || null,
     logo_tamano: $('#d-logo-tamano').value,
@@ -1231,6 +1243,7 @@ $('#form-datos').addEventListener('submit', async (e) => {
 
 // ---------------- PRODUCTOS ----------------
 let PRODUCTOS_CACHE = [];
+let RECO_CATS = [];
 let EDITANDO_PRODUCTO_ID = null;
 
 const filaProducto = (p) => `
@@ -1262,6 +1275,7 @@ async function cargarProductos(tenantId) {
   const { productos } = await r.json();
   PRODUCTOS_CACHE = productos;
   pintarDestacados();
+  renderRecoCategorias();
 
   if (!productos.length) { wrap.innerHTML = '<p class="empty">Este negocio todavía no tiene productos.</p>'; return; }
 
@@ -1275,6 +1289,64 @@ async function cargarProductos(tenantId) {
   });
 
   wrap.innerHTML = html;
+}
+
+// ---- Plato recomendado por categoría (para el menú en modo Listado) ----
+// Se guarda en contenido.categoria_principal = { "<categoria>": { producto_id, imagen_url } }
+function renderRecoCategorias() {
+  const wrap = document.getElementById('reco-cat-wrap');
+  if (!wrap) return;
+  const cfg = (NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.contenido && NEGOCIO_ACTUAL.contenido.categoria_principal) || {};
+  const porCat = {};
+  PRODUCTOS_CACHE.forEach(p => { (porCat[p.categoria] = porCat[p.categoria] || []).push(p); });
+  RECO_CATS = Object.keys(porCat).sort();
+  if (!RECO_CATS.length) {
+    wrap.innerHTML = '<p class="empty">Primero agrega productos; luego eliges el recomendado de cada categoría.</p>';
+    return;
+  }
+  wrap.innerHTML = RECO_CATS.map((cat, i) => {
+    const sel = cfg[cat] || {};
+    const opciones = ['<option value="">— Automático (destacado ★ o 1º con foto) —</option>']
+      .concat(porCat[cat].map(p => `<option value="${p.id}" ${String(sel.producto_id) === String(p.id) ? 'selected' : ''}>${p.nombre}</option>`))
+      .join('');
+    const img = sel.imagen_url || '';
+    const imgAttr = img.replace(/"/g, '&quot;');
+    return `<div class="seccion" style="padding:12px;margin-bottom:10px;">
+      <h4 style="margin:0 0 8px;">${cat}</h4>
+      <label>Producto recomendado</label>
+      <select id="reco-prod-${i}">${opciones}</select>
+      <div class="row" style="margin-top:8px;">
+        <div><label>URL de la imagen (o sube una abajo) — 16:9</label><input id="reco-img-${i}" value="${imgAttr}" placeholder="https://..."></div>
+        <div><label>Subir imagen (16:9)</label><input id="reco-file-${i}" type="file" accept="image/*"></div>
+      </div>
+      <img id="reco-prev-${i}" src="${imgAttr}" style="${img ? '' : 'display:none;'}max-height:70px;border-radius:8px;margin-top:8px;">
+    </div>`;
+  }).join('');
+}
+
+// Sube las imágenes elegidas (si hay) y arma el objeto categoria_principal.
+async function recolectarRecoCategorias() {
+  // Si la sección no está activa (negocio POS o sin productos), no reconstruimos
+  // nada: conservamos lo que ya estuviera guardado, para no pisarlo con {}.
+  if (!RECO_CATS.length) {
+    return (NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.contenido && NEGOCIO_ACTUAL.contenido.categoria_principal) || {};
+  }
+  const out = {};
+  for (let i = 0; i < RECO_CATS.length; i++) {
+    const cat = RECO_CATS[i];
+    const prodId = document.getElementById('reco-prod-' + i)?.value || '';
+    let img = (document.getElementById('reco-img-' + i)?.value || '').trim();
+    const file = document.getElementById('reco-file-' + i)?.files[0];
+    if (file) {
+      const fd = new FormData();
+      fd.append('file', file); fd.append('tenant_id', ACTIVO_ID); fd.append('carpeta', 'recomendados');
+      const ru = await fetch('/admin/api/upload', { method: 'POST', body: fd });
+      const du = await ru.json();
+      if (ru.ok) img = du.url;
+    }
+    if (prodId || img) out[cat] = { producto_id: prodId || null, imagen_url: img || null };
+  }
+  return out;
 }
 
 function editarProducto(id) {
