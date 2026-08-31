@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fenlora — Admin</title>
+<title>Fenlora ÔÇö Admin</title>
 <style>
   :root{
     --bg:#0b0d10; --panel:#14171c; --panel2:#191d23; --line:#232830; --text:#eef1f4; --muted:#8b93a1;
@@ -71,7 +71,7 @@
   th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.05em;}
   .prod-thumb{width:34px;height:34px;border-radius:6px;background:#0f1215;object-fit:cover;}
 
-  /* ---- Tarjetas de sección (para no ver los campos sueltos, uno tras otro) ---- */
+  /* ---- Tarjetas de secci├│n (para no ver los campos sueltos, uno tras otro) ---- */
   .seccion{
     background:var(--panel2);
     border:1px solid var(--line);
@@ -111,28 +111,26 @@
   .preview-frame iframe{
     width:375px;height:780px;
     border:none;background:#fff;
-    transform:scale(0.7011); /* 263/375 — el iframe SÍ renderiza a ancho real de celular y luego se encoge visualmente */
+    transform:scale(0.7011); /* 263/375 ÔÇö el iframe S├ì renderiza a ancho real de celular y luego se encoge visualmente */
     transform-origin:top left;
   }
   .preview-actions{display:flex;gap:8px;margin-top:10px;justify-content:center;}
   .preview-actions button{font-size:11.5px;padding:6px 10px;}
   .preview-label{text-align:center;color:var(--muted);font-size:11.5px;margin-bottom:8px;}
-  #iconos-cat-wrap svg{width:26px;height:26px;display:block;}
 </style>
-<script src="/iconos.js"></script>
 </head>
 <body>
 <header>
   <div class="header-top">
     <div>
-      <h1>Fenlora · Panel de negocios</h1>
-      <span class="tag">Menú digital multitenant</span>
+      <h1>Fenlora ┬À Panel de negocios</h1>
+      <span class="tag">Men├║ digital multitenant</span>
     </div>
   </div>
   <div class="tabs">
     <button class="tab-btn active" data-tab="resumen">Resumen</button>
     <button class="tab-btn" data-tab="negocios">Negocios</button>
-    <button class="tab-btn" data-tab="metricas">Métricas</button>
+    <button class="tab-btn" data-tab="metricas">M├®tricas</button>
     <button class="tab-btn" data-tab="cobranza">Cobranza</button>
     <button class="tab-btn" data-tab="demos">Demos</button>
     <button class="tab-btn" data-tab="config">Config</button>
@@ -143,17 +141,17 @@
 
   <!-- ===================== RESUMEN ===================== -->
   <section id="tab-resumen" class="tab-panel active">
-    <div class="stats" id="stats-grid"><p class="empty">Cargando…</p></div>
+    <div class="stats" id="stats-grid"><p class="empty">CargandoÔÇª</p></div>
     <div class="panel">
       <h2>Negocios activos sin productos cargados</h2>
-      <div id="sin-productos-wrap"><p class="empty">Cargando…</p></div>
+      <div id="sin-productos-wrap"><p class="empty">CargandoÔÇª</p></div>
     </div>
   </section>
 
   <!-- ===================== NEGOCIOS ===================== -->
   <section id="tab-negocios" class="tab-panel">
     <div class="toolbar">
-      <input id="buscador" placeholder="Buscar negocio por nombre o nicho…">
+      <input id="buscador" placeholder="Buscar negocio por nombre o nichoÔÇª">
       <button id="btnNuevoNegocio">+ Negocio</button>
     </div>
 
@@ -162,27 +160,27 @@
       <form id="form-nuevo">
         <div class="row">
           <div><label for="nombre">Nombre del negocio</label><input id="nombre" required placeholder="Ej: Cero Absoluto"></div>
-          <div><label for="whatsapp">WhatsApp (código de país, sin +)</label><input id="whatsapp" placeholder="Ej: 573001234567"></div>
+          <div><label for="whatsapp">WhatsApp (c├│digo de pa├¡s, sin +)</label><input id="whatsapp" placeholder="Ej: 573001234567"></div>
         </div>
         <div><label for="nicho">Nicho / plantilla base</label><select id="nicho" required></select></div>
         <div>
           <label for="n-modo-negocio">Tipo de negocio</label>
           <select id="n-modo-negocio">
-            <option value="ambos">Autónomo · Ambos — en el local y a domicilio (productos en el panel)</option>
-            <option value="local">Autónomo · Solo local — mesero, sin hamburguesa (productos en el panel)</option>
-            <option value="domicilio">Autónomo · Solo domicilio — hamburguesa, sin mesero (productos en el panel)</option>
-            <option value="pos">Con POS — productos del sistema POS (mesero, sin hamburguesa, mesas QR/NFC)</option>
+            <option value="ambos">Aut├│nomo ┬À Ambos ÔÇö en el local y a domicilio (productos en el panel)</option>
+            <option value="local">Aut├│nomo ┬À Solo local ÔÇö mesero, sin hamburguesa (productos en el panel)</option>
+            <option value="domicilio">Aut├│nomo ┬À Solo domicilio ÔÇö hamburguesa, sin mesero (productos en el panel)</option>
+            <option value="pos">Con POS ÔÇö productos del sistema POS (mesero, sin hamburguesa, mesas QR/NFC)</option>
           </select>
-          <p class="hint">Elige "Con POS" solo para negocios que usarán el sistema POS de Fenlora: sus productos vienen del POS (no se editan aquí). Lo puedes cambiar luego en la pestaña Datos.</p>
+          <p class="hint">Elige "Con POS" solo para negocios que usar├ín el sistema POS de Fenlora: sus productos vienen del POS (no se editan aqu├¡). Lo puedes cambiar luego en la pesta├▒a Datos.</p>
         </div>
         <div class="row">
-          <div><label for="pago_url">Link de pago (Wompi, Bold, etc. — opcional)</label><input id="pago_url" placeholder="https://checkout.wompi.co/l/xxxxx"></div>
+          <div><label for="pago_url">Link de pago (Wompi, Bold, etc. ÔÇö opcional)</label><input id="pago_url" placeholder="https://checkout.wompi.co/l/xxxxx"></div>
           <div><label for="moneda">Moneda</label>
             <select id="moneda">
-              <option value="COP">COP — Peso colombiano</option>
-              <option value="PEN">PEN — Sol peruano</option>
-              <option value="MXN">MXN — Peso mexicano</option>
-              <option value="USD">USD — Dólar</option>
+              <option value="COP">COP ÔÇö Peso colombiano</option>
+              <option value="PEN">PEN ÔÇö Sol peruano</option>
+              <option value="MXN">MXN ÔÇö Peso mexicano</option>
+              <option value="USD">USD ÔÇö D├│lar</option>
             </select>
           </div>
         </div>
@@ -190,14 +188,14 @@
       </form>
     </div>
 
-    <div id="grid-negocios" class="grid-negocios"><p class="empty">Cargando…</p></div>
+    <div id="grid-negocios" class="grid-negocios"><p class="empty">CargandoÔÇª</p></div>
 
     <!-- ============ DETALLE DE UN NEGOCIO ============ -->
     <div id="panel-detalle" class="panel" style="display:none;">
       <div class="detalle-header">
-        <h2 id="detalle-nombre">—</h2>
+        <h2 id="detalle-nombre">ÔÇö</h2>
         <div class="detalle-acciones">
-          <a id="detalle-ver-sitio" target="_blank">Ver sitio ↗</a>
+          <a id="detalle-ver-sitio" target="_blank">Ver sitio Ôåù</a>
           <button class="secondary small" id="detalle-whatsapp">Enviar link por WhatsApp</button>
           <button class="secondary small" id="detalle-suspender">Suspender</button>
           <button class="danger small" id="detalle-eliminar">Eliminar</button>
@@ -215,7 +213,7 @@
           <div>
             <form id="form-datos">
               <div class="seccion">
-                <h3>📇 Información básica</h3>
+                <h3>­ƒôç Informaci├│n b├ísica</h3>
                 <div class="row">
                   <div><label>Nombre</label><input id="d-nombre"></div>
                   <div><label>WhatsApp</label><input id="d-whatsapp"></div>
@@ -229,85 +227,57 @@
                     </select>
                   </div>
                 </div>
+                <div class="seccion" style="margin-top:8px">
+                  <h3>­ƒöù Enlace con el POS</h3>
+                  <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="d-modo-pos"> Este men├║ se alimenta del POS (modo POS)</label>
+                  <div style="margin-top:8px"><label>API key del POS</label><input id="d-pos-api-key" placeholder="Pega la clave generada en el POS ÔåÆ Negocios"></div>
+                  <p style="font-size:12px;color:#9a9aa5;margin-top:6px">En modo POS la carta y los pedidos vienen/van al POS, se oculta la hamburguesa y ÔÇ£Llamar al meseroÔÇØ funciona de verdad. Apagado = men├║ aut├│nomo (carta propia de aqu├¡).</p>
+                </div>
                 <div class="row">
-                  <div><label>Precio mensual del servicio (cobranza — opcional)</label><input id="d-precio-mensual" type="number" step="0.01" placeholder="Ej: 30000"></div>
-                  <div><label>Día de cobro (1-28)</label><input id="d-dia-cobro" type="number" min="1" max="28" placeholder="Ej: 5"></div>
+                  <div><label>Precio mensual del servicio (cobranza ÔÇö opcional)</label><input id="d-precio-mensual" type="number" step="0.01" placeholder="Ej: 30000"></div>
+                  <div><label>D├¡a de cobro (1-28)</label><input id="d-dia-cobro" type="number" min="1" max="28" placeholder="Ej: 5"></div>
                 </div>
                 <div class="row">
                   <div>
                     <label>Tipo de negocio</label>
                     <select id="d-modo-negocio">
-                      <option value="ambos">Autónomo · Ambos — en el local y a domicilio (productos en el panel)</option>
-                      <option value="local">Autónomo · Solo local — mesero, sin hamburguesa (productos en el panel)</option>
-                      <option value="domicilio">Autónomo · Solo domicilio — hamburguesa, sin mesero (productos en el panel)</option>
-                      <option value="pos">Con POS — productos del sistema POS (mesero, sin hamburguesa, mesas QR/NFC)</option>
+                      <option value="ambos">Aut├│nomo ┬À Ambos ÔÇö en el local y a domicilio (productos en el panel)</option>
+                      <option value="local">Aut├│nomo ┬À Solo local ÔÇö mesero, sin hamburguesa (productos en el panel)</option>
+                      <option value="domicilio">Aut├│nomo ┬À Solo domicilio ÔÇö hamburguesa, sin mesero (productos en el panel)</option>
+                      <option value="pos">Con POS ÔÇö productos del sistema POS (mesero, sin hamburguesa, mesas QR/NFC)</option>
                     </select>
                   </div>
                 </div>
-                <div class="row">
-                  <div><label>API key del POS <span style="color:#8a8a95;font-weight:400">(solo si es "Con POS")</span></label><input id="d-pos-api-key" placeholder="Pega la clave generada en el POS → Negocios"></div>
-                </div>
-                <p class="hint">Cambia qué se muestra en el home y de dónde salen los productos. "Autónomo · Ambos" es el valor de siempre — no cambia nada si no lo tocas. "Con POS" oculta la hamburguesa, resalta "Llamar al mesero" y bloquea la edición manual de productos (vienen del POS por API).</p>
-                <div class="row">
-                  <div>
-                    <label>Estilo del menú (pantalla "Ver menú")</label>
-                    <select id="d-menu-estilo">
-                      <option value="cuadricula">Cuadrícula — tarjetas con foto grande (ideal si hay fotos de todo)</option>
-                      <option value="listado">Listado — carta compacta + foto del plato recomendado por categoría (ideal con muchos productos o sin todas las fotos)</option>
-                    </select>
-                  </div>
-                </div>
-                <p class="hint">Define cómo se ve el menú completo. En "Listado", el plato recomendado de cada categoría es el que marques como destacado (⭐) en la pestaña Productos; si ninguno está marcado, se toma el primero con foto.</p>
-                <div class="row">
-                  <div>
-                    <label>Frase del encabezado de "Ver menú"</label>
-                    <input id="d-menu-titulo" placeholder="¿Hoy qué se te antoja?">
-                  </div>
-                </div>
-                <p class="hint">Es el texto que aparece junto a la flecha de volver al entrar a "Ver menú". Déjalo vacío para usar "¿Hoy qué se te antoja?".</p>
-              </div>
-
-              <div class="seccion" id="iconos-cat-seccion">
-                <h3>🍽️ Íconos de categoría (home y "Ver menú")</h3>
-                <p class="hint">Elige un ícono para cada categoría. Los colores del ícono y del círculo son globales — elígelos para que contrasten con el fondo del negocio.</p>
-                <div class="row">
-                  <div><label>Color del ícono</label><input id="d-icono-color" type="color"></div>
-                  <div><label>&nbsp;</label><button type="button" id="d-icono-color-reset" class="secondary">Color automático</button></div>
-                </div>
-                <div class="row">
-                  <div><label>Color del círculo del ícono</label><input id="d-icono-circulo" type="color"></div>
-                  <div><label>&nbsp;</label><button type="button" id="d-icono-circulo-reset" class="secondary">Sin color (transparente)</button></div>
-                </div>
-                <div id="iconos-cat-wrap" style="margin-top:12px;"><p class="empty">Elige un negocio primero.</p></div>
+                <p class="hint">Cambia qu├® se muestra en el home y de d├│nde salen los productos. "Aut├│nomo ┬À Ambos" es el valor de siempre ÔÇö no cambia nada si no lo tocas. "Con POS" oculta la hamburguesa, resalta "Llamar al mesero" y bloquea la edici├│n manual de productos (vienen del POS por API).</p>
               </div>
 
               <div class="seccion">
-                <h3>🎨 Colores de la plantilla</h3>
-                <p class="hint">Se autocompletan según el nicho elegido al crear el negocio. Cámbialos si quieres afinar la marca de este negocio en particular.</p>
+                <h3>­ƒÄ¿ Colores de la plantilla</h3>
+                <p class="hint">Se autocompletan seg├║n el nicho elegido al crear el negocio. C├ímbialos si quieres afinar la marca de este negocio en particular.</p>
                 <div class="row">
                   <div><label>Fondo</label><input id="d-color-fondo" type="color"></div>
-                  <div><label>Texto (opcional — deja "automático" salvo que quieras forzar uno)</label><input id="d-color-texto" type="color"></div>
+                  <div><label>Texto (opcional ÔÇö deja "autom├ítico" salvo que quieras forzar uno)</label><input id="d-color-texto" type="color"></div>
                 </div>
-                <button type="button" id="d-color-texto-reset" class="secondary" style="margin-top:-6px;margin-bottom:10px;">Usar color de texto automático</button>
+                <button type="button" id="d-color-texto-reset" class="secondary" style="margin-top:-6px;margin-bottom:10px;">Usar color de texto autom├ítico</button>
                 <div class="row">
                   <div><label>Acento 1 (bordes/detalles principales)</label><input id="d-color-acento1" type="color"></div>
                   <div><label>Acento 2 (bordes/detalles secundarios)</label><input id="d-color-acento2" type="color"></div>
                 </div>
                 <div class="row">
                   <div><label>Texto secundario / descripciones (opcional)</label><input id="d-color-gris" type="color"></div>
-                  <div><label>&nbsp;</label><button type="button" id="d-color-gris-reset" class="secondary">Usar color automático</button></div>
+                  <div><label>&nbsp;</label><button type="button" id="d-color-gris-reset" class="secondary">Usar color autom├ítico</button></div>
                 </div>
-                <p class="hint">Este es el color de las descripciones cortas (bajo el nombre de cada categoría, cada producto destacado y cada beneficio). Si no eliges uno, usa un gris neutro por defecto.</p>
+                <p class="hint">Este es el color de las descripciones cortas (bajo el nombre de cada categor├¡a, cada producto destacado y cada beneficio). Si no eliges uno, usa un gris neutro por defecto.</p>
                 <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
-                  <input type="checkbox" id="d-sin-neon" style="width:auto;"> <label for="d-sin-neon" style="margin:0;">Desactivar efectos de neón (brillos y sombras luminosas)</label>
+                  <input type="checkbox" id="d-sin-neon" style="width:auto;"> <label for="d-sin-neon" style="margin:0;">Desactivar efectos de ne├│n (brillos y sombras luminosas)</label>
                 </div>
-                <p class="hint">Actívalo para negocios con estilo elegante/clásico (café, restaurantes finos, etc.) — quita los brillos neón de bordes, íconos y texto en TODO el sitio. Déjalo apagado para negocios con estilo urbano/nocturno (bares, granizados, discotecas).</p>
+                <p class="hint">Act├¡valo para negocios con estilo elegante/cl├ísico (caf├®, restaurantes finos, etc.) ÔÇö quita los brillos ne├│n de bordes, ├¡conos y texto en TODO el sitio. D├®jalo apagado para negocios con estilo urbano/nocturno (bares, granizados, discotecas).</p>
                 <div class="row" style="margin-top:10px;">
-                  <div><label>Tipografía de los títulos</label>
+                  <div><label>Tipograf├¡a de los t├¡tulos</label>
                     <select id="d-fuente-titulo">
                       <option value="default" selected>Por defecto (Arial Black)</option>
                       <option value="Poppins">Poppins (redondeada, moderna)</option>
-                      <option value="Montserrat">Montserrat (geométrica, limpia)</option>
+                      <option value="Montserrat">Montserrat (geom├®trica, limpia)</option>
                       <option value="Playfair Display">Playfair Display (elegante, serif)</option>
                       <option value="Bebas Neue">Bebas Neue (condensada, impacto)</option>
                       <option value="Oswald">Oswald (condensada, moderna)</option>
@@ -316,12 +286,12 @@
                     </select>
                   </div>
                 </div>
-                <p class="hint">Aplica a los títulos grandes de todo el sitio (hero, "Nuestros Favoritos", promo).</p>
+                <p class="hint">Aplica a los t├¡tulos grandes de todo el sitio (hero, "Nuestros Favoritos", promo).</p>
               </div>
 
               <div class="seccion">
-                <h3>🖼️ Logo del negocio</h3>
-                <p class="hint">Aparece en el header y en el menú lateral. Ideal PNG con fondo transparente.</p>
+                <h3>­ƒû╝´©Å Logo del negocio</h3>
+                <p class="hint">Aparece en el header y en el men├║ lateral. Ideal PNG con fondo transparente.</p>
                 <div class="row">
                   <div><label>Subir logo</label><input id="d-logo-file" type="file" accept="image/*"></div>
                   <div><label>O pega una URL de imagen</label><input id="d-logo-imagen" placeholder="https://.../logo.png"></div>
@@ -329,9 +299,9 @@
                 <img id="d-logo-preview" class="img-preview" alt="Vista previa del logo guardado">
                 <div class="row">
                   <div>
-                    <label>Tamaño del logo en el home</label>
+                    <label>Tama├▒o del logo en el home</label>
                     <select id="d-logo-tamano">
-                      <option value="pequeno">Pequeño</option>
+                      <option value="pequeno">Peque├▒o</option>
                       <option value="mediano" selected>Mediano (recomendado)</option>
                       <option value="grande">Grande</option>
                     </select>
@@ -341,30 +311,30 @@
               </div>
 
               <div class="seccion">
-                <h3>🌆 Hero del home (imagen + texto principal)</h3>
-                <p class="hint">Título grande — hasta 3 frases, una por línea (ej. "Fríos." / "Intensos." / "Explosivos."). Si pones menos de 3, las demás simplemente no aparecen.</p>
+                <h3>­ƒîå Hero del home (imagen + texto principal)</h3>
+                <p class="hint">T├¡tulo grande ÔÇö hasta 3 frases, una por l├¡nea (ej. "Fr├¡os." / "Intensos." / "Explosivos."). Si pones menos de 3, las dem├ís simplemente no aparecen.</p>
                 <textarea id="d-hero-titulo" rows="3" placeholder="Frase 1&#10;Frase 2&#10;Frase 3" style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;"></textarea>
                 <div class="row" style="margin-top:10px;">
-                  <div><label>Color del título (opcional)</label><input id="d-hero-titulo-color" type="color"></div>
-                  <div><label>&nbsp;</label><button type="button" id="d-hero-titulo-color-reset" class="secondary">Usar color automático</button></div>
+                  <div><label>Color del t├¡tulo (opcional)</label><input id="d-hero-titulo-color" type="color"></div>
+                  <div><label>&nbsp;</label><button type="button" id="d-hero-titulo-color-reset" class="secondary">Usar color autom├ítico</button></div>
                 </div>
-                <p class="hint">Si no eliges color, se calcula uno que siempre se lea bien sobre tu foto (según los acentos del tema). Elige uno manual solo si quieres algo distinto.</p>
+                <p class="hint">Si no eliges color, se calcula uno que siempre se lea bien sobre tu foto (seg├║n los acentos del tema). Elige uno manual solo si quieres algo distinto.</p>
                 <div class="row" style="margin-top:12px;">
-                  <div><label>Subtítulo del hero</label><input id="d-tagline" placeholder="Ej: Granizados helados y shots que encienden tu momento."></div>
-                  <div><label>Color del subtítulo (opcional)</label><input id="d-tagline-color" type="color"></div>
+                  <div><label>Subt├¡tulo del hero</label><input id="d-tagline" placeholder="Ej: Granizados helados y shots que encienden tu momento."></div>
+                  <div><label>Color del subt├¡tulo (opcional)</label><input id="d-tagline-color" type="color"></div>
                 </div>
                 <div class="row">
-                  <div><label>Texto del botón principal</label><input id="d-hero-boton" placeholder="Ej: VER MENÚ"></div>
-                  <div><label>Tamaño del texto del título</label>
+                  <div><label>Texto del bot├│n principal</label><input id="d-hero-boton" placeholder="Ej: VER MEN├Ü"></div>
+                  <div><label>Tama├▒o del texto del t├¡tulo</label>
                     <select id="d-hero-titulo-tamano">
-                      <option value="auto" selected>Automático (recomendado)</option>
-                      <option value="pequeno">Pequeño</option>
+                      <option value="auto" selected>Autom├ítico (recomendado)</option>
+                      <option value="pequeno">Peque├▒o</option>
                       <option value="mediano">Mediano</option>
                       <option value="grande">Grande</option>
                     </select>
                   </div>
                 </div>
-                <p class="hint" style="margin-top:14px;">Imagen o video de fondo. Si la dejas vacía, se muestra la ilustración genérica de la plantilla.</p>
+                <p class="hint" style="margin-top:14px;">Imagen o video de fondo. Si la dejas vac├¡a, se muestra la ilustraci├│n gen├®rica de la plantilla.</p>
                 <div class="row">
                   <div><label>Subir foto</label><input id="d-hero-file" type="file" accept="image/*"></div>
                   <div><label>O pega una URL de imagen</label><input id="d-hero-imagen" placeholder="https://.../foto-hero.jpg"></div>
@@ -373,118 +343,118 @@
                 <div class="row">
                   <div><label>O usa un video de fondo en vez de foto (URL, opcional)</label><input id="d-hero-video" placeholder="https://.../hero-video.mp4"></div>
                 </div>
-                <p class="hint">Si pones una URL de video aquí, se reproduce en bucle y sin sonido de fondo, y tiene prioridad sobre la foto de arriba (no se muestran los dos a la vez).</p>
+                <p class="hint">Si pones una URL de video aqu├¡, se reproduce en bucle y sin sonido de fondo, y tiene prioridad sobre la foto de arriba (no se muestran los dos a la vez).</p>
               </div>
 
               <div class="seccion">
-                <h3>⚡ Promo del home (banner "2X1", etc.)</h3>
+                <h3>ÔÜí Promo del home (banner "2X1", etc.)</h3>
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
                   <input type="checkbox" id="d-promo-activa" style="width:auto;"> <label for="d-promo-activa" style="margin:0;">Mostrar banner de promo en el home</label>
                 </div>
                 <div class="row">
-                  <div><label>Título grande (ej: 2X1)</label><input id="d-promo-titulo" placeholder="Ej: 2X1"></div>
+                  <div><label>T├¡tulo grande (ej: 2X1)</label><input id="d-promo-titulo" placeholder="Ej: 2X1"></div>
                   <div><label>Etiqueta circular (ej: TODOS LOS SHOTS)</label><input id="d-promo-etiqueta" placeholder="Ej: TODOS LOS SHOTS"></div>
                 </div>
                 <div class="row">
-                  <div><label>Descripción (ej: EN TODOS LOS SHOTS)</label><input id="d-promo-descripcion" placeholder="Ej: EN TODOS LOS SHOTS"></div>
+                  <div><label>Descripci├│n (ej: EN TODOS LOS SHOTS)</label><input id="d-promo-descripcion" placeholder="Ej: EN TODOS LOS SHOTS"></div>
                   <div><label>Horario (ej: DE 6:00 PM A 10:00 PM)</label><input id="d-promo-horario" placeholder="Ej: DE 6:00 PM A 10:00 PM"></div>
                 </div>
                 <div class="row">
-                  <div><label>Subir imagen del círculo (opcional)</label><input id="d-promo-file" type="file" accept="image/*"></div>
-                  <div><label>O pega una URL de imagen (círculo)</label><input id="d-promo-imagen" placeholder="https://.../promo-shots.jpg"></div>
+                  <div><label>Subir imagen del c├¡rculo (opcional)</label><input id="d-promo-file" type="file" accept="image/*"></div>
+                  <div><label>O pega una URL de imagen (c├¡rculo)</label><input id="d-promo-imagen" placeholder="https://.../promo-shots.jpg"></div>
                 </div>
-                <p class="hint">Si dejas esto vacío, el círculo muestra solo la "Etiqueta circular" en texto (como ahora). Si subes una imagen, se muestra la imagen en vez del texto.</p>
-                <img id="d-promo-preview" class="img-preview img-preview-round" alt="Vista previa del círculo guardado">
+                <p class="hint">Si dejas esto vac├¡o, el c├¡rculo muestra solo la "Etiqueta circular" en texto (como ahora). Si subes una imagen, se muestra la imagen en vez del texto.</p>
+                <img id="d-promo-preview" class="img-preview img-preview-round" alt="Vista previa del c├¡rculo guardado">
                 <div class="row">
                   <div><label>Subir foto de fondo de la promo (opcional)</label><input id="d-promo-bg-file" type="file" accept="image/*"></div>
                   <div><label>O pega una URL de imagen (foto de fondo)</label><input id="d-promo-bg-imagen" placeholder="https://.../shots-fila.jpg"></div>
                 </div>
-                <p class="hint">📐 El banner de la promo usa proporción <strong>16:9</strong> (horizontal, ej. 1280×720px) — sube tu foto en ese formato para que se vea nítida, sin recortes raros ni verse "gigante". Si quieres dejar espacio para que el texto se lea cómodo de un lado (como en tu referencia), deja esa zona de tu foto oscura/vacía.</p>
+                <p class="hint">­ƒôÉ El banner de la promo usa proporci├│n <strong>16:9</strong> (horizontal, ej. 1280├ù720px) ÔÇö sube tu foto en ese formato para que se vea n├¡tida, sin recortes raros ni verse "gigante". Si quieres dejar espacio para que el texto se lea c├│modo de un lado (como en tu referencia), deja esa zona de tu foto oscura/vac├¡a.</p>
                 <img id="d-promo-bg-preview" class="img-preview" alt="Vista previa de la foto de fondo guardada">
                 <div class="row">
                   <div><label>O usa un video de fondo en vez de foto (URL, opcional)</label><input id="d-promo-bg-video" placeholder="https://.../promo-video.mp4"></div>
                 </div>
-                <p class="hint">Si pones una URL de video aquí, se reproduce en bucle y sin sonido de fondo, y tiene prioridad sobre la foto de arriba (no se muestran los dos a la vez).</p>
+                <p class="hint">Si pones una URL de video aqu├¡, se reproduce en bucle y sin sonido de fondo, y tiene prioridad sobre la foto de arriba (no se muestran los dos a la vez).</p>
               </div>
 
               <div class="seccion">
-                <h3>🏷️ Categorías (pastillas debajo del hero)</h3>
-                <p class="hint">Puedes tener entre 2 y 6. Siempre se acomodan solas en una sola fila, sin importar cuántas elijas.</p>
+                <h3>­ƒÅÀ´©Å Categor├¡as (pastillas debajo del hero)</h3>
+                <p class="hint">Puedes tener entre 2 y 6. Siempre se acomodan solas en una sola fila, sin importar cu├íntas elijas.</p>
                 <div id="d-categorias-lista"></div>
-                <button type="button" id="d-cat-agregar" class="secondary" style="margin-top:6px;">+ Agregar categoría</button>
+                <button type="button" id="d-cat-agregar" class="secondary" style="margin-top:6px;">+ Agregar categor├¡a</button>
                 <div class="row" style="margin-top:12px;">
                   <div><label>Color del texto (opcional)</label><input id="d-categorias-color" type="color"></div>
-                  <div><label>&nbsp;</label><button type="button" id="d-categorias-color-reset" class="secondary">Usar colores automáticos</button></div>
+                  <div><label>&nbsp;</label><button type="button" id="d-categorias-color-reset" class="secondary">Usar colores autom├íticos</button></div>
                 </div>
                 <p class="hint">Si no eliges color, se alternan los 2 acentos del tema (como ahora). Si eliges uno, se aplica igual a todas.</p>
               </div>
 
               <div class="seccion">
-                <h3>✅ Beneficios (franja de 4 debajo de Nuestros Favoritos)</h3>
+                <h3>Ô£à Beneficios (franja de 4 debajo de Nuestros Favoritos)</h3>
                 <div id="d-beneficios-lista"></div>
                 <div class="row" style="margin-top:12px;">
-                  <div><label>Color de los íconos (opcional)</label><input id="d-beneficios-color" type="color"></div>
-                  <div><label>&nbsp;</label><button type="button" id="d-beneficios-color-reset" class="secondary">Usar colores automáticos</button></div>
+                  <div><label>Color de los ├¡conos (opcional)</label><input id="d-beneficios-color" type="color"></div>
+                  <div><label>&nbsp;</label><button type="button" id="d-beneficios-color-reset" class="secondary">Usar colores autom├íticos</button></div>
                 </div>
               </div>
 
               <div class="seccion">
-                <h3>🧭 Navegación y encabezados</h3>
+                <h3>­ƒº¡ Navegaci├│n y encabezados</h3>
                 <div class="row">
-                  <div><label>Título de "Nuestros Favoritos"</label><input id="d-fav-titulo" placeholder="Ej: NUESTROS FAVORITOS"></div>
-                  <div><label>Color del título (opcional)</label><input id="d-fav-titulo-color" type="color"></div>
+                  <div><label>T├¡tulo de "Nuestros Favoritos"</label><input id="d-fav-titulo" placeholder="Ej: NUESTROS FAVORITOS"></div>
+                  <div><label>Color del t├¡tulo (opcional)</label><input id="d-fav-titulo-color" type="color"></div>
                 </div>
                 <div class="row">
-                  <div><label>Texto del enlace "ver más"</label><input id="d-fav-vertodos" placeholder="Ej: VER TODOS"></div>
+                  <div><label>Texto del enlace "ver m├ís"</label><input id="d-fav-vertodos" placeholder="Ej: VER TODOS"></div>
                 </div>
                 <p class="hint" style="margin-top:10px;">Etiquetas de los 3 botones de la barra inferior.</p>
                 <div class="row">
-                  <div><label>Botón izquierdo</label><input id="d-nav-inicio" placeholder="Ej: Inicio"></div>
-                  <div><label>Botón central (mesero)</label><input id="d-nav-mesero" placeholder="Ej: Mesero"></div>
+                  <div><label>Bot├│n izquierdo</label><input id="d-nav-inicio" placeholder="Ej: Inicio"></div>
+                  <div><label>Bot├│n central (mesero)</label><input id="d-nav-mesero" placeholder="Ej: Mesero"></div>
                 </div>
                 <div class="row">
-                  <div><label>Botón derecho</label><input id="d-nav-pedidos" placeholder="Ej: Pedidos"></div>
-                  <div><label>Color del ícono/texto activo (opcional)</label><input id="d-nav-color" type="color"></div>
+                  <div><label>Bot├│n derecho</label><input id="d-nav-pedidos" placeholder="Ej: Pedidos"></div>
+                  <div><label>Color del ├¡cono/texto activo (opcional)</label><input id="d-nav-color" type="color"></div>
                 </div>
-                <button type="button" id="d-nav-color-reset" class="secondary" style="margin-top:6px;">Usar color automático</button>
-                <p class="hint">Esta barra siempre tiene fondo oscuro fijo, así que el color automático se calcula para que siempre se lea bien ahí, sin importar el tema del resto del sitio.</p>
+                <button type="button" id="d-nav-color-reset" class="secondary" style="margin-top:6px;">Usar color autom├ítico</button>
+                <p class="hint">Esta barra siempre tiene fondo oscuro fijo, as├¡ que el color autom├ítico se calcula para que siempre se lea bien ah├¡, sin importar el tema del resto del sitio.</p>
               </div>
 
               <div class="seccion">
-                <h3>📋 Información del negocio (menú hamburguesa)</h3>
-                <p class="hint">Este texto aparece cuando el cliente toca "Ubicación y Horarios", "Métodos de Pago", "Sobre Nosotros" o "Ayuda y Soporte" desde el menú lateral. Si lo dejas vacío, el cliente ve un aviso de que aún no está cargado.</p>
-                <label>Dirección (para el mapa)</label>
-                <input id="d-info-direccion" placeholder="Ej: Cra 45 #12-30, Ibagué, Tolima" style="margin-bottom:10px;">
-                <p class="hint" style="margin-top:-6px;">Escribe la dirección tal como la buscarías en Google Maps. Con esto se arma solo el mapa y el botón "Cómo llegar" — no hace falta pegar ningún link.</p>
-                <label>Horario y notas de ubicación</label>
-                <textarea id="d-info-ubicacion" rows="3" placeholder="Ej: Lun a sáb, 8:00am - 8:00pm. Frente al parque." style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;margin-bottom:12px;"></textarea>
-                <label>Métodos de pago que aceptas</label>
+                <h3>­ƒôï Informaci├│n del negocio (men├║ hamburguesa)</h3>
+                <p class="hint">Este texto aparece cuando el cliente toca "Ubicaci├│n y Horarios", "M├®todos de Pago", "Sobre Nosotros" o "Ayuda y Soporte" desde el men├║ lateral. Si lo dejas vac├¡o, el cliente ve un aviso de que a├║n no est├í cargado.</p>
+                <label>Direcci├│n (para el mapa)</label>
+                <input id="d-info-direccion" placeholder="Ej: Cra 45 #12-30, Ibagu├®, Tolima" style="margin-bottom:10px;">
+                <p class="hint" style="margin-top:-6px;">Escribe la direcci├│n tal como la buscar├¡as en Google Maps. Con esto se arma solo el mapa y el bot├│n "C├│mo llegar" ÔÇö no hace falta pegar ning├║n link.</p>
+                <label>Horario y notas de ubicaci├│n</label>
+                <textarea id="d-info-ubicacion" rows="3" placeholder="Ej: Lun a s├íb, 8:00am - 8:00pm. Frente al parque." style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;margin-bottom:12px;"></textarea>
+                <label>M├®todos de pago que aceptas</label>
                 <div id="d-metodos-pago" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
-                <p class="hint" style="margin-top:-4px;">Marca los que acepta este negocio — al cliente le aparecen como insignias con el color de cada marca, no solo texto.</p>
+                <p class="hint" style="margin-top:-4px;">Marca los que acepta este negocio ÔÇö al cliente le aparecen como insignias con el color de cada marca, no solo texto.</p>
                 <label>Nota extra sobre pagos (opcional)</label>
                 <textarea id="d-info-pago" rows="2" placeholder="Ej: Solo transferencias arriba de $20.000." style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;margin-bottom:12px;"></textarea>
                 <label>Sobre nosotros</label>
-                <textarea id="d-info-nosotros" rows="3" placeholder="Cuéntale al cliente algo sobre tu negocio." style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;margin-bottom:12px;"></textarea>
+                <textarea id="d-info-nosotros" rows="3" placeholder="Cu├®ntale al cliente algo sobre tu negocio." style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;margin-bottom:12px;"></textarea>
                 <label>Ayuda y soporte</label>
-                <textarea id="d-info-ayuda" rows="2" placeholder="Ej: Escríbenos por WhatsApp al 300 123 4567 si tienes algún problema con tu pedido." style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;"></textarea>
+                <textarea id="d-info-ayuda" rows="2" placeholder="Ej: Escr├¡benos por WhatsApp al 300 123 4567 si tienes alg├║n problema con tu pedido." style="width:100%;resize:vertical;font-family:inherit;padding:10px;border-radius:8px;background:#0f0f14;border:1px solid #333;color:#fff;"></textarea>
               </div>
 
               <div><button type="submit">Guardar cambios</button> <div class="msg" id="d-msg"></div></div>
             </form>
 
             <div class="seccion" style="margin-top:16px;">
-              <h3>⭐ Destacados — aparecen en "Nuestros Favoritos" del Home</h3>
-              <p class="hint">Elige cuáles productos ya cargados se muestran en el Home. Para crear productos nuevos, ve a la pestaña "Productos".</p>
-              <div id="destacados-wrap"><p class="empty">Cargando…</p></div>
+              <h3>Ô¡É Destacados ÔÇö aparecen en "Nuestros Favoritos" del Home</h3>
+              <p class="hint">Elige cu├íles productos ya cargados se muestran en el Home. Para crear productos nuevos, ve a la pesta├▒a "Productos".</p>
+              <div id="destacados-wrap"><p class="empty">CargandoÔÇª</p></div>
             </div>
           </div>
 
           <div class="preview-wrap">
-            <div class="preview-label">👁️ Vista previa en vivo</div>
+            <div class="preview-label">­ƒæü´©Å Vista previa en vivo</div>
             <div class="preview-frame"><iframe id="previewFrame" src="about:blank"></iframe></div>
             <div class="preview-actions">
-              <button type="button" class="secondary" id="btnPreviewRefrescar">🔄 Actualizar</button>
-              <button type="button" class="secondary" id="btnPreviewAbrir">Abrir en pestaña ↗</button>
+              <button type="button" class="secondary" id="btnPreviewRefrescar">­ƒöä Actualizar</button>
+              <button type="button" class="secondary" id="btnPreviewAbrir">Abrir en pesta├▒a Ôåù</button>
             </div>
           </div>
         </div>
@@ -492,42 +462,36 @@
 
       <div id="sub-productos" class="subpanel">
         <div id="pos-productos-aviso" class="seccion" style="display:none;border:1px solid var(--line);background:rgba(255,180,0,.06);">
-          <h3>🔌 Productos gestionados por el POS</h3>
-          <p class="hint" style="margin:0;">Este negocio es <strong>"Con POS"</strong>: su catálogo (productos, precios, disponibilidad) se alimenta del sistema POS de Fenlora por API. Por eso la edición manual de productos está desactivada aquí, para evitar que dos fuentes se pisen. <br><em>La conexión con el POS todavía está pendiente de enchufar.</em> Si necesitas manejar los productos desde este panel, cambia el "Tipo de negocio" en la pestaña Datos.</p>
+          <h3>­ƒöî Productos gestionados por el POS</h3>
+          <p class="hint" style="margin:0;">Este negocio es <strong>"Con POS"</strong>: su cat├ílogo (productos, precios, disponibilidad) se alimenta del sistema POS de Fenlora por API. Por eso la edici├│n manual de productos est├í desactivada aqu├¡, para evitar que dos fuentes se pisen. <br><em>La conexi├│n con el POS todav├¡a est├í pendiente de enchufar.</em> Si necesitas manejar los productos desde este panel, cambia el "Tipo de negocio" en la pesta├▒a Datos.</p>
         </div>
         <div class="seccion">
-          <h3>➕ Agregar / editar producto</h3>
+          <h3>Ô×ò Agregar / editar producto</h3>
           <form id="form-producto">
             <div class="row">
-              <div><label>Categoría</label><input id="p-categoria" required placeholder="Ej: Granizados"></div>
+              <div><label>Categor├¡a</label><input id="p-categoria" required placeholder="Ej: Granizados"></div>
               <div><label>Nombre</label><input id="p-nombre" required placeholder="Ej: Granizado Tropical"></div>
             </div>
             <div class="row">
               <div><label>Precio</label><input id="p-precio" type="text" inputmode="numeric" placeholder="Ej: 10.000" required></div>
               <div><label>Foto (opcional)</label><input id="p-foto" type="file" accept="image/*"></div>
             </div>
-            <p class="hint">📐 Formato recomendado: foto <strong>cuadrada (1:1)</strong>, mínimo 500×500px. Si tu foto no es cuadrada, recórtala antes de subirla (en el celular: editar foto → recortar 1:1) para que se vea completa y pareja en "Nuestros Favoritos", como en la tarjeta de referencia.</p>
-            <div><label>Descripción (opcional)</label><input id="p-descripcion"></div>
+            <p class="hint">­ƒôÉ Formato recomendado: foto <strong>cuadrada (1:1)</strong>, m├¡nimo 500├ù500px. Si tu foto no es cuadrada, rec├│rtala antes de subirla (en el celular: editar foto ÔåÆ recortar 1:1) para que se vea completa y pareja en "Nuestros Favoritos", como en la tarjeta de referencia.</p>
+            <div><label>Descripci├│n (opcional)</label><input id="p-descripcion"></div>
             <div style="display:flex;align-items:center;gap:8px;">
               <input type="checkbox" id="p-destacado" style="width:auto;"> <label for="p-destacado" style="margin:0;">Mostrar en "Nuestros Favoritos" del home</label>
             </div>
             <div>
               <button type="submit" id="p-submit-btn">Agregar producto</button>
-              <button type="button" id="p-cancelar-btn" class="secondary" style="display:none;">Cancelar edición</button>
+              <button type="button" id="p-cancelar-btn" class="secondary" style="display:none;">Cancelar edici├│n</button>
               <div class="msg" id="p-msg"></div>
             </div>
           </form>
         </div>
 
         <div class="seccion">
-          <h3>📋 Menú completo — todos los productos por categoría</h3>
+          <h3>­ƒôï Men├║ completo ÔÇö todos los productos por categor├¡a</h3>
           <div id="productos-wrap"><p class="empty">Elige un negocio primero.</p></div>
-        </div>
-
-        <div class="seccion" id="reco-cat-seccion">
-          <h3>⭐ Plato recomendado por categoría</h3>
-          <p class="hint">Para el menú en modo <strong>Listado</strong>: elige el producto que se muestra grande arriba de cada categoría y súbele una foto dedicada. 📐 Formato recomendado: <strong>16:9</strong> (horizontal, ej. 1280×720px). Si dejas "Automático", se usa el producto destacado (★) o el primero con foto.</p>
-          <div id="reco-cat-wrap"><p class="empty">Elige un negocio primero.</p></div>
         </div>
       </div>
 
@@ -542,72 +506,72 @@
     <div class="panel">
       <h2>Demos por nicho</h2>
       <p class="empty" style="margin-bottom:12px;">
-        Un negocio de muestra por cada nicho del catálogo, con URL fija (<code>/demo-&lt;nicho&gt;</code>),
-        para mandarle el link a un prospecto y que vea cómo se vería su rubro sin crear nada real todavía.
+        Un negocio de muestra por cada nicho del cat├ílogo, con URL fija (<code>/demo-&lt;nicho&gt;</code>),
+        para mandarle el link a un prospecto y que vea c├│mo se ver├¡a su rubro sin crear nada real todav├¡a.
       </p>
       <button class="secondary" id="btnGenerarDemos">Generar demos que falten</button>
       <div class="msg" id="demos-msg"></div>
     </div>
-    <div id="grid-demos" class="grid-negocios"><p class="empty">Cargando…</p></div>
+    <div id="grid-demos" class="grid-negocios"><p class="empty">CargandoÔÇª</p></div>
   </section>
 
-  <!-- ===================== MÉTRICAS ===================== -->
+  <!-- ===================== M├ëTRICAS ===================== -->
   <section id="tab-metricas" class="tab-panel">
     <div class="panel">
-      <h2>Pedidos por día (últimos 14 días)</h2>
-      <div id="metricas-pedidos-dia"><p class="empty">Cargando…</p></div>
+      <h2>Pedidos por d├¡a (├║ltimos 14 d├¡as)</h2>
+      <div id="metricas-pedidos-dia"><p class="empty">CargandoÔÇª</p></div>
     </div>
     <div class="row" style="align-items:stretch;">
       <div class="panel">
-        <h2>Negocios con más pedidos</h2>
-        <div id="metricas-top-negocios"><p class="empty">Cargando…</p></div>
+        <h2>Negocios con m├ís pedidos</h2>
+        <div id="metricas-top-negocios"><p class="empty">CargandoÔÇª</p></div>
       </div>
       <div class="panel">
-        <h2>Productos más pedidos</h2>
-        <div id="metricas-top-productos"><p class="empty">Cargando…</p></div>
+        <h2>Productos m├ís pedidos</h2>
+        <div id="metricas-top-productos"><p class="empty">CargandoÔÇª</p></div>
       </div>
     </div>
     <div class="panel">
       <h2>Negocios por nicho</h2>
-      <div id="metricas-por-nicho"><p class="empty">Cargando…</p></div>
+      <div id="metricas-por-nicho"><p class="empty">CargandoÔÇª</p></div>
     </div>
   </section>
 
   <!-- ===================== COBRANZA ===================== -->
   <section id="tab-cobranza" class="tab-panel">
-    <div class="stats" id="cobranza-stats"><p class="empty">Cargando…</p></div>
+    <div class="stats" id="cobranza-stats"><p class="empty">CargandoÔÇª</p></div>
     <div class="panel">
       <h2>Negocios con cobranza configurada</h2>
       <p class="empty" style="margin-bottom:10px;">
-        Configura precio mensual y día de cobro desde la ficha de cada negocio (pestaña Negocios → Datos).
+        Configura precio mensual y d├¡a de cobro desde la ficha de cada negocio (pesta├▒a Negocios ÔåÆ Datos).
       </p>
-      <div id="cobranza-wrap"><p class="empty">Cargando…</p></div>
+      <div id="cobranza-wrap"><p class="empty">CargandoÔÇª</p></div>
     </div>
   </section>
 
   <!-- ===================== CONFIG ===================== -->
   <section id="tab-config" class="tab-panel">
     <div class="panel">
-      <h2>Configuración general</h2>
+      <h2>Configuraci├│n general</h2>
       <form id="form-config">
         <div>
           <label>Moneda por defecto para negocios nuevos</label>
           <select id="c-moneda-default">
-            <option value="COP">COP — Peso colombiano</option>
-            <option value="PEN">PEN — Sol peruano</option>
-            <option value="MXN">MXN — Peso mexicano</option>
-            <option value="USD">USD — Dólar</option>
+            <option value="COP">COP ÔÇö Peso colombiano</option>
+            <option value="PEN">PEN ÔÇö Sol peruano</option>
+            <option value="MXN">MXN ÔÇö Peso mexicano</option>
+            <option value="USD">USD ÔÇö D├│lar</option>
           </select>
         </div>
         <div>
           <label>Mensaje de WhatsApp por defecto (al enviar el link a un negocio)</label>
-          <textarea id="c-whatsapp-default" rows="3" placeholder="Hola {nombre}! Aquí tienes el link de tu menú digital: {link}"></textarea>
+          <textarea id="c-whatsapp-default" rows="3" placeholder="Hola {nombre}! Aqu├¡ tienes el link de tu men├║ digital: {link}"></textarea>
         </div>
         <div>
-          <label>URL pública del bucket R2 (referencia — para cambiarla de verdad hay que editarla también en src/worker.js)</label>
+          <label>URL p├║blica del bucket R2 (referencia ÔÇö para cambiarla de verdad hay que editarla tambi├®n en src/worker.js)</label>
           <input id="c-r2-url" placeholder="https://pub-xxxxx.r2.dev">
         </div>
-        <div><button type="submit">Guardar configuración</button> <div class="msg" id="c-msg"></div></div>
+        <div><button type="submit">Guardar configuraci├│n</button> <div class="msg" id="c-msg"></div></div>
       </form>
     </div>
   </section>
@@ -650,7 +614,7 @@ async function cargarResumen() {
   wrap.innerHTML = d.negocios_sin_productos.map(n => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);">
       <span>${n.nombre}</span>
-      <button class="secondary small" onclick="irANegocio('${n.id}')">Cargar productos →</button>
+      <button class="secondary small" onclick="irANegocio('${n.id}')">Cargar productos ÔåÆ</button>
     </div>`).join('');
 }
 
@@ -719,10 +683,10 @@ $('#form-nuevo').addEventListener('submit', async (e) => {
   });
   const data = await r.json();
   if (!r.ok) { msg.textContent = data.error || 'Error al crear'; msg.className = 'msg err'; return; }
-  msg.textContent = `Creado — ${location.origin}/${data.id}`; msg.className = 'msg ok';
+  msg.textContent = `Creado ÔÇö ${location.origin}/${data.id}`; msg.className = 'msg ok';
   e.target.reset();
   await cargarTenants();
-  await seleccionarNegocio(data.id); // abre de una vez el negocio recién creado, no el que estaba antes
+  await seleccionarNegocio(data.id); // abre de una vez el negocio reci├®n creado, no el que estaba antes
 });
 
 // ---------------- DETALLE DE UN NEGOCIO ----------------
@@ -736,22 +700,22 @@ document.querySelectorAll('.subtab').forEach(btn => {
 });
 
 // ===================================================
-// TEXTOS DEL HOME: categorías y beneficios (filas dinámicas)
+// TEXTOS DEL HOME: categor├¡as y beneficios (filas din├ímicas)
 // ===================================================
-// Antes, categorías y beneficios solo se llenaban al crear el negocio (con
-// el texto de ejemplo del nicho elegido) y no había forma de editarlos
-// después. Estas funciones dibujan filas editables (nombre + descripción)
-// y permiten agregar/quitar categorías (los beneficios son siempre 4, por
-// el diseño fijo de esa franja en el home).
+// Antes, categor├¡as y beneficios solo se llenaban al crear el negocio (con
+// el texto de ejemplo del nicho elegido) y no hab├¡a forma de editarlos
+// despu├®s. Estas funciones dibujan filas editables (nombre + descripci├│n)
+// y permiten agregar/quitar categor├¡as (los beneficios son siempre 4, por
+// el dise├▒o fijo de esa franja en el home).
 
 function renderizarCategoriasForm(nombres, descs) {
   const wrap = $('#d-categorias-lista');
   if (!nombres.length) nombres = ['', ''];
   wrap.innerHTML = nombres.map((nombre, i) => `
     <div class="row cat-row" style="align-items:flex-end;margin-bottom:6px;">
-      <div><label>${i === 0 ? 'Nombre categoría' : ''}</label><input class="cat-nombre" value="${(nombre || '').replace(/"/g, '&quot;')}" placeholder="Ej: Granizados"></div>
-      <div><label>${i === 0 ? 'Descripción corta' : ''}</label><input class="cat-desc" value="${(descs[i] || '').replace(/"/g, '&quot;')}" placeholder="Ej: Helados, frutales y refrescantes."></div>
-      <div style="flex:0;"><button type="button" class="secondary cat-quitar" ${nombres.length <= 2 ? 'disabled title="Mínimo 2 categorías"' : ''}>✕</button></div>
+      <div><label>${i === 0 ? 'Nombre categor├¡a' : ''}</label><input class="cat-nombre" value="${(nombre || '').replace(/"/g, '&quot;')}" placeholder="Ej: Granizados"></div>
+      <div><label>${i === 0 ? 'Descripci├│n corta' : ''}</label><input class="cat-desc" value="${(descs[i] || '').replace(/"/g, '&quot;')}" placeholder="Ej: Helados, frutales y refrescantes."></div>
+      <div style="flex:0;"><button type="button" class="secondary cat-quitar" ${nombres.length <= 2 ? 'disabled title="M├¡nimo 2 categor├¡as"' : ''}>Ô£ò</button></div>
     </div>
   `).join('');
   wrap.querySelectorAll('.cat-quitar').forEach(btn => {
@@ -759,9 +723,9 @@ function renderizarCategoriasForm(nombres, descs) {
   });
 }
 
-// Color del título del hero: "automático" por defecto (se calcula solo,
+// Color del t├¡tulo del hero: "autom├ítico" por defecto (se calcula solo,
 // siempre legible sobre la foto). Si el usuario toca el selector de color,
-// pasa a manual. El botón permite volver a automático en cualquier momento.
+// pasa a manual. El bot├│n permite volver a autom├ítico en cualquier momento.
 const inputHeroTituloColor = document.getElementById('d-hero-titulo-color');
 if (inputHeroTituloColor) {
   inputHeroTituloColor.addEventListener('input', () => { inputHeroTituloColor.dataset.auto = 'false'; });
@@ -770,7 +734,7 @@ document.getElementById('d-hero-titulo-color-reset')?.addEventListener('click', 
   if (inputHeroTituloColor) inputHeroTituloColor.dataset.auto = 'true';
 });
 
-// Mismo patrón "auto/manual" para categorías, beneficios y nav.
+// Mismo patr├│n "auto/manual" para categor├¡as, beneficios y nav.
 function conectarColorAuto(inputId, resetBtnId) {
   const input = document.getElementById(inputId);
   if (input) input.addEventListener('input', () => { input.dataset.auto = 'false'; });
@@ -782,14 +746,12 @@ conectarColorAuto('d-categorias-color', 'd-categorias-color-reset');
 conectarColorAuto('d-beneficios-color', 'd-beneficios-color-reset');
 conectarColorAuto('d-nav-color', 'd-nav-color-reset');
 conectarColorAuto('d-color-gris', 'd-color-gris-reset');
-conectarColorAuto('d-icono-color', 'd-icono-color-reset');
-conectarColorAuto('d-icono-circulo', 'd-icono-circulo-reset');
 
 
 $('#d-cat-agregar').addEventListener('click', () => {
   const wrap = $('#d-categorias-lista');
   const filas = wrap.querySelectorAll('.cat-row').length;
-  if (filas >= 6) { alert('Máximo 6 categorías.'); return; }
+  if (filas >= 6) { alert('M├íximo 6 categor├¡as.'); return; }
   const nombresActuales = Array.from(wrap.querySelectorAll('.cat-nombre')).map(i => i.value);
   const descsActuales = Array.from(wrap.querySelectorAll('.cat-desc')).map(i => i.value);
   nombresActuales.push(''); descsActuales.push('');
@@ -810,8 +772,8 @@ function renderizarBeneficiosForm(nombres, descs) {
   const base = [0, 1, 2, 3];
   wrap.innerHTML = base.map(i => `
     <div class="row" style="align-items:flex-end;margin-bottom:6px;">
-      <div><label>${i === 0 ? 'Nombre' : ''}</label><input class="ben-nombre" value="${(nombres[i] || '').replace(/"/g, '&quot;')}" placeholder="Ej: Delivery exprés"></div>
-      <div><label>${i === 0 ? 'Descripción corta' : ''}</label><input class="ben-desc" value="${(descs[i] || '').replace(/"/g, '&quot;')}" placeholder="Ej: Ingredientes de calidad"></div>
+      <div><label>${i === 0 ? 'Nombre' : ''}</label><input class="ben-nombre" value="${(nombres[i] || '').replace(/"/g, '&quot;')}" placeholder="Ej: Delivery expr├®s"></div>
+      <div><label>${i === 0 ? 'Descripci├│n corta' : ''}</label><input class="ben-desc" value="${(descs[i] || '').replace(/"/g, '&quot;')}" placeholder="Ej: Ingredientes de calidad"></div>
     </div>
   `).join('');
 }
@@ -824,13 +786,13 @@ function leerBeneficiosForm() {
 }
 
 // ===================================================
-// MÉTODOS DE PAGO (insignias con el color de cada marca)
+// M├ëTODOS DE PAGO (insignias con el color de cada marca)
 // ===================================================
-// No reproducimos los logos oficiales (son marca registrada) — en vez de
-// eso, cada método se muestra como una insignia con su color de marca +
-// nombre, que el cliente reconoce igual de rápido sin usar el logo real.
+// No reproducimos los logos oficiales (son marca registrada) ÔÇö en vez de
+// eso, cada m├®todo se muestra como una insignia con su color de marca +
+// nombre, que el cliente reconoce igual de r├ípido sin usar el logo real.
 // Esta misma lista (clave, nombre, color) se repite en negocio.html para
-// pintar las insignias en el sitio público.
+// pintar las insignias en el sitio p├║blico.
 const CATALOGO_METODOS_PAGO = [
   { key: 'efectivo', nombre: 'Efectivo', color: '#1FA971' },
   { key: 'nequi', nombre: 'Nequi', color: '#D6006C' },
@@ -838,7 +800,7 @@ const CATALOGO_METODOS_PAGO = [
   { key: 'bancolombia', nombre: 'Bancolombia', color: '#FFD100', textoOscuro: true },
   { key: 'breb', nombre: 'Bre-B', color: '#00A99D' },
   { key: 'pse', nombre: 'PSE', color: '#003D79' },
-  { key: 'tarjeta', nombre: 'Tarjeta débito/crédito', color: '#3a3a46' },
+  { key: 'tarjeta', nombre: 'Tarjeta d├®bito/cr├®dito', color: '#3a3a46' },
 ];
 function renderMetodosPagoForm(activos) {
   const wrap = $('#d-metodos-pago');
@@ -859,13 +821,13 @@ function leerMetodosPagoForm() {
 // ===================================================
 // VISTA PREVIA EN TIEMPO REAL (sin necesidad de guardar)
 // ===================================================
-// negocio.html YA tenía el receptor de estos mensajes construido (recibe
-// "preview-live-update" y repinta al instante) — lo que faltaba era que el
-// admin realmente se lo mandara. Esta función lee el formulario tal como
-// está en este momento (sin guardar nada) y se lo manda al iframe cada vez
-// que se escribe o se cambia algo. Las imágenes/videos que subes como
+// negocio.html YA ten├¡a el receptor de estos mensajes construido (recibe
+// "preview-live-update" y repinta al instante) ÔÇö lo que faltaba era que el
+// admin realmente se lo mandara. Esta funci├│n lee el formulario tal como
+// est├í en este momento (sin guardar nada) y se lo manda al iframe cada vez
+// que se escribe o se cambia algo. Las im├ígenes/videos que subes como
 // ARCHIVO (no como URL pegada) no se pueden previsualizar en vivo sin
-// subirlas primero — para esos casos, sigue haciendo falta "Guardar".
+// subirlas primero ÔÇö para esos casos, sigue haciendo falta "Guardar".
 function recopilarPayloadLive() {
   if (!ACTIVO_ID || !NEGOCIO_ACTUAL) return null;
   const contenidoActual = (NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.contenido) || {};
@@ -970,21 +932,12 @@ async function seleccionarNegocio(id) {
   $('#d-nombre').value = t.nombre;
   $('#d-whatsapp').value = t.whatsapp || '';
   $('#d-pago-url').value = t.pago_url || '';
+  if ($('#d-modo-pos')) $('#d-modo-pos').checked = !!t.modo_pos;
+  if ($('#d-pos-api-key')) $('#d-pos-api-key').value = t.pos_api_key || '';
   $('#d-moneda').value = t.moneda || 'COP';
   $('#d-precio-mensual').value = t.precio_mensual || '';
   $('#d-dia-cobro').value = t.dia_cobro || '';
   $('#d-modo-negocio').value = (t.contenido && t.contenido.modo_negocio) || 'ambos';
-  if ($('#d-pos-api-key')) $('#d-pos-api-key').value = t.pos_api_key || '';
-  $('#d-menu-estilo').value = (t.contenido && t.contenido.menu_estilo) || 'cuadricula';
-  $('#d-menu-titulo').value = (t.contenido && t.contenido.menu_titulo) || '';
-  const _cIco = t.contenido || {};
-  const _icoColor = $('#d-icono-color');
-  if (_cIco.icono_color) { _icoColor.value = _cIco.icono_color; _icoColor.dataset.auto = 'false'; }
-  else { _icoColor.value = '#e2521c'; _icoColor.dataset.auto = 'true'; }
-  const _icoCirc = $('#d-icono-circulo');
-  if (_cIco.icono_circulo_color) { _icoCirc.value = _cIco.icono_circulo_color; _icoCirc.dataset.auto = 'false'; }
-  else { _icoCirc.value = '#fbe6d8'; _icoCirc.dataset.auto = 'true'; }
-  renderIconosCategorias();
 
   $('#d-logo-imagen').value = (t.logo_url && !t.logo_url.includes('logo-placeholder')) ? t.logo_url : '';
 
@@ -1057,17 +1010,17 @@ async function seleccionarNegocio(id) {
 
   $('#d-logo-tamano').value = (t.contenido && t.contenido.logo_tamano) || 'mediano';
 
-  // Miniaturas de vista previa — así queda 100% claro qué imagen quedó guardada
+  // Miniaturas de vista previa ÔÇö as├¡ queda 100% claro qu├® imagen qued├│ guardada
   // en cada campo, sin depender de leer la URL cortada dentro del input.
   $('#d-logo-preview').src = (t.logo_url && !t.logo_url.includes('logo-placeholder')) ? t.logo_url : '';
   $('#d-hero-preview').src = (t.contenido && t.contenido.hero_imagen_url) || '';
   $('#d-promo-preview').src = promo.imagen_url || '';
   $('#d-promo-bg-preview').src = promo.imagen_fondo_url || '';
 
-  // Fix: antes esto ponía siempre la misma URL ("/slug"), así que si ya estaba
+  // Fix: antes esto pon├¡a siempre la misma URL ("/slug"), as├¡ que si ya estaba
   // seleccionado ese negocio el navegador no recargaba el iframe (mismo src =
   // no hay recarga) y la vista previa se quedaba con la imagen/dato viejo hasta
-  // que el usuario tocaba "Actualizar" a mano. Ahora siempre lleva un parámetro
+  // que el usuario tocaba "Actualizar" a mano. Ahora siempre lleva un par├ímetro
   // distinto (timestamp) para forzar la recarga real cada vez.
   const previewFrame = document.getElementById('previewFrame');
   if (previewFrame) previewFrame.src = `/${t.id}?_=${Date.now()}`;
@@ -1079,22 +1032,18 @@ async function seleccionarNegocio(id) {
   cargarPedidos(id);
 }
 
-// Cuando el negocio es "Con POS", su catálogo viene del sistema POS por API,
-// así que aquí se bloquea la edición manual: se muestra el aviso, se oculta el
+// Cuando el negocio es "Con POS", su cat├ílogo viene del sistema POS por API,
+// as├¡ que aqu├¡ se bloquea la edici├│n manual: se muestra el aviso, se oculta el
 // formulario de producto y la lista, y se deshabilitan sus campos (para que ni
-// siquiera un submit accidental cree productos que el POS luego pisaría).
+// siquiera un submit accidental cree productos que el POS luego pisar├¡a).
 function aplicarModoPOSproductos(esPOS) {
   const aviso = document.getElementById('pos-productos-aviso');
   const form = document.getElementById('form-producto');
   const seccionForm = form ? form.closest('.seccion') : null;
   const seccionLista = document.getElementById('productos-wrap')?.closest('.seccion');
-  const seccionReco = document.getElementById('reco-cat-seccion');
   if (aviso) aviso.style.display = esPOS ? '' : 'none';
   if (seccionForm) seccionForm.style.display = esPOS ? 'none' : '';
   if (seccionLista) seccionLista.style.display = esPOS ? 'none' : '';
-  if (seccionReco) seccionReco.style.display = esPOS ? 'none' : '';
-  // En POS no se renderiza la sección: limpiamos para no leer datos de otro negocio.
-  if (esPOS) { RECO_CATS = []; const rw = document.getElementById('reco-cat-wrap'); if (rw) rw.innerHTML = ''; }
   if (form) {
     form.querySelectorAll('input, button, textarea, select').forEach(el => { el.disabled = esPOS; });
   }
@@ -1117,7 +1066,7 @@ $('#detalle-whatsapp').addEventListener('click', () => {
   const t = TENANTS.find(x => x.id === ACTIVO_ID);
   if (!t || !t.whatsapp) { alert('Este negocio no tiene WhatsApp cargado.'); return; }
   const link = `${location.origin}/${ACTIVO_ID}`;
-  const mensaje = encodeURIComponent(`Hola ${t.nombre}! Aquí tienes el link de tu menú digital: ${link}`);
+  const mensaje = encodeURIComponent(`Hola ${t.nombre}! Aqu├¡ tienes el link de tu men├║ digital: ${link}`);
   window.open(`https://wa.me/${t.whatsapp}?text=${mensaje}`, '_blank');
 });
 
@@ -1134,7 +1083,7 @@ $('#detalle-suspender').addEventListener('click', async () => {
 
 $('#detalle-eliminar').addEventListener('click', async () => {
   if (!ACTIVO_ID) return;
-  if (!confirm('¿Eliminar este negocio y todos sus productos/pedidos? Esta acción no se puede deshacer.')) return;
+  if (!confirm('┬┐Eliminar este negocio y todos sus productos/pedidos? Esta acci├│n no se puede deshacer.')) return;
   await fetch(`/admin/api/tenants/${encodeURIComponent(ACTIVO_ID)}`, { method: 'DELETE' });
   $('#panel-detalle').style.display = 'none';
   ACTIVO_ID = null;
@@ -1167,7 +1116,7 @@ $('#form-datos').addEventListener('submit', async (e) => {
     if (!ru.ok) { msg.textContent = du.error || 'Error al subir el logo'; msg.className = 'msg err'; return; }
     logo_url = du.url;
   }
-  if (logo_url && logo_url.includes('logo-placeholder')) logo_url = null; // nunca guardamos el placeholder roto a propósito
+  if (logo_url && logo_url.includes('logo-placeholder')) logo_url = null; // nunca guardamos el placeholder roto a prop├│sito
 
   let promo_imagen_url = $('#d-promo-imagen').value.trim() || null;
   const promoFile = $('#d-promo-file').files[0];
@@ -1192,23 +1141,16 @@ $('#form-datos').addEventListener('submit', async (e) => {
   }
 
   // Partimos del "contenido" ya guardado (tagline, hero_titulo, categorias, beneficios...)
-  // y solo reemplazamos hero_imagen_url y promo, para no perder lo demás.
+  // y solo reemplazamos hero_imagen_url y promo, para no perder lo dem├ís.
   const contenidoActual = (NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.contenido) || {};
   const { categorias, categorias_desc } = leerCategoriasForm();
   const { beneficios, beneficios_desc } = leerBeneficiosForm();
-  const categoria_principal = await recolectarRecoCategorias();
   const contenido = {
     ...contenidoActual,
-    categoria_principal,
-    categoria_iconos: leerIconosCategorias(),
-    icono_color: ($('#d-icono-color')?.dataset.auto === 'false') ? $('#d-icono-color').value : null,
-    icono_circulo_color: ($('#d-icono-circulo')?.dataset.auto === 'false') ? $('#d-icono-circulo').value : null,
     hero_imagen_url,
     hero_video_url: $('#d-hero-video').value.trim() || null,
     logo_tamano: $('#d-logo-tamano').value,
     modo_negocio: $('#d-modo-negocio').value,
-    menu_estilo: $('#d-menu-estilo').value,
-    menu_titulo: $('#d-menu-titulo').value.trim() || null,
     sin_neon: $('#d-sin-neon').checked,
     // Textos del Home
     hero_titulo: $('#d-hero-titulo').value.trim() || contenidoActual.hero_titulo,
@@ -1257,10 +1199,10 @@ $('#form-datos').addEventListener('submit', async (e) => {
       pago_url: $('#d-pago-url').value.trim() || null,
       logo_url,
       moneda: $('#d-moneda').value,
+      modo_pos: $('#d-modo-pos') && $('#d-modo-pos').checked ? 1 : 0,
+      pos_api_key: ($('#d-pos-api-key') ? $('#d-pos-api-key').value.trim() : '') || null,
       precio_mensual: $('#d-precio-mensual').value ? Number($('#d-precio-mensual').value) : null,
       dia_cobro: $('#d-dia-cobro').value ? Number($('#d-dia-cobro').value) : null,
-      modo_pos: ($('#d-modo-negocio') && $('#d-modo-negocio').value === 'pos') ? 1 : 0,
-      pos_api_key: ($('#d-pos-api-key') ? $('#d-pos-api-key').value.trim() : '') || null,
       tema: {
         ...(NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.tema),
         fondo: $('#d-color-fondo').value,
@@ -1274,15 +1216,13 @@ $('#form-datos').addEventListener('submit', async (e) => {
   });
   const data = await r.json();
   if (!r.ok) { msg.textContent = data.error || 'Error al guardar'; msg.className = 'msg err'; return; }
-  msg.textContent = 'Guardado ✓'; msg.className = 'msg ok';
+  msg.textContent = 'Guardado Ô£ô'; msg.className = 'msg ok';
   cargarTenants();
-  seleccionarNegocio(ACTIVO_ID); // recarga NEGOCIO_ACTUAL con lo que quedó guardado
+  seleccionarNegocio(ACTIVO_ID); // recarga NEGOCIO_ACTUAL con lo que qued├│ guardado
 });
 
 // ---------------- PRODUCTOS ----------------
 let PRODUCTOS_CACHE = [];
-let RECO_CATS = [];
-let ICONOS_CATS = [];
 let EDITANDO_PRODUCTO_ID = null;
 
 const filaProducto = (p) => `
@@ -1290,7 +1230,7 @@ const filaProducto = (p) => `
     <td>${p.imagen_url ? `<img class="prod-thumb" src="${p.imagen_url}">` : ''}</td>
     <td>${p.nombre}</td>
     <td>${Number(p.precio).toLocaleString('es-CO')}</td>
-    <td>${p.destacado ? '★' : '—'}</td>
+    <td>${p.destacado ? 'Ôÿà' : 'ÔÇö'}</td>
     <td style="white-space:nowrap;">
       <button class="secondary small" onclick="editarProducto(${p.id})">Editar</button>
       <button class="secondary small" onclick="toggleDestacado(${p.id}, ${p.destacado ? 1 : 0})">${p.destacado ? 'Quitar de Home' : 'Poner en Home'}</button>
@@ -1303,21 +1243,19 @@ function pintarDestacados() {
   if (!wrap) return;
   const destacados = PRODUCTOS_CACHE.filter(p => p.destacado);
   wrap.innerHTML = destacados.length
-    ? `<table><thead><tr><th></th><th>Nombre</th><th>Precio</th><th>★</th><th></th></tr></thead><tbody>${destacados.map(filaProducto).join('')}</tbody></table>`
-    : `<p class="empty">Ningún producto marcado como destacado todavía. Ve a la pestaña "Productos" para marcarlos.</p>`;
+    ? `<table><thead><tr><th></th><th>Nombre</th><th>Precio</th><th>Ôÿà</th><th></th></tr></thead><tbody>${destacados.map(filaProducto).join('')}</tbody></table>`
+    : `<p class="empty">Ning├║n producto marcado como destacado todav├¡a. Ve a la pesta├▒a "Productos" para marcarlos.</p>`;
 }
 
 async function cargarProductos(tenantId) {
   const wrap = $('#productos-wrap');
-  wrap.innerHTML = '<p class="empty">Cargando…</p>';
+  wrap.innerHTML = '<p class="empty">CargandoÔÇª</p>';
   const r = await fetch(`/admin/api/tenants/${encodeURIComponent(tenantId)}/products`);
   const { productos } = await r.json();
   PRODUCTOS_CACHE = productos;
   pintarDestacados();
-  renderRecoCategorias();
-  renderIconosCategorias();
 
-  if (!productos.length) { wrap.innerHTML = '<p class="empty">Este negocio todavía no tiene productos.</p>'; return; }
+  if (!productos.length) { wrap.innerHTML = '<p class="empty">Este negocio todav├¡a no tiene productos.</p>'; return; }
 
   const porCategoria = {};
   productos.forEach(p => { (porCategoria[p.categoria] = porCategoria[p.categoria] || []).push(p); });
@@ -1325,110 +1263,10 @@ async function cargarProductos(tenantId) {
   let html = '';
   Object.keys(porCategoria).sort().forEach(cat => {
     html += `<h4 style="margin:14px 0 6px;color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:.6px;">${cat}</h4>`;
-    html += `<table><thead><tr><th></th><th>Nombre</th><th>Precio</th><th>★</th><th></th></tr></thead><tbody>${porCategoria[cat].map(filaProducto).join('')}</tbody></table>`;
+    html += `<table><thead><tr><th></th><th>Nombre</th><th>Precio</th><th>Ôÿà</th><th></th></tr></thead><tbody>${porCategoria[cat].map(filaProducto).join('')}</tbody></table>`;
   });
 
   wrap.innerHTML = html;
-}
-
-// ---- Plato recomendado por categoría (para el menú en modo Listado) ----
-// Se guarda en contenido.categoria_principal = { "<categoria>": { producto_id, imagen_url } }
-function renderRecoCategorias() {
-  const wrap = document.getElementById('reco-cat-wrap');
-  if (!wrap) return;
-  const cfg = (NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.contenido && NEGOCIO_ACTUAL.contenido.categoria_principal) || {};
-  const porCat = {};
-  PRODUCTOS_CACHE.forEach(p => { (porCat[p.categoria] = porCat[p.categoria] || []).push(p); });
-  RECO_CATS = Object.keys(porCat).sort();
-  if (!RECO_CATS.length) {
-    wrap.innerHTML = '<p class="empty">Primero agrega productos; luego eliges el recomendado de cada categoría.</p>';
-    return;
-  }
-  wrap.innerHTML = RECO_CATS.map((cat, i) => {
-    const sel = cfg[cat] || {};
-    const opciones = ['<option value="">— Automático (destacado ★ o 1º con foto) —</option>']
-      .concat(porCat[cat].map(p => `<option value="${p.id}" ${String(sel.producto_id) === String(p.id) ? 'selected' : ''}>${p.nombre}</option>`))
-      .join('');
-    const img = sel.imagen_url || '';
-    const imgAttr = img.replace(/"/g, '&quot;');
-    return `<div class="seccion" style="padding:12px;margin-bottom:10px;">
-      <h4 style="margin:0 0 8px;">${cat}</h4>
-      <label>Producto recomendado</label>
-      <select id="reco-prod-${i}">${opciones}</select>
-      <div class="row" style="margin-top:8px;">
-        <div><label>URL de la imagen (o sube una abajo) — 16:9</label><input id="reco-img-${i}" value="${imgAttr}" placeholder="https://..."></div>
-        <div><label>Subir imagen (16:9)</label><input id="reco-file-${i}" type="file" accept="image/*"></div>
-      </div>
-      <img id="reco-prev-${i}" src="${imgAttr}" style="${img ? '' : 'display:none;'}max-height:70px;border-radius:8px;margin-top:8px;">
-    </div>`;
-  }).join('');
-}
-
-// Sube las imágenes elegidas (si hay) y arma el objeto categoria_principal.
-async function recolectarRecoCategorias() {
-  // Si la sección no está activa (negocio POS o sin productos), no reconstruimos
-  // nada: conservamos lo que ya estuviera guardado, para no pisarlo con {}.
-  if (!RECO_CATS.length) {
-    return (NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.contenido && NEGOCIO_ACTUAL.contenido.categoria_principal) || {};
-  }
-  const out = {};
-  for (let i = 0; i < RECO_CATS.length; i++) {
-    const cat = RECO_CATS[i];
-    const prodId = document.getElementById('reco-prod-' + i)?.value || '';
-    let img = (document.getElementById('reco-img-' + i)?.value || '').trim();
-    const file = document.getElementById('reco-file-' + i)?.files[0];
-    if (file) {
-      const fd = new FormData();
-      fd.append('file', file); fd.append('tenant_id', ACTIVO_ID); fd.append('carpeta', 'recomendados');
-      const ru = await fetch('/admin/api/upload', { method: 'POST', body: fd });
-      const du = await ru.json();
-      if (ru.ok) img = du.url;
-    }
-    if (prodId || img) out[cat] = { producto_id: prodId || null, imagen_url: img || null };
-  }
-  return out;
-}
-
-// ---- Íconos de categoría (home y "Ver menú") ----
-// Se guarda en contenido.categoria_iconos = { "<categoria>": "<iconId>" }
-function renderIconosCategorias() {
-  const wrap = document.getElementById('iconos-cat-wrap');
-  if (!wrap) return;
-  const iconos = window.ICONOS_MENU || {};
-  const cfg = (NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.contenido && NEGOCIO_ACTUAL.contenido.categoria_iconos) || {};
-  const set = [];
-  const add = c => { if (c && !set.includes(c)) set.push(c); };
-  ((NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.contenido && NEGOCIO_ACTUAL.contenido.categorias) || []).forEach(add);
-  PRODUCTOS_CACHE.forEach(p => add(p.categoria));
-  ICONOS_CATS = set;
-  if (!ICONOS_CATS.length) {
-    wrap.innerHTML = '<p class="empty">Agrega categorías (en Textos del Home) o productos, y aquí eliges el ícono de cada una.</p>';
-    return;
-  }
-  const opts = (sel) => ['<option value="">— Sin ícono —</option>']
-    .concat(Object.entries(iconos).map(([id, ic]) => `<option value="${id}" ${sel === id ? 'selected' : ''}>${ic.label}</option>`)).join('');
-  wrap.innerHTML = ICONOS_CATS.map((cat, i) => {
-    const cur = cfg[cat] || '';
-    const prev = window.iconoMenuSVG ? (cur ? window.iconoMenuSVG(cur) : '') : '';
-    return `<div class="row" style="align-items:center;gap:10px;margin-bottom:8px;">
-      <div style="flex:0 0 44px;height:44px;border-radius:10px;background:#0f1215;display:flex;align-items:center;justify-content:center;color:#d9c7a3;" id="icprev-${i}">${prev}</div>
-      <div style="flex:1;"><label>${cat}</label><select id="icat-${i}" onchange="_previewIcono(${i})">${opts(cur)}</select></div>
-    </div>`;
-  }).join('');
-}
-function _previewIcono(i) {
-  const sel = document.getElementById('icat-' + i);
-  const prev = document.getElementById('icprev-' + i);
-  if (sel && prev && window.iconoMenuSVG) prev.innerHTML = sel.value ? window.iconoMenuSVG(sel.value) : '';
-}
-function leerIconosCategorias() {
-  if (!ICONOS_CATS.length) return (NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.contenido && NEGOCIO_ACTUAL.contenido.categoria_iconos) || {};
-  const out = {};
-  for (let i = 0; i < ICONOS_CATS.length; i++) {
-    const sel = document.getElementById('icat-' + i);
-    if (sel && sel.value) out[ICONOS_CATS[i]] = sel.value;
-  }
-  return out;
 }
 
 function editarProducto(id) {
@@ -1458,7 +1296,7 @@ $('#p-cancelar-btn').addEventListener('click', cancelarEdicionProducto);
 // Fix: el precio ahora se escribe como texto y se formatea en vivo con
 // separador de miles (1.000 / 1.000.000...) para que se note de inmediato
 // si son miles o millones mientras se van agregando ceros. El valor real
-// (sin puntos) se guarda en data-raw y es lo que se envía al backend.
+// (sin puntos) se guarda en data-raw y es lo que se env├¡a al backend.
 function formatearPrecioInput(input) {
   const soloDigitos = input.value.replace(/\D/g, '');
   input.dataset.raw = soloDigitos;
@@ -1518,7 +1356,7 @@ $('#form-producto').addEventListener('submit', async (e) => {
 
   const data = await r.json();
   if (!r.ok) { msg.textContent = data.error || 'Error al guardar'; msg.className = 'msg err'; return; }
-  msg.textContent = editando ? 'Cambios guardados ✓' : 'Producto agregado ✓'; msg.className = 'msg ok';
+  msg.textContent = editando ? 'Cambios guardados Ô£ô' : 'Producto agregado Ô£ô'; msg.className = 'msg ok';
   cancelarEdicionProducto();
   cargarProductos(ACTIVO_ID);
   cargarTenants();
@@ -1526,7 +1364,7 @@ $('#form-producto').addEventListener('submit', async (e) => {
 });
 
 async function borrarProducto(id) {
-  if (!confirm('¿Eliminar este producto?')) return;
+  if (!confirm('┬┐Eliminar este producto?')) return;
   await fetch(`/admin/api/products/${id}`, { method: 'DELETE' });
   cargarProductos(ACTIVO_ID);
   cargarTenants();
@@ -1538,10 +1376,10 @@ const ESTADOS_PEDIDO = ['pendiente_pago', 'pagado', 'cancelado'];
 
 async function cargarPedidos(tenantId) {
   const wrap = $('#pedidos-wrap');
-  wrap.innerHTML = '<p class="empty">Cargando…</p>';
+  wrap.innerHTML = '<p class="empty">CargandoÔÇª</p>';
   const r = await fetch(`/admin/api/tenants/${encodeURIComponent(tenantId)}/pedidos`);
   const { pedidos } = await r.json();
-  if (!pedidos.length) { wrap.innerHTML = '<p class="empty">Este negocio todavía no tiene pedidos.</p>'; return; }
+  if (!pedidos.length) { wrap.innerHTML = '<p class="empty">Este negocio todav├¡a no tiene pedidos.</p>'; return; }
   wrap.innerHTML = `
     <table>
       <thead><tr><th>#</th><th>Items</th><th>Total</th><th>Nota</th><th>Fecha</th><th>Estado</th></tr></thead>
@@ -1549,9 +1387,9 @@ async function cargarPedidos(tenantId) {
         ${pedidos.map(p => `
           <tr>
             <td>${p.id}</td>
-            <td>${p.items.map(i => `${i.cantidad}× ${i.nombre}`).join('<br>')}</td>
+            <td>${p.items.map(i => `${i.cantidad}├ù ${i.nombre}`).join('<br>')}</td>
             <td>${Number(p.total).toFixed(2)}</td>
-            <td>${p.cliente_nota || '—'}</td>
+            <td>${p.cliente_nota || 'ÔÇö'}</td>
             <td>${p.creado_en}</td>
             <td>
               <select onchange="actualizarEstadoPedido(${p.id}, this.value)">
@@ -1573,11 +1411,11 @@ async function actualizarEstadoPedido(id, estado) {
 // ---------------- DEMOS ----------------
 async function cargarDemos() {
   const grid = $('#grid-demos');
-  grid.innerHTML = '<p class="empty">Cargando…</p>';
+  grid.innerHTML = '<p class="empty">CargandoÔÇª</p>';
   const r = await fetch('/admin/api/demos');
   const { demos } = await r.json();
   if (!demos.length) {
-    grid.innerHTML = '<p class="empty">Todavía no hay demos generadas — usa el botón de arriba.</p>';
+    grid.innerHTML = '<p class="empty">Todav├¡a no hay demos generadas ÔÇö usa el bot├│n de arriba.</p>';
     return;
   }
   grid.innerHTML = demos.map(d => `
@@ -1589,7 +1427,7 @@ async function cargarDemos() {
         </div>
       </div>
       <div class="metrics" style="margin-top:10px;flex-wrap:wrap;gap:8px;">
-        <a href="/${d.id}" target="_blank" style="color:var(--accent);text-decoration:none;">Abrir ↗</a>
+        <a href="/${d.id}" target="_blank" style="color:var(--accent);text-decoration:none;">Abrir Ôåù</a>
         <button class="secondary small" onclick="copiarLinkDemo('${d.id}')">Copiar link</button>
         <button class="secondary small" onclick="compartirDemoWhatsapp('${d.id}', '${d.nombre.replace(/'/g, "")}')">WhatsApp</button>
       </div>
@@ -1598,7 +1436,7 @@ async function cargarDemos() {
 
 $('#btnGenerarDemos').addEventListener('click', async () => {
   const msg = $('#demos-msg');
-  msg.textContent = 'Generando…'; msg.className = 'msg';
+  msg.textContent = 'GenerandoÔÇª'; msg.className = 'msg';
   const r = await fetch('/admin/api/demos/generar', { method: 'POST' });
   const data = await r.json();
   msg.textContent = data.creados.length ? `Creadas: ${data.creados.length}` : 'Ya estaban todas creadas';
@@ -1614,20 +1452,20 @@ function copiarLinkDemo(id) {
 
 function compartirDemoWhatsapp(id, nombre) {
   const link = `${location.origin}/${id}`;
-  const numero = prompt('¿A qué número de WhatsApp se lo envías? (con código de país, sin +)');
+  const numero = prompt('┬┐A qu├® n├║mero de WhatsApp se lo env├¡as? (con c├│digo de pa├¡s, sin +)');
   if (!numero) return;
-  const mensaje = encodeURIComponent(`Hola! Mira cómo se vería tu menú digital: ${link}`);
+  const mensaje = encodeURIComponent(`Hola! Mira c├│mo se ver├¡a tu men├║ digital: ${link}`);
   window.open(`https://wa.me/${numero}?text=${mensaje}`, '_blank');
 }
 
-// ---------------- MÉTRICAS ----------------
+// ---------------- M├ëTRICAS ----------------
 async function cargarMetricas() {
   const r = await fetch('/admin/api/metricas');
   const d = await r.json();
 
   const dias = $('#metricas-pedidos-dia');
   if (!d.pedidosPorDia.length) {
-    dias.innerHTML = '<p class="empty">Todavía no hay pedidos en los últimos 14 días.</p>';
+    dias.innerHTML = '<p class="empty">Todav├¡a no hay pedidos en los ├║ltimos 14 d├¡as.</p>';
   } else {
     const max = Math.max(...d.pedidosPorDia.map(x => x.total));
     dias.innerHTML = d.pedidosPorDia.map(x => `
@@ -1642,15 +1480,15 @@ async function cargarMetricas() {
 
   $('#metricas-top-negocios').innerHTML = d.topNegocios.length
     ? d.topNegocios.map(n => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line);"><span>${n.nombre}</span><b>${n.total_pedidos}</b></div>`).join('')
-    : '<p class="empty">Sin pedidos todavía.</p>';
+    : '<p class="empty">Sin pedidos todav├¡a.</p>';
 
   $('#metricas-top-productos').innerHTML = d.topProductos.length
     ? d.topProductos.map(p => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line);"><span>${p.nombre}</span><b>${p.cantidad}</b></div>`).join('')
-    : '<p class="empty">Sin pedidos todavía.</p>';
+    : '<p class="empty">Sin pedidos todav├¡a.</p>';
 
   $('#metricas-por-nicho').innerHTML = d.porNicho.length
     ? d.porNicho.map(n => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line);"><span>${n.nicho}</span><b>${n.total}</b></div>`).join('')
-    : '<p class="empty">Sin negocios todavía.</p>';
+    : '<p class="empty">Sin negocios todav├¡a.</p>';
 }
 
 // ---------------- COBRANZA ----------------
@@ -1665,18 +1503,18 @@ async function cargarCobranza() {
     <div class="stat-card"><div class="num">${vencidos}</div><div class="label">Vencidos</div></div>`;
 
   const wrap = $('#cobranza-wrap');
-  if (!d.negocios.length) { wrap.innerHTML = '<p class="empty">Ningún negocio tiene precio mensual configurado todavía.</p>'; return; }
+  if (!d.negocios.length) { wrap.innerHTML = '<p class="empty">Ning├║n negocio tiene precio mensual configurado todav├¡a.</p>'; return; }
   wrap.innerHTML = `
     <table>
-      <thead><tr><th>Negocio</th><th>Precio</th><th>Día de cobro</th><th>Último pago</th><th>Estado</th><th></th></tr></thead>
+      <thead><tr><th>Negocio</th><th>Precio</th><th>D├¡a de cobro</th><th>├Ültimo pago</th><th>Estado</th><th></th></tr></thead>
       <tbody>
         ${d.negocios.map(n => `
           <tr>
             <td>${n.nombre}</td>
             <td>${formatoMoneda(n.precio_mensual, n.moneda)}</td>
             <td>${n.dia_cobro}</td>
-            <td>${n.fecha_ultimo_pago || '—'}</td>
-            <td><span class="pill ${n.vencido ? 'off' : 'on'}">${n.vencido ? `Vencido (${n.dias_vencido}d)` : 'Al día'}</span></td>
+            <td>${n.fecha_ultimo_pago || 'ÔÇö'}</td>
+            <td><span class="pill ${n.vencido ? 'off' : 'on'}">${n.vencido ? `Vencido (${n.dias_vencido}d)` : 'Al d├¡a'}</span></td>
             <td><button class="secondary small" onclick="marcarPagado('${n.id}')">Marcar pagado</button></td>
           </tr>`).join('')}
       </tbody>
@@ -1714,7 +1552,7 @@ $('#form-config').addEventListener('submit', async (e) => {
     })
   });
   if (!r.ok) { msg.textContent = 'Error al guardar'; msg.className = 'msg err'; return; }
-  msg.textContent = 'Guardado ✓'; msg.className = 'msg ok';
+  msg.textContent = 'Guardado Ô£ô'; msg.className = 'msg ok';
 });
 
 // ---------------- INIT ----------------

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Menú completo</title>
 <script src="/carrito.js"></script>
+<script src="/iconos.js"></script>
 <style>
   :root{
     --bg:#faf3e8; --card:#fffdf9; --text:#33261c; --muted:#9a8471;
@@ -40,6 +41,7 @@
   .cat.on span{color:var(--accent);}
   /* Ícono neutro cuando el producto/categoría no tiene foto (mejor que una letra) */
   .ph{color:var(--muted);opacity:.55;}
+  .bubble svg{width:28px;height:28px;}
   .bubble .ph{width:26px;height:26px;}
   .foto .ph{width:44px;height:44px;}
   .ini .ph{width:22px;height:22px;}
@@ -167,6 +169,7 @@
     // Configuración de "recomendado por categoría" elegida en el admin:
     // { "<categoria>": { producto_id, imagen_url } }
     let RECO_CFG = {};
+    let ICONOS_CFG = {}, ICON_COLOR = '', ICON_BG = '';
     // El "recomendado" de una categoría: 1º el elegido en el admin; si no,
     // 1º destacado con foto, luego destacado, luego cualquiera con foto, luego el primero.
     function recoDe(cat, items){
@@ -225,11 +228,19 @@
     function pintarChips(){
       const wrap = document.getElementById('catChips');
       wrap.innerHTML = CATS.map(c => {
-        const img = imgCategoria(c.nombre, c.items);
-        const bubble = img ? `style="background-image:url('${img}')"` : '';
-        const cont = img ? '' : ICON_PH;
+        // Prioridad: ícono elegido para la categoría > foto de la categoría > ícono genérico.
+        const iconId = ICONOS_CFG[c.nombre];
+        let inner, style;
+        if (iconId && window.iconoMenuSVG) {
+          inner = window.iconoMenuSVG(iconId);
+          style = `style="background:${ICON_BG || 'var(--accent-soft)'};color:${ICON_COLOR || 'var(--accent)'}"`;
+        } else {
+          const img = imgCategoria(c.nombre, c.items);
+          if (img) { inner = ''; style = `style="background-image:url('${img}')"`; }
+          else { inner = ICON_PH; style = ICON_BG ? `style="background:${ICON_BG}"` : ''; }
+        }
         return `<button class="cat ${c.nombre===CAT_ACTIVA?'on':''}" data-cat="${encodeURIComponent(c.nombre)}">
-          <span class="bubble" ${bubble}>${cont}</span><span>${c.nombre}</span></button>`;
+          <span class="bubble" ${style}>${inner}</span><span>${c.nombre}</span></button>`;
       }).join('');
       wrap.querySelectorAll('.cat').forEach(b => b.addEventListener('click', () => {
         CAT_ACTIVA = decodeURIComponent(b.dataset.cat); pintarChips(); pintarCatalogo();
@@ -303,6 +314,9 @@
       aplicarTema(data.tema || {});
       MODO = (data.contenido && data.contenido.menu_estilo) || 'cuadricula';
       RECO_CFG = (data.contenido && data.contenido.categoria_principal) || {};
+      ICONOS_CFG = (data.contenido && data.contenido.categoria_iconos) || {};
+      ICON_COLOR = (data.contenido && data.contenido.icono_color) || '';
+      ICON_BG = (data.contenido && data.contenido.icono_circulo_color) || '';
       // Frase del encabezado editable desde el admin (contenido.menu_titulo).
       const _mt = data.contenido && data.contenido.menu_titulo;
       if (_mt) { const _el = document.getElementById('menuTitulo'); if (_el) _el.textContent = _mt; }

@@ -308,6 +308,7 @@
   .cat-ic{
     width:38px; height:38px;
     border-radius:50%;
+    background:var(--cat-ic-bg, transparent);
     border:1.5px solid currentColor;
     display:flex; align-items:center; justify-content:center;
     flex-shrink:0;
@@ -757,6 +758,7 @@
   body.sin-neon .add-btn:active{ background:rgba(120,120,130,.15) !important; }
 </style>
 <script src="/carrito.js"></script>
+<script src="/iconos.js"></script>
 </head>
 <body>
 
@@ -1250,6 +1252,9 @@
       // Un SOLO color de acento legible para los íconos de categorías y beneficios
       // (antes alternaban cyan/pink y en temas claros unos quedaban lavados).
       root.setProperty('--icono-color', acentoLegibleSobreFondo(data.tema.acento1 || data.tema.acento2 || '#e2521c', data.tema.fondo));
+      // El negocio puede forzar el color del ícono y el color del círculo (para contrastar con su fondo).
+      if (data.contenido.icono_color) root.setProperty('--icono-color', data.contenido.icono_color);
+      root.setProperty('--cat-ic-bg', data.contenido.icono_circulo_color || 'transparent');
 
       // ===================================================
       // TEXTOS EDITABLES DEL HOME (bloque nuevo)
@@ -1378,10 +1383,10 @@
       const categoriasWrap = document.getElementById('menu');
       const categorias = data.contenido.categorias || [];
       const categoriasDesc = data.contenido.categorias_desc || [];
-      const iconosCat = [
-        '<path d="M12 2v20M4.9 4.9l14.2 14.2M19.1 4.9 4.9 19.1M2 12h20M7 7l10 10M17 7 7 17"/>',
-        '<path d="M5 3h14l-2 9a5 5 0 0 1-10 0L5 3Z"/><path d="M9 21h6"/><path d="M12 15v6"/>'
-      ];
+      const iconosCfg = data.contenido.categoria_iconos || {};
+      const svgIcono = (nombre) => (window.iconoMenuSVG
+        ? window.iconoMenuSVG(iconosCfg[nombre])
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v6a2 2 0 0 0 2 2M6 3v18M10 3v6a2 2 0 0 1-2 2"/><path d="M17 3c-1.66 0-3 1.79-3 4s1.34 4 3 4v9"/></svg>');
       if (categoriasWrap) {
         // Fix: ahora SIEMPRE van todas en una sola fila, con el número
         // exacto de columnas = número de categorías reales (nunca queda
@@ -1391,7 +1396,7 @@
         categoriasWrap.classList.toggle('cat-super-compacto', categorias.length >= 5);
         categoriasWrap.innerHTML = categorias.map((nombre, i) => `
           <div class="cat ${i % 2 === 0 ? 'cyan' : 'pink'}">
-            <div class="cat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconosCat[i % iconosCat.length]}</svg></div>
+            <div class="cat-ic">${svgIcono(nombre)}</div>
             <div class="cat-text">
               <strong ${data.contenido.categorias_color ? `style="color:${data.contenido.categorias_color}"` : ''}>${nombre.toUpperCase()}</strong>
               ${categoriasDesc[i] ? `<span>${categoriasDesc[i]}</span>` : ''}
