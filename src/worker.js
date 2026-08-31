@@ -241,10 +241,11 @@ async function updateTenant(id, request, env) {
   const contenido = body.contenido ? JSON.stringify(body.contenido) : row.contenido;
   const modo_pos = (body.modo_pos != null) ? (body.modo_pos ? 1 : 0) : row.modo_pos;
   const pos_api_key = (body.pos_api_key !== undefined) ? (body.pos_api_key || null) : row.pos_api_key;
+  const pos_autopedido = (body.pos_autopedido != null) ? (body.pos_autopedido ? 1 : 0) : (row.pos_autopedido == null ? 1 : row.pos_autopedido);
 
   await env.DB.prepare(
-    `UPDATE tenants SET nombre=?, whatsapp=?, logo_url=?, tema=?, contenido=?, activo=?, pago_url=?, moneda=?, precio_mensual=?, dia_cobro=?, modo_pos=?, pos_api_key=? WHERE id=?`
-  ).bind(nombre, whatsapp, logo_url, tema, contenido, activo, pago_url, moneda, precio_mensual, dia_cobro, modo_pos, pos_api_key, id).run();
+    `UPDATE tenants SET nombre=?, whatsapp=?, logo_url=?, tema=?, contenido=?, activo=?, pago_url=?, moneda=?, precio_mensual=?, dia_cobro=?, modo_pos=?, pos_api_key=?, pos_autopedido=? WHERE id=?`
+  ).bind(nombre, whatsapp, logo_url, tema, contenido, activo, pago_url, moneda, precio_mensual, dia_cobro, modo_pos, pos_api_key, pos_autopedido, id).run();
 
   return json({ ok: true });
 }
@@ -434,8 +435,14 @@ async function deleteProduct(id, env) {
 // BLINDADO: el servidor recalcula precios y total desde la base. NO confía en el
 // precio ni el total que manda el navegador (evita "pedido por $0").
 async function crearPedido(slug, request, env) {
-  const tenant = await env.DB.prepare("SELECT id, modo_pos, pos_api_key FROM tenants WHERE id = ? AND activo = 1").bind(slug).first();
+  const tenant = await env.DB.prepare("SELECT id, modo_pos, pos_api_key, pos_autopedido FROM tenants WHERE id = ? AND activo = 1").bind(slug).first();
   if (!tenant) return json({ error: "Negocio no encontrado" }, 404);
+
+  // ── Negocio POS SIN autopedido: el cliente solo ve la carta y llama al mesero.
+  //    No se aceptan pedidos desde el celular (blindaje aunque el botón no exista). ──
+  if (tenant.modo_pos && (tenant.pos_autopedido === 0)) {
+    return json({ error: "autopedido_desactivado" }, 403);
+  }
 
   let body;
   try { body = await request.json(); } catch { return json({ error: "JSON inválido" }, 400); }
@@ -558,14 +565,16 @@ async function llamarMesero(slug, request, env) {
 
 async function getMenuPublico(slug, env) {
   const row = await env.DB.prepare(
-    "SELECT nombre, nicho, whatsapp, logo_url, tema, contenido, pago_url, moneda, modo_pos, pos_api_key FROM tenants WHERE id = ? AND activo = 1"
+    "SELECT nombre, nicho, whatsapp, logo_url, tema, contenido, pago_url, moneda, modo_pos, pos_api_key, pos_autopedido FROM tenants WHERE id = ? AND activo = 1"
   ).bind(slug).first();
   if (!row) return json({ error: "Negocio no encontrado" }, 404);
 
   const base = {
     nombre: row.nombre, nicho: row.nicho, whatsapp: row.whatsapp, logo_url: row.logo_url,
     tema: JSON.parse(row.tema), contenido: JSON.parse(row.contenido),
-    pago_url: row.pago_url, moneda: row.moneda || "COP"
+    pago_url: row.pago_url, moneda: row.moneda || "COP",
+    // 1 = el cliente puede pedir desde la mesa (autopedido) · 0 = solo ver carta + llamar al mesero
+    pos_autopedido: (row.pos_autopedido == null ? 1 : (row.pos_autopedido ? 1 : 0))
   };
 
   // ── Modo POS: la carta viene del POS (el diseño/tema sigue siendo del menú) ──
