@@ -300,8 +300,17 @@
 
     function iniciar(data){
       TENANT_DATA = data;
-      // POS sin autopedido: solo se ve la carta, no se puede pedir desde el celular.
-      try{ document.body.classList.toggle('pos-sin-autopedido', data.modo==='pos' && (data.pos_autopedido===0 || data.pos_autopedido==='0')); }catch(e){}
+      // ¿Puede pedir? En la mesa depende de autopedido; sin mesa (online) depende de recoger/domicilio.
+      try{
+        if(window.Carrito && Carrito.captarMesa) Carrito.captarMesa(SLUG);
+        const hayMesa = !!(window.Carrito && Carrito.getMesa && Carrito.getMesa(SLUG));
+        const esPos = data.modo==='pos';
+        const autoped = (data.pos_autopedido===1 || data.pos_autopedido==='1');
+        const onlineOn = esPos && (data.pos_online_recoger || data.pos_online_domicilio);
+        const puedePedir = esPos ? (hayMesa ? autoped : !!onlineOn) : true;
+        document.body.classList.toggle('pos-sin-autopedido', esPos && !puedePedir);
+        window._modoOnline = !!(esPos && !hayMesa && onlineOn);
+      }catch(e){}
       document.title = `Menú — ${data.nombre}`;
       // En "Ver menú" no mostramos el logo (se veía diminuto y perdido). El
       // logo del negocio sigue intacto en el home (negocio.html).

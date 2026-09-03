@@ -242,10 +242,12 @@ async function updateTenant(id, request, env) {
   const modo_pos = (body.modo_pos != null) ? (body.modo_pos ? 1 : 0) : row.modo_pos;
   const pos_api_key = (body.pos_api_key !== undefined) ? (body.pos_api_key || null) : row.pos_api_key;
   const pos_autopedido = (body.pos_autopedido != null) ? (body.pos_autopedido ? 1 : 0) : (row.pos_autopedido == null ? 1 : row.pos_autopedido);
+  const pos_online_recoger = (body.pos_online_recoger != null) ? (body.pos_online_recoger ? 1 : 0) : (row.pos_online_recoger ? 1 : 0);
+  const pos_online_domicilio = (body.pos_online_domicilio != null) ? (body.pos_online_domicilio ? 1 : 0) : (row.pos_online_domicilio ? 1 : 0);
 
   await env.DB.prepare(
-    `UPDATE tenants SET nombre=?, whatsapp=?, logo_url=?, tema=?, contenido=?, activo=?, pago_url=?, moneda=?, precio_mensual=?, dia_cobro=?, modo_pos=?, pos_api_key=?, pos_autopedido=? WHERE id=?`
-  ).bind(nombre, whatsapp, logo_url, tema, contenido, activo, pago_url, moneda, precio_mensual, dia_cobro, modo_pos, pos_api_key, pos_autopedido, id).run();
+    `UPDATE tenants SET nombre=?, whatsapp=?, logo_url=?, tema=?, contenido=?, activo=?, pago_url=?, moneda=?, precio_mensual=?, dia_cobro=?, modo_pos=?, pos_api_key=?, pos_autopedido=?, pos_online_recoger=?, pos_online_domicilio=? WHERE id=?`
+  ).bind(nombre, whatsapp, logo_url, tema, contenido, activo, pago_url, moneda, precio_mensual, dia_cobro, modo_pos, pos_api_key, pos_autopedido, pos_online_recoger, pos_online_domicilio, id).run();
 
   return json({ ok: true });
 }
@@ -435,14 +437,8 @@ async function deleteProduct(id, env) {
 // BLINDADO: el servidor recalcula precios y total desde la base. NO confía en el
 // precio ni el total que manda el navegador (evita "pedido por $0").
 async function crearPedido(slug, request, env) {
-  const tenant = await env.DB.prepare("SELECT id, modo_pos, pos_api_key, pos_autopedido FROM tenants WHERE id = ? AND activo = 1").bind(slug).first();
+  const tenant = await env.DB.prepare("SELECT id, modo_pos, pos_api_key, pos_autopedido, pos_online_recoger, pos_online_domicilio FROM tenants WHERE id = ? AND activo = 1").bind(slug).first();
   if (!tenant) return json({ error: "Negocio no encontrado" }, 404);
-
-  // ── Negocio POS SIN autopedido: el cliente solo ve la carta y llama al mesero.
-  //    No se aceptan pedidos desde el celular (blindaje aunque el botón no exista). ──
-  if (tenant.modo_pos && (tenant.pos_autopedido === 0)) {
-    return json({ error: "autopedido_desactivado" }, 403);
-  }
 
   let body;
   try { body = await request.json(); } catch { return json({ error: "JSON inválido" }, 400); }
@@ -450,17 +446,39 @@ async function crearPedido(slug, request, env) {
   if (!Array.isArray(items) || items.length === 0) return json({ error: "Pedido vacío" }, 400);
   if (items.length > MAX_ITEMS) return json({ error: "Demasiados productos en el pedido" }, 400);
 
-  // ── Modo POS: el pedido entra como COMANDA en la mesa del POS ──
+  // ── Modo POS: dos caminos según cómo entró el cliente ──
   if (tenant.modo_pos && tenant.pos_api_key) {
     const mesa = (body.mesa != null ? String(body.mesa) : "").trim();
-    if (!mesa) return json({ error: "mesa_requerida" }, 400);
     const itemsPos = items.map(it => ({ producto_id: it.producto_id, cantidad: parseInt(it.cantidad, 10) || 0 }));
+
+    if (mesa) {
+      // (A) EN LA MESA (?mesa=) → comanda de esa mesa. Requiere autopedido en mesa activado.
+      if (tenant.pos_autopedido === 0) return json({ error: "autopedido_desactivado" }, 403);
+      try {
+        const r = await posRpc(env, "menu_crear_comanda", {
+          p_api_key: tenant.pos_api_key, p_mesa: mesa, p_items: itemsPos,
+          p_nota: (typeof body.cliente_nota === "string" ? body.cliente_nota.slice(0, MAX_NOTA) : null)
+        });
+        return json({ id: r.comanda_id, total: r.total, modo: "pos", tipo: "mesa" }, 201);
+      } catch (e) {
+        return json({ error: "pos_error", detalle: String(e.message || e) }, 502);
+      }
+    }
+
+    // (B) SIN MESA → pedido ONLINE (recoger / domicilio) → cae en "Fuera" del POS.
+    const tipo = (body.tipo === "domicilio") ? "domicilio" : "recoger";
+    if (tipo === "recoger" && !tenant.pos_online_recoger) return json({ error: "online_recoger_off" }, 403);
+    if (tipo === "domicilio" && !tenant.pos_online_domicilio) return json({ error: "online_domicilio_off" }, 403);
+    if (tipo === "domicilio" && !(body.direccion && String(body.direccion).trim())) return json({ error: "direccion_requerida" }, 400);
     try {
-      const r = await posRpc(env, "menu_crear_comanda", {
-        p_api_key: tenant.pos_api_key, p_mesa: mesa, p_items: itemsPos,
+      const r = await posRpc(env, "menu_crear_pedido_online", {
+        p_api_key: tenant.pos_api_key, p_tipo: tipo, p_items: itemsPos,
+        p_cliente: (typeof body.cliente === "string" ? body.cliente.slice(0, 80) : null),
+        p_telefono: (typeof body.telefono === "string" ? body.telefono.slice(0, 30) : null),
+        p_direccion: (typeof body.direccion === "string" ? body.direccion.slice(0, 200) : null),
         p_nota: (typeof body.cliente_nota === "string" ? body.cliente_nota.slice(0, MAX_NOTA) : null)
       });
-      return json({ id: r.comanda_id, total: r.total, modo: "pos" }, 201);
+      return json({ id: r.pedido_id, numero: r.numero, total: r.total, modo: "pos", tipo }, 201);
     } catch (e) {
       return json({ error: "pos_error", detalle: String(e.message || e) }, 502);
     }
@@ -565,7 +583,7 @@ async function llamarMesero(slug, request, env) {
 
 async function getMenuPublico(slug, env) {
   const row = await env.DB.prepare(
-    "SELECT nombre, nicho, whatsapp, logo_url, tema, contenido, pago_url, moneda, modo_pos, pos_api_key, pos_autopedido FROM tenants WHERE id = ? AND activo = 1"
+    "SELECT nombre, nicho, whatsapp, logo_url, tema, contenido, pago_url, moneda, modo_pos, pos_api_key, pos_autopedido, pos_online_recoger, pos_online_domicilio FROM tenants WHERE id = ? AND activo = 1"
   ).bind(slug).first();
   if (!row) return json({ error: "Negocio no encontrado" }, 404);
 
@@ -574,7 +592,10 @@ async function getMenuPublico(slug, env) {
     tema: JSON.parse(row.tema), contenido: JSON.parse(row.contenido),
     pago_url: row.pago_url, moneda: row.moneda || "COP",
     // 1 = el cliente puede pedir desde la mesa (autopedido) · 0 = solo ver carta + llamar al mesero
-    pos_autopedido: (row.pos_autopedido == null ? 1 : (row.pos_autopedido ? 1 : 0))
+    pos_autopedido: (row.pos_autopedido == null ? 1 : (row.pos_autopedido ? 1 : 0)),
+    // Pedidos online (sin mesa): recoger / domicilio, activables por separado.
+    pos_online_recoger: (row.pos_online_recoger ? 1 : 0),
+    pos_online_domicilio: (row.pos_online_domicilio ? 1 : 0)
   };
 
   // ── Modo POS: la carta viene del POS (el diseño/tema sigue siendo del menú) ──

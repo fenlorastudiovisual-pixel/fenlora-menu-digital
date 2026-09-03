@@ -1099,26 +1099,41 @@
 
     let TENANT_DATA = null;
 
-    // Modo POS → sin hamburguesa, con botón de mesero real.
-    // Modo autónomo → con hamburguesa, sin botón de mesero.
-    // autopedido: 1 = el cliente pide desde la mesa · 0 = solo ver carta + llamar al mesero.
-    function _aplicarModo(esPos, autopedido){
+    // UNA sola señal (¿POS?) + el contexto de entrada (¿hay mesa?) deciden todo:
+    //  • En la mesa (POS + ?mesa=)  → sin hamburguesa, con "Llamar al mesero";
+    //      pedir depende de autopedido en mesa.
+    //  • Online (POS + SIN mesa)    → con hamburguesa, sin mesero; pedir depende de
+    //      que el negocio tenga recoger/domicilio activado. Es "modo online".
+    //  • Autónomo (no POS)          → con hamburguesa, sin mesero, siempre puede pedir.
+    function _aplicarModo(esPos, data){
+      try{ if(window.Carrito && Carrito.captarMesa) Carrito.captarMesa(getTenantSlug()); }catch(e){}
+      const hayMesa = !!(window.Carrito && Carrito.getMesa && Carrito.getMesa(getTenantSlug()));
+      const autoped = data && (data.pos_autopedido === 1 || data.pos_autopedido === '1');
+      const onlineOn = !!(esPos && data && (data.pos_online_recoger || data.pos_online_domicilio));
+      const enMesa = esPos && hayMesa;
+      window._modoOnline = !!(esPos && !hayMesa && onlineOn);   // lo lee el checkout
+
       const hb=document.getElementById('hamburgerBtn');
       const wc=document.getElementById('navCenterWrap');
-      if(esPos){ if(hb)hb.style.display='none'; if(wc)wc.style.display=''; }
-      else{ if(hb)hb.style.display=''; if(wc)wc.style.display='none'; }
-      // POS SIN autopedido: solo "Llamar al mesero". Se quita Inicio, Pedidos y los botones "+".
-      const sinAuto = esPos && (autopedido === 0 || autopedido === '0');
-      document.body.classList.toggle('pos-sin-autopedido', sinAuto);
+      // Hamburguesa: se oculta SOLO en la mesa. Mesero: SOLO en la mesa.
+      if(hb) hb.style.display = enMesa ? 'none' : '';
+      if(wc) wc.style.display = enMesa ? '' : 'none';
+
+      // ¿Puede pedir (carrito, "+", Inicio, Pedidos)?
+      let puedePedir;
+      if(esPos){ puedePedir = hayMesa ? autoped : onlineOn; }
+      else { puedePedir = true; }
+      const bloquear = esPos && !puedePedir;   // POS que en este contexto no permite pedir
+      document.body.classList.toggle('pos-sin-autopedido', bloquear);
       const inicioBtn = document.getElementById('navInicioBtn');
       const pedidosBtn = document.getElementById('navPedidosBtn');
-      if(inicioBtn) inicioBtn.style.display = sinAuto ? 'none' : '';
-      if(pedidosBtn) pedidosBtn.style.display = sinAuto ? 'none' : '';
+      if(inicioBtn) inicioBtn.style.display = bloquear ? 'none' : '';
+      if(pedidosBtn) pedidosBtn.style.display = bloquear ? 'none' : '';
     }
 
     function aplicarTenant(data) {
       TENANT_DATA = data;
-      try{ _aplicarModo(data.modo==='pos', data.pos_autopedido); }catch(e){}
+      try{ _aplicarModo(data.modo==='pos', data); }catch(e){}
       document.title = `${data.nombre} — ${data.contenido.tagline || ''}`;
       document.querySelectorAll('.tenant-logo').forEach(img => {
         if (data.logo_url) { img.src = data.logo_url; img.style.display = ''; }

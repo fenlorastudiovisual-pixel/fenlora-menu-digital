@@ -255,6 +255,16 @@
                     <p class="hint" style="margin-top:6px">"Sin autopedido": el celular del cliente muestra la carta y el botón de <strong>Llamar al mesero</strong>, nada más. No puede enviar pedidos desde la mesa.</p>
                   </div>
                 </div>
+                <div class="row" id="d-online-row">
+                  <div>
+                    <label>Pedidos online (cuando abren el menú SIN mesa) <span style="color:#8a8a95;font-weight:400">(solo si es "Con POS")</span></label>
+                    <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">
+                      <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:600"><input type="checkbox" id="d-online-recoger"> 🌐 Para recoger — el cliente pide y pasa por el local</label>
+                      <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:600"><input type="checkbox" id="d-online-domicilio"> 🛵 A domicilio — pide dirección y teléfono</label>
+                    </div>
+                    <p class="hint" style="margin-top:6px">Si el cliente abre tu enlace <strong>sin</strong> escanear una mesa (desde Instagram, WhatsApp…), verá estas opciones. Los pedidos caen solos en el POS, en <strong>Fuera → Online / Delivery</strong>. La mesa sigue independiente. Si dejas ambos apagados, sin mesa solo se ve la carta.</p>
+                  </div>
+                </div>
                 <p class="hint">Cambia qué se muestra en el home y de dónde salen los productos. "Autónomo · Ambos" es el valor de siempre — no cambia nada si no lo tocas. "Con POS" oculta la hamburguesa, resalta "Llamar al mesero" y bloquea la edición manual de productos (vienen del POS por API).</p>
                 <div class="row">
                   <div>
@@ -940,6 +950,8 @@ function _syncAutopedidoRow(){
   var esPos = ($('#d-modo-negocio') && $('#d-modo-negocio').value === 'pos');
   var row = document.getElementById('d-autopedido-row');
   if (row) row.style.display = esPos ? '' : 'none';
+  var orow = document.getElementById('d-online-row');
+  if (orow) orow.style.display = esPos ? '' : 'none';
 }
 if ($('#d-modo-negocio')) $('#d-modo-negocio').addEventListener('change', _syncAutopedidoRow);
 
@@ -963,6 +975,8 @@ async function seleccionarNegocio(id) {
   $('#d-modo-negocio').value = (t.contenido && t.contenido.modo_negocio) || 'ambos';
   if ($('#d-pos-api-key')) $('#d-pos-api-key').value = t.pos_api_key || '';
   if ($('#d-pos-autopedido')) $('#d-pos-autopedido').value = (t.pos_autopedido === 0 || t.pos_autopedido === '0') ? '0' : '1';
+  if ($('#d-online-recoger')) $('#d-online-recoger').checked = !!(t.pos_online_recoger);
+  if ($('#d-online-domicilio')) $('#d-online-domicilio').checked = !!(t.pos_online_domicilio);
   if (typeof _syncAutopedidoRow === 'function') _syncAutopedidoRow();
   $('#d-menu-estilo').value = (t.contenido && t.contenido.menu_estilo) || 'cuadricula';
 
@@ -1232,6 +1246,8 @@ $('#form-datos').addEventListener('submit', async (e) => {
       modo_pos: ($('#d-modo-negocio') && $('#d-modo-negocio').value === 'pos') ? 1 : 0,
       pos_api_key: ($('#d-pos-api-key') ? $('#d-pos-api-key').value.trim() : '') || null,
       pos_autopedido: ($('#d-pos-autopedido') && $('#d-pos-autopedido').value === '0') ? 0 : 1,
+      pos_online_recoger: ($('#d-online-recoger') && $('#d-online-recoger').checked) ? 1 : 0,
+      pos_online_domicilio: ($('#d-online-domicilio') && $('#d-online-domicilio').checked) ? 1 : 0,
       tema: {
         ...(NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.tema),
         fondo: $('#d-color-fondo').value,

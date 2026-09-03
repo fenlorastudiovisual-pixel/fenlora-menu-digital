@@ -77,6 +77,18 @@
   }
 
   @media (min-width:640px){ body{ max-width:820px; } .resumen{ max-width:820px; } }
+
+  /* Formulario de pedido ONLINE (recoger / domicilio) */
+  .online-form{ padding:6px 16px 14px; display:flex; flex-direction:column; gap:10px; }
+  .of-title{ font-size:13px; font-weight:800; margin-top:4px; }
+  .tipo-row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .tipo-op{ flex:1 1 46%; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px; border-radius:12px;
+    border:1.5px solid rgba(255,255,255,.15); background:rgba(255,255,255,.04); font-size:13px; font-weight:700; cursor:pointer; }
+  .tipo-op input{ accent-color:var(--cyan); }
+  .tipo-op:has(input:checked){ border-color:var(--cyan); background:rgba(34,211,245,.12); }
+  .online-form input[type=text], .online-form input[type=tel]{
+    width:100%; padding:11px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.15);
+    background:rgba(255,255,255,.04); color:var(--white); font-size:13px; }
 </style>
 </head>
 <body>
@@ -106,6 +118,36 @@
 
     let TENANT = null;
 
+    // ¿Es un pedido ONLINE? = negocio POS, SIN mesa, con recoger o domicilio activado.
+    function _esOnline(){
+      return TENANT && TENANT.modo === 'pos' && !Carrito.getMesa(SLUG) &&
+        (TENANT.pos_online_recoger || TENANT.pos_online_domicilio);
+    }
+    function _formOnlineHTML(){
+      const rec = !!TENANT.pos_online_recoger, dom = !!TENANT.pos_online_domicilio;
+      const ops = [];
+      if(rec) ops.push(`<label class="tipo-op"><input type="radio" name="tipoPedido" value="recoger" ${!dom?'checked':''}> 🌐 Para recoger</label>`);
+      if(dom) ops.push(`<label class="tipo-op"><input type="radio" name="tipoPedido" value="domicilio" ${!rec?'checked':''}> 🛵 A domicilio</label>`);
+      // dirección visible si arranca en domicilio (solo domicilio, o ninguno preseleccionado a recoger)
+      const dirVisible = dom && !rec;
+      return `<div class="online-form">
+        <div class="of-title">¿Cómo quieres tu pedido?</div>
+        <div class="tipo-row">${ops.join('')}</div>
+        <input id="ofNombre" type="text" placeholder="Tu nombre *">
+        <input id="ofTel" type="tel" placeholder="Tu teléfono / WhatsApp *">
+        <input id="ofDir" type="text" placeholder="Dirección de entrega *" style="display:${dirVisible?'block':'none'}">
+        <input id="notaInput" type="text" placeholder="Nota (opcional)">
+      </div>`;
+    }
+    function _wireOnlineForm(){
+      document.querySelectorAll('input[name=tipoPedido]').forEach(r=>{
+        r.addEventListener('change', ()=>{
+          const dir=document.getElementById('ofDir');
+          if(dir) dir.style.display = (r.value==='domicilio' && r.checked) ? 'block' : (document.querySelector('input[name=tipoPedido]:checked')?.value==='domicilio'?'block':'none');
+        });
+      });
+    }
+
     function pintarCarrito() {
       const items = Carrito.obtener(SLUG);
       const contenido = document.getElementById('contenido');
@@ -133,12 +175,13 @@
           </div>`;
       });
       html += '</div>';
-      html += `
+      html += _esOnline() ? _formOnlineHTML() : `
         <div class="nota">
-          <label for="notaInput">Nota para tu pedido (ej: número de mesa)</label>
-          <input id="notaInput" type="text" placeholder="Ej: Mesa 4">
+          <label for="notaInput">Nota para tu pedido</label>
+          <input id="notaInput" type="text" placeholder="Ej: sin azúcar, poco hielo…">
         </div>`;
       contenido.innerHTML = html;
+      if(_esOnline()) _wireOnlineForm();
 
       contenido.querySelectorAll('[data-accion]').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -163,9 +206,10 @@
         bar.id = 'resumenBar';
         document.body.appendChild(bar);
       }
+      const labelBtn = (TENANT?.modo === 'pos') ? 'CONFIRMAR PEDIDO' : (TENANT?.whatsapp ? 'ENVIAR PEDIDO POR WHATSAPP' : 'CONFIRMAR PEDIDO');
       bar.innerHTML = `
         <div class="resumen-total"><span>Total (${n})</span><span>${formatearPrecio(total, moneda)}</span></div>
-        <button class="btn-confirmar" id="btnConfirmar">${TENANT?.whatsapp ? 'ENVIAR PEDIDO POR WHATSAPP' : 'CONFIRMAR PEDIDO'}</button>`;
+        <button class="btn-confirmar" id="btnConfirmar">${labelBtn}</button>`;
       document.getElementById('btnConfirmar').addEventListener('click', confirmarPedido);
     }
 
@@ -189,40 +233,75 @@
       const nota = document.getElementById('notaInput')?.value || '';
       const total = Carrito.totalPrecio(SLUG);
       const moneda = TENANT?.moneda || 'COP';
+      const _reset = ()=>{ btn.disabled=false; btn.textContent = (_esOnline()? 'CONFIRMAR PEDIDO' : (TENANT?.whatsapp && TENANT?.modo!=='pos' ? 'ENVIAR PEDIDO POR WHATSAPP' : 'CONFIRMAR PEDIDO')); };
+
+      // Arma el cuerpo según el contexto: online (recoger/domicilio), mesa, o autónomo.
+      let body, tipoOnline=null;
+      if (_esOnline()) {
+        tipoOnline = (document.querySelector('input[name=tipoPedido]:checked')||{}).value
+                     || (TENANT.pos_online_recoger ? 'recoger' : 'domicilio');
+        const cliente = (document.getElementById('ofNombre')?.value || '').trim();
+        const telefono = (document.getElementById('ofTel')?.value || '').trim();
+        const direccion = (document.getElementById('ofDir')?.value || '').trim();
+        if (!cliente || !telefono) { alert('Escribe tu nombre y tu teléfono.'); _reset(); return; }
+        if (tipoOnline === 'domicilio' && !direccion) { alert('Escribe la dirección de entrega.'); _reset(); return; }
+        body = { items, total, tipo: tipoOnline, cliente, telefono, direccion, cliente_nota: nota };
+      } else {
+        body = { items, total, cliente_nota: nota, mesa: Carrito.getMesa(SLUG) };
+      }
 
       try {
         const esPos = TENANT?.modo === 'pos';
         const r = await fetch(`/menu/${SLUG}/pedido`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items, total, cliente_nota: nota, mesa: Carrito.getMesa(SLUG) })
+          body: JSON.stringify(body)
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error || 'No se pudo registrar el pedido');
 
-        // En modo POS el pedido ya entró como comanda a la cocina; no abrimos WhatsApp.
-        // En modo autónomo, si hay WhatsApp, abrimos el chat con el detalle ya escrito.
+        // POS (mesa u online): ya entró a la cocina, no abrimos WhatsApp.
+        // Autónomo con WhatsApp: abrimos el chat con el detalle.
         if (TENANT.whatsapp && !esPos) {
           const mensaje = construirMensajeWhatsapp(items, total, nota, data.id, moneda);
           window.open(`https://wa.me/${TENANT.whatsapp}?text=${mensaje}`, '_blank');
         }
 
         Carrito.vaciar(SLUG);
-        mostrarConfirmacion(data.id, total);
+        mostrarConfirmacion(data.id, total, { online: !!tipoOnline, tipo: tipoOnline, numero: data.numero });
       } catch (err) {
-        btn.disabled = false;
-        btn.textContent = TENANT?.whatsapp && TENANT?.modo !== 'pos' ? 'ENVIAR PEDIDO POR WHATSAPP' : 'CONFIRMAR PEDIDO';
-        if (String(err.message).includes('mesa')) alert('Escanea el código QR de tu mesa para hacer el pedido.');
+        _reset();
+        const m = String(err.message||'');
+        if (m.includes('mesa')) alert('Escanea el código QR de tu mesa para hacer el pedido.');
+        else if (m.includes('online_') ) alert('Este negocio no tiene ese tipo de pedido online activado.');
+        else if (m.includes('direccion')) alert('Escribe la dirección de entrega.');
         else alert('No se pudo enviar el pedido. Intenta de nuevo.');
         console.warn(err);
       }
     }
 
-    function mostrarConfirmacion(pedidoId, total) {
+    function mostrarConfirmacion(pedidoId, total, extra) {
       document.getElementById('resumenBar')?.remove();
       const moneda = TENANT?.moneda || 'COP';
 
-      // Modo POS: el pedido ya está en la cocina, en la mesa del cliente.
+      // Pedido ONLINE (recoger / domicilio): ya entró al POS en "Fuera".
+      if (extra && extra.online) {
+        const esDom = extra.tipo === 'domicilio';
+        document.getElementById('contenido').innerHTML = `
+          <div class="confirmacion">
+            <h2>¡Pedido recibido! ${esDom ? '🛵' : '🌐'}</h2>
+            <p>
+              N.º de pedido <strong>#${extra.numero || pedidoId}</strong> · Total: <strong>${formatearPrecio(total, moneda)}</strong><br><br>
+              ${esDom
+                ? 'Estamos preparando tu pedido y te lo llevamos a tu dirección. Te contactamos por teléfono para confirmar.'
+                : 'Estamos preparando tu pedido. Pasa a recogerlo en el local; te avisamos cuando esté listo.'}
+            </p>
+            <a class="cta" href="/${SLUG}">VOLVER AL MENÚ</a>
+          </div>`;
+        return;
+      }
+
+      // Modo POS en la mesa: el pedido ya está en la cocina, en la mesa del cliente.
       if (TENANT?.modo === 'pos') {
         const mesa = Carrito.getMesa(SLUG);
         document.getElementById('contenido').innerHTML = `
