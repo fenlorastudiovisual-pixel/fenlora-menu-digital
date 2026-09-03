@@ -1508,39 +1508,16 @@
       if (typeof actualizarIconoMesero === 'function') actualizarIconoMesero();
 
       // ===================================================
-      // MODO DEL NEGOCIO — local / domicilio / ambos
+      // VISIBILIDAD: hamburguesa / mesero / Inicio / Pedidos
       // ===================================================
-      // Por defecto ("ambos" o sin valor guardado) NO cambia nada — así
-      // ningún negocio ya creado se ve afectado. Solo si el negocio elige
-      // explícitamente "local" o "domicilio" se ocultan estas dos piezas
-      // concretas (nada más se toca).
-      // IMPORTANTE: si el negocio está en modo POS, la visibilidad de la
-      // hamburguesa y del botón de mesero ya la decide _aplicarModo() (bloque
-      // del enlace POS, más arriba). NO la tocamos aquí — si no, volvíamos a
-      // mostrar la hamburguesa que el POS acababa de ocultar.
-      const esPos = data.modo === 'pos';
-      const modoNegocio = data.contenido.modo_negocio || 'ambos';
-      const hamburgerBtnEl = document.getElementById('hamburgerBtn');
-      const headerSpacerEl = document.querySelector('.header-spacer');
-      const navCenterWrapEl = document.getElementById('navCenterWrap');
-      if (!esPos && modoNegocio === 'local') {
-        // Solo en el local: no hace falta el menú hamburguesa (ubicación,
-        // pago a domicilio, etc. no aplican) — el mesero es lo protagonista.
-        if (hamburgerBtnEl) hamburgerBtnEl.style.display = 'none';
-        if (headerSpacerEl) headerSpacerEl.style.display = 'none';
-        if (navCenterWrapEl) navCenterWrapEl.style.display = '';
-      } else if (!esPos && modoNegocio === 'domicilio') {
-        // Solo domicilio: no hay mesero físico al que llamar.
-        if (hamburgerBtnEl) hamburgerBtnEl.style.display = '';
-        if (headerSpacerEl) headerSpacerEl.style.display = '';
-        if (navCenterWrapEl) navCenterWrapEl.style.display = 'none';
-      } else if (!esPos) {
-        // "ambos" (o sin definir) y NO POS: comportamiento de siempre.
-        if (hamburgerBtnEl) hamburgerBtnEl.style.display = '';
-        if (headerSpacerEl) headerSpacerEl.style.display = '';
-        if (navCenterWrapEl) navCenterWrapEl.style.display = '';
-      }
-      // esPos === true → no tocamos nada: lo dejó listo _aplicarModo().
+      // REGLA ÚNICA — la decide _aplicarModo(esPos, autopedido) llamado arriba,
+      // según UNA sola señal: ¿el negocio está conectado al POS? (data.modo==='pos').
+      //   • Conectado al POS  → SIN hamburguesa, CON "Llamar al mesero".
+      //       - sin autopedido → solo el mesero (sin Inicio/Pedidos/carrito).
+      //       - con autopedido → mesero + Inicio + Pedidos + carrito.
+      //   • Autónomo (NO POS) → CON hamburguesa, SIN mesero (el mesero es solo del POS),
+      //       con Inicio + Pedidos + carrito (su forma normal de pedir).
+      // No tocamos nada de eso aquí para no pelear con esa decisión.
     }
 
     try{ Carrito.captarMesa(getTenantSlug()); }catch(e){}   // guarda la mesa si vino del QR (?mesa=)
