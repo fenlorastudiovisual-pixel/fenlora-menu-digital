@@ -546,6 +546,7 @@
       </p>
       <button class="secondary" id="btnGenerarDemos">Generar demos que falten</button>
       <div class="msg" id="demos-msg"></div>
+      <div id="demo-picker"></div>
     </div>
     <div id="grid-demos" class="grid-negocios"><p class="empty">Cargando…</p></div>
   </section>
@@ -1485,35 +1486,98 @@ async function actualizarEstadoPedido(id, estado) {
 async function cargarDemos() {
   const grid = $('#grid-demos');
   grid.innerHTML = '<p class="empty">Cargando…</p>';
-  const r = await fetch('/admin/api/demos');
-  const { demos } = await r.json();
-  if (!demos.length) {
-    grid.innerHTML = '<p class="empty">Todavía no hay demos generadas — usa el botón de arriba.</p>';
+  let demos = [];
+  try {
+    const r = await fetch('/admin/api/demos');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    demos = data.demos || [];
+  } catch (e) {
+    grid.innerHTML = '<p class="empty">No se pudieron cargar los demos (' + (e.message || e) + '). Revisa que corriste el SQL y que el Worker está desplegado.</p>';
     return;
   }
-  grid.innerHTML = demos.map(d => `
+  // Selector para marcar CUALQUIER menú real como demo (ej: tu cafetería con fotos)
+  await pintarPickerDemo(demos);
+
+  if (!demos.length) {
+    grid.innerHTML = '<p class="empty">Todavía no hay demos. Usa "Generar demos que falten" para crear uno por nicho, o marca un menú tuyo como demo arriba.</p>';
+    return;
+  }
+  grid.innerHTML = demos.map(d => {
+    const vacio = (d.total_productos || 0) === 0;
+    const esReal = !String(d.id).startsWith('demo-'); // menú real marcado como demo
+    return `
     <div class="neg-card" style="cursor:default;">
       <div class="top">
         <div>
-          <div class="nombre">${d.nombre}</div>
-          <div class="nicho">${d.nicho}</div>
+          <div class="nombre">${d.nombre} ${esReal ? '<span class="pill on" style="font-size:10px;">tu menú</span>' : ''}</div>
+          <div class="nicho">${d.nicho} · <b>${d.total_productos || 0}</b> productos ${vacio ? '· <span style="color:#e0a33c;">sin productos aún</span>' : ''}</div>
         </div>
       </div>
       <div class="metrics" style="margin-top:10px;flex-wrap:wrap;gap:8px;">
         <a href="/${d.id}" target="_blank" style="color:var(--accent);text-decoration:none;">Abrir ↗</a>
+        <button class="secondary small" onclick="seleccionarNegocio('${d.id}')">Editar</button>
         <button class="secondary small" onclick="copiarLinkDemo('${d.id}')">Copiar link</button>
         <button class="secondary small" onclick="compartirDemoWhatsapp('${d.id}', '${d.nombre.replace(/'/g, "")}')">WhatsApp</button>
+        <button class="secondary small" onclick="quitarDeDemos('${d.id}')">Quitar de demos</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+
+// Dibuja el selector "marca un menú tuyo como demo" con los negocios que aún no son demo.
+async function pintarPickerDemo(demos) {
+  const cont = $('#demo-picker');
+  if (!cont) return;
+  let tenants = TENANTS;
+  if (!tenants || !tenants.length) {
+    try { const r = await fetch('/admin/api/tenants'); const d = await r.json(); tenants = d.tenants || []; TENANTS = tenants; } catch (_) { tenants = []; }
+  }
+  const yaDemo = new Set(demos.map(d => d.id));
+  const disponibles = (tenants || []).filter(t => !yaDemo.has(t.id) && !t.es_demo);
+  if (!disponibles.length) { cont.innerHTML = ''; return; }
+  cont.innerHTML = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0 14px;">
+      <span style="color:var(--muted);font-size:13px;">Mostrar un menú tuyo como demo:</span>
+      <select id="demo-sel" style="min-width:220px;">${disponibles.map(t => `<option value="${t.id}">${t.nombre} (${t.nicho})</option>`).join('')}</select>
+      <button class="secondary small" onclick="marcarComoDemo()">⭐ Agregar a demos</button>
+    </div>`;
+}
+
+async function marcarComoDemo() {
+  const sel = $('#demo-sel'); if (!sel || !sel.value) return;
+  await fetch(`/admin/api/tenants/${sel.value}/demo`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ es_demo: 1 })
+  });
+  await cargarTenants();
+  cargarDemos();
+}
+
+async function quitarDeDemos(id) {
+  if (String(id).startsWith('demo-')) {
+    if (!confirm('Este es un demo generado por nicho. ¿Seguro que lo quitas de la lista? (seguirá existiendo como negocio)')) return;
+  }
+  await fetch(`/admin/api/tenants/${id}/demo`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ es_demo: 0 })
+  });
+  await cargarTenants();
+  cargarDemos();
 }
 
 $('#btnGenerarDemos').addEventListener('click', async () => {
   const msg = $('#demos-msg');
   msg.textContent = 'Generando…'; msg.className = 'msg';
-  const r = await fetch('/admin/api/demos/generar', { method: 'POST' });
-  const data = await r.json();
-  msg.textContent = data.creados.length ? `Creadas: ${data.creados.length}` : 'Ya estaban todas creadas';
-  msg.className = 'msg ok';
+  try {
+    const r = await fetch('/admin/api/demos/generar', { method: 'POST' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    const n = (data.creados || []).length;
+    msg.textContent = n ? `Creados: ${n} demo(s)` : 'Ya estaban todos creados';
+    msg.className = 'msg ok';
+  } catch (e) {
+    msg.textContent = 'No se pudo generar (' + (e.message || e) + '). ¿Corriste el SQL de es_demo y desplegaste el Worker?';
+    msg.className = 'msg';
+  }
   cargarDemos();
 });
 

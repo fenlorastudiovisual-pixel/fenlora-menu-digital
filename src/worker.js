@@ -228,7 +228,7 @@ function getNichos() {
 async function listTenants(env) {
   const { results } = await env.DB.prepare(`
     SELECT
-      t.id, t.nombre, t.nicho, t.whatsapp, t.logo_url, t.activo, t.creado_en,
+      t.id, t.nombre, t.nicho, t.whatsapp, t.logo_url, t.activo, t.creado_en, t.es_demo,
       (SELECT COUNT(*) FROM productos p WHERE p.tenant_id = t.id) AS total_productos,
       (SELECT COUNT(*) FROM pedidos pe WHERE pe.tenant_id = t.id) AS total_pedidos,
       (SELECT COUNT(*) FROM pedidos pe WHERE pe.tenant_id = t.id AND pe.estado = 'pendiente_pago') AS pedidos_pendientes
@@ -342,11 +342,50 @@ async function deleteTenant(id, env) {
 }
 
 // ---------- /admin/api/demos ----------
+// Un "demo" es: un negocio con id demo-*  O  cualquier menú marcado con es_demo=1
+// (así puedes mostrar como demo tus menús reales con fotos, ej: cero-absoluto).
 async function listDemos(env) {
   const { results } = await env.DB.prepare(
-    "SELECT id, nombre, nicho, activo FROM tenants WHERE id LIKE 'demo-%' ORDER BY nicho"
+    `SELECT t.id, t.nombre, t.nicho, t.activo, t.es_demo,
+            (SELECT COUNT(*) FROM productos p WHERE p.tenant_id = t.id) AS total_productos
+       FROM tenants t
+      WHERE t.id LIKE 'demo-%' OR t.es_demo = 1
+      ORDER BY t.nicho`
   ).all();
   return json({ demos: results });
+}
+
+// Marca / desmarca cualquier menú como demo (para mostrarlo en la sección Demos).
+async function toggleDemo(id, request, env) {
+  const row = await env.DB.prepare("SELECT id FROM tenants WHERE id = ?").bind(id).first();
+  if (!row) return json({ error: "No encontrado" }, 404);
+  let body = {}; try { body = await request.json(); } catch (_) {}
+  const val = body.es_demo ? 1 : 0;
+  await env.DB.prepare("UPDATE tenants SET es_demo = ? WHERE id = ?").bind(val, id).run();
+  return json({ ok: true, es_demo: val });
+}
+
+// Productos de muestra para que cada demo generado NO salga vacío (editables luego).
+function demoSampleProducts(preset) {
+  const cats = (preset.contenido_ejemplo && preset.contenido_ejemplo.categorias) || ["Menú"];
+  const plantillas = [
+    { suf: "de la casa", desc: "El favorito de la casa, listo para antojarte.", precio: 12000, dest: 1 },
+    { suf: "especial",   desc: "Nuestra versión especial, con el toque de la casa.", precio: 16000, dest: 0 }
+  ];
+  const items = [];
+  cats.slice(0, 3).forEach((cat, ci) => {
+    plantillas.forEach((p, pi) => {
+      items.push({
+        categoria: cat,
+        nombre: `${cat} ${p.suf}`,
+        descripcion: p.desc,
+        precio: p.precio + ci * 2000 + pi * 1000,
+        destacado: (ci === 0 && pi === 0) ? 1 : 0,
+        orden: ci * 10 + pi
+      });
+    });
+  });
+  return items;
 }
 
 async function generarDemos(env) {
@@ -358,12 +397,23 @@ async function generarDemos(env) {
 
     const contenido = { ...preset.contenido_ejemplo, nombre_negocio: `Demo — ${preset.label}` };
     await env.DB.prepare(
-      `INSERT INTO tenants (id, nombre, nicho, whatsapp, logo_url, tema, contenido, moneda)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO tenants (id, nombre, nicho, whatsapp, logo_url, tema, contenido, moneda, es_demo)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`
     ).bind(
       id, `Demo — ${preset.label}`, nichoId, null, null,
       JSON.stringify(preset.tema), JSON.stringify(contenido), "COP"
     ).run();
+
+    // Sembramos productos de muestra para que el demo se vea completo
+    const prods = demoSampleProducts(preset);
+    if (prods.length) {
+      await env.DB.batch(prods.map(pr =>
+        env.DB.prepare(
+          `INSERT INTO productos (tenant_id, categoria, nombre, descripcion, precio, destacado, orden)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        ).bind(id, pr.categoria, pr.nombre, pr.descripcion, pr.precio, pr.destacado, pr.orden)
+      ));
+    }
     creados.push(id);
   }
   return json({ creados });
@@ -1040,6 +1090,9 @@ async function route(request, env) {
 
   const pagoMatch = path.match(/^\/admin\/api\/tenants\/([^/]+)\/pago$/);
   if (pagoMatch && method === "POST") return await marcarPago(decodeURIComponent(pagoMatch[1]), env);
+
+  const demoMatch = path.match(/^\/admin\/api\/tenants\/([^/]+)\/demo$/);
+  if (demoMatch && method === "POST") return await toggleDemo(decodeURIComponent(demoMatch[1]), request, env);
 
   if (path === "/admin/api/config" && method === "GET") return await getConfig(env);
   if (path === "/admin/api/config" && method === "PUT") return await updateConfig(request, env);
