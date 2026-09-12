@@ -4,7 +4,7 @@ import { NICHOS, listaNichos } from "./niches.js";
 const PUBLIC_R2_URL = "https://pub-6509f754158640c68cc33a2321f3387e.r2.dev";
 
 // Rutas reservadas: ningún negocio puede usar estos slugs.
-const RESERVADOS = new Set(["admin", "menu", "assets", "carrito.js", "logo.png", "favicon.ico", "negocio.html", "menu.html", "checkout.html"]);
+const RESERVADOS = new Set(["admin", "menu", "assets", "carrito.js", "logo.png", "favicon.ico", "negocio.html", "menu.html", "checkout.html", "chat.html", "chat"]);
 
 // Límites anti-abuso del pedido público
 const MAX_ITEMS = 60;        // renglones distintos por pedido
@@ -70,6 +70,73 @@ function b64urlToBytes(s) {
   return out;
 }
 function b64urlToString(s) { return new TextDecoder().decode(b64urlToBytes(s)); }
+function bytesToB64url(bytes) {
+  let bin = "";
+  const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  for (let i = 0; i < b.length; i++) bin += String.fromCharCode(b[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+// ────────────────────────────────────────────────────────────────────
+// AVISOS PUSH · el Worker "toca el timbre" del celular del superadmin
+// (Web Push sin payload: no requiere cifrado. Solo firma VAPID ES256.)
+// Secrets necesarios en el Worker:
+//   VAPID_PUBLIC       (clave pública, base64url del punto sin comprimir)
+//   VAPID_PRIVATE_JWK  (clave privada como JSON JWK)
+// El detalle del aviso lo pide el Service Worker a GET /avisos/pendientes.
+// ────────────────────────────────────────────────────────────────────
+const CORS_AVISOS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type"
+};
+function jsonCors(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status, headers: { "Content-Type": "application/json", ...CORS_AVISOS }
+  });
+}
+async function vapidJwt(endpoint, env) {
+  const aud = new URL(endpoint).origin;
+  const now = Math.floor(Date.now() / 1000);
+  const enc = (o) => bytesToB64url(new TextEncoder().encode(JSON.stringify(o)));
+  const unsigned = enc({ typ: "JWT", alg: "ES256" }) + "." +
+                   enc({ aud, exp: now + 12 * 3600, sub: "mailto:fenlorastudiovisual@gmail.com" });
+  const key = await crypto.subtle.importKey(
+    "jwk", JSON.parse(env.VAPID_PRIVATE_JWK),
+    { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign(
+    { name: "ECDSA", hash: "SHA-256" }, key, new TextEncoder().encode(unsigned));
+  return unsigned + "." + bytesToB64url(new Uint8Array(sig));
+}
+async function enviarPush(endpoint, env) {
+  const jwt = await vapidJwt(endpoint, env);
+  const r = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Authorization": "vapid t=" + jwt + ", k=" + env.VAPID_PUBLIC,
+      "TTL": "86400",
+      "Urgency": "normal",
+      "Content-Length": "0"
+    }
+  });
+  return r.status;
+}
+// Envía el "timbre" a TODOS los celulares suscritos. Limpia los que ya no existen.
+async function dispararAvisos(env) {
+  if (!env.VAPID_PRIVATE_JWK || !env.VAPID_PUBLIC) return { ok: false, motivo: "SIN_VAPID" };
+  let subs = [];
+  try { subs = await posRpc(env, "avisos_listar_subs", {}); } catch (e) { return { ok: false, motivo: String(e) }; }
+  if (!Array.isArray(subs) || !subs.length) return { ok: true, enviados: 0, motivo: "SIN_SUSCRIPTORES" };
+  let enviados = 0, borrados = 0;
+  for (const endpoint of subs) {
+    try {
+      const st = await enviarPush(endpoint, env);
+      if (st === 404 || st === 410) { await posRpc(env, "avisos_borrar_sub", { p_endpoint: endpoint }).catch(() => {}); borrados++; }
+      else if (st >= 200 && st < 300) enviados++;
+    } catch (_) {}
+  }
+  return { ok: true, enviados, borrados, total: subs.length };
+}
 
 async function getJwks(teamDomain) {
   const now = Date.now();
@@ -244,10 +311,14 @@ async function updateTenant(id, request, env) {
   const pos_autopedido = (body.pos_autopedido != null) ? (body.pos_autopedido ? 1 : 0) : (row.pos_autopedido == null ? 1 : row.pos_autopedido);
   const pos_online_recoger = (body.pos_online_recoger != null) ? (body.pos_online_recoger ? 1 : 0) : (row.pos_online_recoger ? 1 : 0);
   const pos_online_domicilio = (body.pos_online_domicilio != null) ? (body.pos_online_domicilio ? 1 : 0) : (row.pos_online_domicilio ? 1 : 0);
+  // Límite de pedidos del bot por mes ("" o null = sin límite / ilimitado)
+  const bot_limite_pedidos = (body.bot_limite_pedidos !== undefined)
+    ? ((body.bot_limite_pedidos === null || body.bot_limite_pedidos === "" || Number(body.bot_limite_pedidos) <= 0) ? null : parseInt(body.bot_limite_pedidos, 10))
+    : (row.bot_limite_pedidos == null ? null : row.bot_limite_pedidos);
 
   await env.DB.prepare(
-    `UPDATE tenants SET nombre=?, whatsapp=?, logo_url=?, tema=?, contenido=?, activo=?, pago_url=?, moneda=?, precio_mensual=?, dia_cobro=?, modo_pos=?, pos_api_key=?, pos_autopedido=?, pos_online_recoger=?, pos_online_domicilio=? WHERE id=?`
-  ).bind(nombre, whatsapp, logo_url, tema, contenido, activo, pago_url, moneda, precio_mensual, dia_cobro, modo_pos, pos_api_key, pos_autopedido, pos_online_recoger, pos_online_domicilio, id).run();
+    `UPDATE tenants SET nombre=?, whatsapp=?, logo_url=?, tema=?, contenido=?, activo=?, pago_url=?, moneda=?, precio_mensual=?, dia_cobro=?, modo_pos=?, pos_api_key=?, pos_autopedido=?, pos_online_recoger=?, pos_online_domicilio=?, bot_limite_pedidos=? WHERE id=?`
+  ).bind(nombre, whatsapp, logo_url, tema, contenido, activo, pago_url, moneda, precio_mensual, dia_cobro, modo_pos, pos_api_key, pos_autopedido, pos_online_recoger, pos_online_domicilio, bot_limite_pedidos, id).run();
 
   return json({ ok: true });
 }
@@ -581,6 +652,275 @@ async function llamarMesero(slug, request, env) {
   }
 }
 
+// ────────────────────────────────────────────────────────────────────
+// CEREBRO DEL BOT (IA) · POST /menu/:slug/bot
+// El cliente escribe libre; una IA (Cloudflare Workers AI) entiende el
+// mensaje LEYENDO el catálogo REAL del negocio y arma el pedido.
+// REGLA DE ORO: la IA NO decide precios ni total. El servidor los recalcula
+// desde el catálogo. La IA solo escoge productos (por id) y cantidades.
+// ────────────────────────────────────────────────────────────────────
+const BOT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const BOT_MAX_TURNS = 24;   // tope de mensajes de historial que aceptamos
+
+function botMoneda(n) { return "$" + Number(n || 0).toLocaleString("es-CO"); }
+
+// Algunos modelos (la IA gratis) dejan las tildes como código literal "í".
+// Esto las convierte de vuelta a la letra real (í, ñ, ¿, etc.).
+function decodeEscapes(s) {
+  if (typeof s !== "string") return s;
+  return s.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+}
+
+// Extrae el primer objeto JSON {...} de un texto (por si el modelo mete prosa).
+function extraerJSON(txt) {
+  if (!txt) return null;
+  txt = String(txt).replace(/```json/gi, "").replace(/```/g, "").trim();
+  try { return JSON.parse(txt); } catch {}
+  const i = txt.indexOf("{"); const j = txt.lastIndexOf("}");
+  if (i >= 0 && j > i) { try { return JSON.parse(txt.slice(i, j + 1)); } catch {} }
+  return null;
+}
+
+// Esquema JSON que ambas IAs deben devolver.
+const BOT_SCHEMA = {
+  type: "object",
+  properties: {
+    respuesta: { type: "string" },
+    items: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { n: { type: "integer" }, cantidad: { type: "integer" }, nota: { type: "string" } },
+        required: ["n", "cantidad"]
+      }
+    },
+    entrega: { type: ["string", "null"] },
+    direccion: { type: ["string", "null"] },
+    cliente: { type: ["string", "null"] },
+    telefono: { type: ["string", "null"] },
+    confirmar: { type: "boolean" }
+  },
+  required: ["respuesta", "items", "confirmar"]
+};
+
+// Claude (Anthropic Messages API). El mejor "mesero". Devuelve el objeto parseado o null.
+async function botClaude(env, system, chatMessages) {
+  const model = env.BOT_CLAUDE_MODEL || "claude-3-5-haiku-latest";
+  try {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01"
+      },
+      body: JSON.stringify({
+        model, max_tokens: 900, temperature: 0.3,
+        system: system + "\n\nResponde ÚNICAMENTE con el objeto JSON pedido, sin texto adicional ni comillas triples.",
+        // Prefill con "{" para forzar que la salida sea JSON desde el primer carácter.
+        messages: [...chatMessages, { role: "assistant", content: "{" }]
+      })
+    });
+    const data = await r.json();
+    if (!r.ok) { console.warn("Claude HTTP", r.status, JSON.stringify(data).slice(0, 300)); return null; }
+    const cont = (data.content && data.content[0] && data.content[0].text) || "";
+    return extraerJSON("{" + cont);
+  } catch (e) { console.warn("Claude fetch fail:", String(e)); return null; }
+}
+
+// Workers AI (incluida en Cloudflare). Respaldo gratis. Devuelve el objeto parseado o null.
+async function botWorkersAI(env, system, chatMessages) {
+  try {
+    const ia = await env.AI.run(BOT_MODEL, {
+      messages: [{ role: "system", content: system }, ...chatMessages],
+      temperature: 0.2, max_tokens: 800,
+      response_format: { type: "json_schema", json_schema: BOT_SCHEMA }
+    });
+    let parsed = ia && ia.response;
+    if (typeof parsed === "string") parsed = extraerJSON(parsed);
+    if (!parsed || typeof parsed !== "object") parsed = extraerJSON(ia && (ia.result || "")) || null;
+    return parsed;
+  } catch (e) { console.warn("WorkersAI fail:", String(e)); return null; }
+}
+
+async function botChat(slug, request, env) {
+  // 1) Negocio + que sea modo POS con key
+  const t = await env.DB.prepare(
+    "SELECT id, nombre, modo_pos, pos_api_key, pos_online_recoger, pos_online_domicilio, moneda, bot_limite_pedidos, bot_pedidos_mes, bot_mes FROM tenants WHERE id = ? AND activo = 1"
+  ).bind(slug).first();
+  if (!t) return json({ error: "Negocio no encontrado" }, 404);
+  if (!t.modo_pos || !t.pos_api_key) return json({ error: "no_pos" }, 400);
+  if (!env.AI && !env.ANTHROPIC_API_KEY) return json({ error: "ia_sin_config", detalle: "Falta la IA: ni [ai] ni ANTHROPIC_API_KEY están configurados." }, 503);
+
+  // 2) Cuerpo del request
+  let body; try { body = await request.json(); } catch { return json({ error: "JSON inválido" }, 400); }
+  const mensaje = (typeof body.mensaje === "string" ? body.mensaje : "").slice(0, 500).trim();
+  if (!mensaje) return json({ error: "mensaje_vacio" }, 400);
+  let historial = Array.isArray(body.historial) ? body.historial.slice(-BOT_MAX_TURNS) : [];
+
+  // 3) Catálogo REAL desde el POS
+  let productos = [];
+  try {
+    const cat = await posRpc(env, "menu_catalogo", { p_api_key: t.pos_api_key });
+    productos = (cat && Array.isArray(cat.productos)) ? cat.productos : [];
+  } catch (e) {
+    return json({ error: "pos_error", detalle: String(e.message || e) }, 502);
+  }
+  const disponibles = productos.filter(p => p && p.disponible !== false && p.id != null);
+  if (!disponibles.length) return json({ error: "sin_catalogo" }, 409);
+
+  // 4) Menú compacto con índices CORTOS. Un número (1,2,3…) es muchísimo más
+  //    fácil de copiar sin error para la IA que un UUID largo. Mapeamos de vuelta.
+  const menuTxt = disponibles.map((p, i) =>
+    `${i + 1}. ${p.nombre} — ${botMoneda(p.precio)} (${p.categoria || "General"})`
+  ).join("\n");
+
+  const recoger = t.pos_online_recoger ? "sí" : "no";
+  const domicilio = t.pos_online_domicilio ? "sí" : "no";
+
+  // Info del negocio que el bot DEBE saber para responder dudas normales de un pedido.
+  // (Por ahora valores por defecto sensatos para Colombia; luego se vuelven configurables por negocio.)
+  const modosEntrega = [recoger === "sí" ? "recoger en el local" : null, domicilio === "sí" ? "domicilio" : null].filter(Boolean).join(" y ") || "recoger en el local";
+  const formasPago = "efectivo y transferencia (Nequi, Daviplata o Bancolombia). El pago se coordina al recoger el pedido o al recibir el domicilio.";
+
+  // 5) Instrucciones (system) — personalidad de mesero colombiano cálido y buen vendedor
+  const sys =
+`Eres el mesero virtual de "${t.nombre}", un negocio de café/comida en Colombia. Hablas como un colombiano cálido, amable y con chispa: cercano, buena energía y BREVE. Usa como máximo 1 emoji de vez en cuando (no en cada frase). Tu meta: que el cliente se sienta bien atendido, tomar bien el pedido y, con gracia, vender un poquito más.
+
+TONO Y PERSONALIDAD:
+- Saluda natural y cálido. Si el cliente solo da las gracias, respóndele con cariño (algo como "¡Con muchísimo gusto! Para nosotros en ${t.nombre} es un placer atenderte 🙌") y NO repitas el pedido.
+- Si el cliente bromea o escribe "jajaja", suéltale una frase corta y divertida pero con sentido, sin exagerar.
+- Si pregunta algo casual (el clima, cómo va el día), contéstale con buena onda y, si cabe, conéctalo suave con un producto ("Por acá está calientico, perfecto para refrescarse con un frappe 😎"). No inventes datos exactos que no sepas (como la temperatura precisa); habla en general.
+- Si el cliente es grosero o está de mal genio, NO te lo tomes personal ni contestes feo: baja la tensión con amabilidad y ofrécele algo rico ("Tranquilo, aquí estoy para ayudarte 🙏 ¿Qué tal un té aromático para relajar el día?").
+
+CÓMO TOMAR EL PEDIDO:
+- SOLO ofreces y agregas productos del CATÁLOGO de abajo. Nunca inventes productos ni precios.
+- El catálogo trae un número interno al inicio de cada línea. Ese número es SECRETO: úsalo solo en "items" (campo "n"). JAMÁS lo menciones al cliente; el cliente solo ve NOMBRES.
+- Si el cliente pide algo con una preferencia ("poco dulce", "sin azúcar", "bien caliente", "sin cebolla"), guárdala TAL CUAL en el campo "nota" de ese item, para que la cocina la vea.
+- NUNCA escribas precios ni el total en tu texto; el recuadro del pedido ya se los muestra. Solo di un precio si el cliente lo pregunta directamente.
+- NO repitas el resumen del pedido en cada mensaje. En los pasos intermedios sé breve ("¡Listo! ¿Algo más?"). El resumen completo va UNA sola vez, al final.
+
+VENDER UN POQUITO MÁS (sin ser intenso):
+- Cuando el cliente agregue algo, UNA sola vez sugiere con gracia un acompañante del catálogo que combine ("¿Te provoca una empanadita para acompañar ese frappe? 😋"). Si dice que no, no insistas.
+- Antes de cerrar, pregunta una vez "¿Se te ofrece algo más?". Si dice que no, avanza a cerrar.
+
+PARA CERRAR:
+- Necesitas: al menos 1 producto, si es para recoger o domicilio, y si es domicilio la dirección. Pregunta SOLO lo que falte, una cosa a la vez, sin repetir lo que ya tienes.
+- Cuando tengas todo, haz UN resumen corto (productos + entrega) y pregunta si confirma. "confirmar" pasa a true solo cuando el cliente diga que sí a ese resumen.
+
+REGLAS DE SALIDA:
+- "items" es SIEMPRE el pedido COMPLETO acumulado (no solo lo nuevo). Si aún no pide nada, [].
+- SIEMPRE llena "respuesta" con algo para el cliente; nunca vacío.
+- Escribe en español natural con tildes normales (á, é, í, ó, ú, ñ). NUNCA uses códigos tipo \\u00ed.
+
+INFO DEL NEGOCIO (úsala para responder dudas; no inventes lo que no esté):
+- Formas de pago: ${formasPago}
+- Entrega disponible: ${modosEntrega}.
+- Datos que no tengas (horario exacto, dirección del local): dilo con amabilidad y ofrece confirmarlo.
+
+CATÁLOGO (uso interno "n". nombre — precio (categoría) — NO revelar n):
+${menuTxt}`;
+
+  // 6) Mensajes del chat (sin system; el system va aparte)
+  const chatMessages = [];
+  for (const h of historial) {
+    const rol = (h && h.rol === "bot") ? "assistant" : "user";
+    const c = (h && typeof h.texto === "string") ? h.texto.slice(0, 800) : "";
+    if (c) chatMessages.push({ role: rol, content: c });
+  }
+  chatMessages.push({ role: "user", content: mensaje });
+
+  // 7) Llamar a la IA. Preferimos Claude (mejor mesero); si no hay key, usamos la IA
+  //    incluida en Cloudflare (Workers AI) como respaldo. Ambas devuelven el mismo JSON.
+  let parsed = null;
+  if (env.ANTHROPIC_API_KEY) parsed = await botClaude(env, sys, chatMessages);
+  if (!parsed && env.AI) parsed = await botWorkersAI(env, sys, chatMessages);
+  if (!parsed) parsed = {};
+
+  // 8) Validar items contra el catálogo REAL (por número) y recalcular total (regla de oro)
+  const itemsIA = Array.isArray(parsed.items) ? parsed.items : [];
+  const carrito = [];
+  let total = 0;
+  for (const it of itemsIA) {
+    const n = parseInt(it && it.n, 10);
+    if (!(n >= 1 && n <= disponibles.length)) continue;   // número fuera de rango → se ignora
+    const p = disponibles[n - 1];
+    let qty = parseInt(it.cantidad, 10); if (!(qty > 0)) qty = 1; if (qty > MAX_QTY) qty = MAX_QTY;
+    const nota = (typeof it.nota === "string") ? it.nota.slice(0, MAX_ITEM_NOTA) : "";
+    const sub = Number(p.precio) * qty;
+    total += sub;
+    carrito.push({ producto_id: p.id, nombre: p.nombre, precio: Number(p.precio), cantidad: qty, nota, subtotal: sub });
+    if (carrito.length >= MAX_ITEMS) break;
+  }
+
+  // Texto para el cliente: usa el de la IA; si viene vacío, lo armamos del carrito (nunca "Perdón")
+  let respuesta = (typeof parsed.respuesta === "string" && parsed.respuesta.trim())
+    ? decodeEscapes(parsed.respuesta.trim())
+    : (carrito.length
+        ? "Listo, llevo: " + carrito.map(c => `${c.cantidad}× ${c.nombre}`).join(", ") + ". ¿Se te ofrece algo más?"
+        : "¿Qué te provoca? Dime el producto y te lo agrego 🙂");
+
+  const entrega = (parsed.entrega === "domicilio" || parsed.entrega === "recoger") ? parsed.entrega : null;
+  const direccion = (typeof parsed.direccion === "string") ? parsed.direccion.slice(0, 200) : null;
+  const cliente = (typeof parsed.cliente === "string") ? parsed.cliente.slice(0, 80) : null;
+  const telefono = (typeof parsed.telefono === "string") ? parsed.telefono.slice(0, 30) : null;
+
+  // 9) ¿Confirmar? → intentar meter el pedido REAL en el POS (canal "Fuera")
+  //    Aquí también se aplica el LÍMITE DE PEDIDOS del plan del negocio.
+  const mesActual = new Date().toISOString().slice(0, 7);               // "YYYY-MM"
+  const usoMes = (t.bot_mes === mesActual) ? (t.bot_pedidos_mes || 0) : 0;  // reinicia solo cada mes
+  const limite = (t.bot_limite_pedidos == null) ? null : Number(t.bot_limite_pedidos); // null = sin límite
+  const sinCupo = (limite != null && usoMes >= limite);
+
+  let pedido = null;
+  let limiteAlcanzado = false;
+  const quiereConfirmar = parsed.confirmar === true && carrito.length > 0 && entrega;
+  if (quiereConfirmar) {
+    const flagOk = (entrega === "recoger") ? t.pos_online_recoger : t.pos_online_domicilio;
+    const faltaDir = (entrega === "domicilio") && !(direccion && direccion.trim());
+    if (sinCupo) {
+      // El negocio ya llegó al tope de pedidos de su plan este mes.
+      limiteAlcanzado = true;
+      respuesta = "¡Gracias por tu pedido! 🙏 En este momento no puedo cerrarlo por el chat. Por favor escríbenos directamente y con gusto te lo tomamos.";
+    } else if (!flagOk) {
+      respuesta += `\n\n(Nota Fenlora: el pedido está completo, pero "${entrega}" está apagado en el admin del negocio, así que no entró al POS todavía.)`;
+    } else if (faltaDir) {
+      respuesta = "¿A qué dirección te lo enviamos? 📍";
+    } else {
+      try {
+        const r = await posRpc(env, "menu_crear_pedido_online", {
+          p_api_key: t.pos_api_key, p_tipo: entrega,
+          p_items: carrito.map(c => ({ producto_id: c.producto_id, cantidad: c.cantidad })),
+          p_cliente: cliente, p_telefono: telefono,
+          p_direccion: entrega === "domicilio" ? direccion : null,
+          p_nota: carrito.filter(c => c.nota).map(c => `${c.nombre}: ${c.nota}`).join(" · ").slice(0, MAX_NOTA) || null
+        });
+        pedido = { id: r.pedido_id, numero: r.numero, total: r.total };
+        // Sumar 1 al contador de pedidos del bot de este negocio (y fijar el mes).
+        try {
+          await env.DB.prepare("UPDATE tenants SET bot_pedidos_mes = ?, bot_mes = ? WHERE id = ?")
+            .bind(usoMes + 1, mesActual, t.id).run();
+        } catch (e) { console.warn("no pude actualizar contador bot:", String(e)); }
+      } catch (e) {
+        respuesta += `\n\n(No pude enviarlo al POS: ${String(e.message || e)})`;
+      }
+    }
+  }
+
+  return json({
+    respuesta,
+    carrito,
+    total,
+    total_texto: botMoneda(total),
+    entrega, direccion, cliente, telefono,
+    confirmado: !!pedido,
+    pedido,
+    limite_alcanzado: limiteAlcanzado,
+    uso_mes: usoMes + (pedido ? 1 : 0),
+    limite: limite
+  });
+}
+
 async function getMenuPublico(slug, env) {
   const row = await env.DB.prepare(
     "SELECT nombre, nicho, whatsapp, logo_url, tema, contenido, pago_url, moneda, modo_pos, pos_api_key, pos_autopedido, pos_online_recoger, pos_online_domicilio FROM tenants WHERE id = ? AND activo = 1"
@@ -637,6 +977,44 @@ async function route(request, env) {
   const url = new URL(request.url);
   const path = url.pathname;
   const method = request.method;
+
+  // ── AVISOS PUSH (públicos con CORS; los llama el POS y su Service Worker) ──
+  if (path.startsWith("/avisos/")) {
+    if (method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_AVISOS });
+    // Clave pública VAPID para que el POS pueda suscribir el celular
+    if (path === "/avisos/vapidkey" && method === "GET") {
+      return jsonCors({ key: env.VAPID_PUBLIC || "" });
+    }
+    // Guardar la suscripción de un celular (el POS envía {endpoint})
+    if (path === "/avisos/sub" && method === "POST") {
+      let body = {}; try { body = await request.json(); } catch (_) {}
+      const ep = (body && body.endpoint) || "";
+      if (!ep || ep.length < 20) return jsonCors({ error: "endpoint invalido" }, 400);
+      try { await posRpc(env, "avisos_guardar_sub", { p_endpoint: ep }); return jsonCors({ ok: true }); }
+      catch (e) { return jsonCors({ error: String(e) }, 500); }
+    }
+    // Borrar la suscripción (cuando el celular desactiva avisos)
+    if (path === "/avisos/sub" && method === "DELETE") {
+      let body = {}; try { body = await request.json(); } catch (_) {}
+      const ep = (body && body.endpoint) || "";
+      try { await posRpc(env, "avisos_borrar_sub", { p_endpoint: ep }); return jsonCors({ ok: true }); }
+      catch (e) { return jsonCors({ error: String(e) }, 500); }
+    }
+    // El detalle del aviso: lo pide el Service Worker al recibir el "timbre"
+    if (path === "/avisos/pendientes" && method === "GET") {
+      try {
+        const r = await posRpc(env, "avisos_por_vencer", { p_dias: 3 });
+        const d = (r && typeof r === "object") ? r : {};
+        return jsonCors({ title: d.title || "🔔 Fenlora", body: d.body || "Sin cobros pendientes.", n: d.n || 0, tag: "cobros" });
+      } catch (e) { return jsonCors({ title: "🔔 Fenlora", body: "Revisa tus cobros en el panel.", tag: "cobros" }); }
+    }
+    // Botón "Probar aviso ahora" del POS → dispara el push de inmediato
+    if (path === "/avisos/probar" && method === "POST") {
+      const r = await dispararAvisos(env);
+      return jsonCors(r, r.ok ? 200 : 500);
+    }
+    return jsonCors({ error: "ruta de avisos no encontrada" }, 404);
+  }
 
   // La raíz del dominio siempre lleva al admin (protegido por Cloudflare Access)
   if (path === "/" && method === "GET") {
@@ -713,6 +1091,12 @@ async function route(request, env) {
     return await llamarMesero(decodeURIComponent(meseroMatch[1]), request, env);
   }
 
+  // ── Cerebro del bot (IA) ──
+  const botMatch = path.match(/^\/menu\/([^/]+)\/bot$/);
+  if (botMatch && method === "POST") {
+    return await botChat(decodeURIComponent(botMatch[1]), request, env);
+  }
+
   const menuMatch = path.match(/^\/menu\/([^/]+)$/);
   if (menuMatch && method === "GET") {
     return await getMenuPublico(decodeURIComponent(menuMatch[1]), env);
@@ -728,6 +1112,13 @@ async function route(request, env) {
   const menuPageMatch = path.match(/^\/([^/]+)\/menu$/);
   if (menuPageMatch && method === "GET" && !RESERVADOS.has(menuPageMatch[1])) {
     const plantilla = await env.ASSETS.fetch(new URL("/menu.html", request.url));
+    return new Response(plantilla.body, plantilla);
+  }
+
+  // Página del chat/bot: /<slug>/chat → sirve chat.html
+  const chatPageMatch = path.match(/^\/([^/]+)\/chat$/);
+  if (chatPageMatch && method === "GET" && !RESERVADOS.has(chatPageMatch[1])) {
+    const plantilla = await env.ASSETS.fetch(new URL("/chat.html", request.url));
     return new Response(plantilla.body, plantilla);
   }
 
@@ -750,5 +1141,15 @@ export default {
     } catch (err) {
       return harden(json({ error: "Error interno", detalle: String(err) }, 500));
     }
+  },
+  // Cron diario: revisa negocios por vencer y "toca el timbre" del celular del superadmin.
+  // Solo dispara si de verdad hay algo por cobrar (así no molesta con avisos vacíos).
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil((async () => {
+      try {
+        const r = await posRpc(env, "avisos_por_vencer", { p_dias: 3 });
+        if (r && r.n && r.n > 0) await dispararAvisos(env);
+      } catch (_) {}
+    })());
   }
 };

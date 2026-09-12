@@ -265,6 +265,14 @@
                     <p class="hint" style="margin-top:6px">Si el cliente abre tu enlace <strong>sin</strong> escanear una mesa (desde Instagram, WhatsApp…), verá estas opciones. Los pedidos caen solos en el POS, en <strong>Fuera → Online / Delivery</strong>. La mesa sigue independiente. Si dejas ambos apagados, sin mesa solo se ve la carta.</p>
                   </div>
                 </div>
+                <div class="row" id="d-bot-row">
+                  <div>
+                    <label>🤖 Bot de pedidos por chat — plan de pedidos/mes <span style="color:#8a8a95;font-weight:400">(solo si es "Con POS")</span></label>
+                    <input id="d-bot-limite" type="number" min="0" placeholder="Ej: 300 (vacío o 0 = ilimitado)">
+                    <div id="d-bot-uso" style="margin-top:8px;font-weight:600;font-size:13.5px"></div>
+                    <p class="hint" style="margin-top:6px">Cantidad de pedidos que el bot puede tomar al mes para este negocio. Al llegar al tope, el bot deja de cerrar pedidos hasta el otro mes (o hasta que subas el plan). El contador se reinicia solo cada mes. Déjalo vacío para ilimitado.</p>
+                  </div>
+                </div>
                 <p class="hint">Cambia qué se muestra en el home y de dónde salen los productos. "Autónomo · Ambos" es el valor de siempre — no cambia nada si no lo tocas. "Con POS" oculta la hamburguesa, resalta "Llamar al mesero" y bloquea la edición manual de productos (vienen del POS por API).</p>
                 <div class="row">
                   <div>
@@ -952,6 +960,8 @@ function _syncAutopedidoRow(){
   if (row) row.style.display = esPos ? '' : 'none';
   var orow = document.getElementById('d-online-row');
   if (orow) orow.style.display = esPos ? '' : 'none';
+  var brow = document.getElementById('d-bot-row');
+  if (brow) brow.style.display = esPos ? '' : 'none';
 }
 if ($('#d-modo-negocio')) $('#d-modo-negocio').addEventListener('change', _syncAutopedidoRow);
 
@@ -977,6 +987,23 @@ async function seleccionarNegocio(id) {
   if ($('#d-pos-autopedido')) $('#d-pos-autopedido').value = (t.pos_autopedido === 0 || t.pos_autopedido === '0') ? '0' : '1';
   if ($('#d-online-recoger')) $('#d-online-recoger').checked = !!(t.pos_online_recoger);
   if ($('#d-online-domicilio')) $('#d-online-domicilio').checked = !!(t.pos_online_domicilio);
+  if ($('#d-bot-limite')) $('#d-bot-limite').value = (t.bot_limite_pedidos == null) ? '' : t.bot_limite_pedidos;
+  if ($('#d-bot-uso')) {
+    var _mesAct = new Date().toISOString().slice(0,7);
+    var _uso = (t.bot_mes === _mesAct) ? (t.bot_pedidos_mes || 0) : 0;
+    var _lim = (t.bot_limite_pedidos == null) ? null : Number(t.bot_limite_pedidos);
+    var _box = $('#d-bot-uso');
+    if (_lim == null) {
+      _box.textContent = 'Pedidos del bot este mes: ' + _uso + ' (plan ilimitado)';
+      _box.style.color = '#8a8a95';
+    } else {
+      var _pct = _lim > 0 ? (_uso / _lim) : 0;
+      var _color = _pct >= 1 ? '#ff6b6b' : (_pct >= 0.8 ? '#ffb454' : '#57d9a3');
+      var _aviso = _pct >= 1 ? ' — ⛔ LÍMITE ALCANZADO' : (_pct >= 0.8 ? ' — ⚠️ cerca del tope' : '');
+      _box.textContent = 'Pedidos del bot este mes: ' + _uso + ' / ' + _lim + _aviso;
+      _box.style.color = _color;
+    }
+  }
   if (typeof _syncAutopedidoRow === 'function') _syncAutopedidoRow();
   $('#d-menu-estilo').value = (t.contenido && t.contenido.menu_estilo) || 'cuadricula';
 
@@ -1248,6 +1275,7 @@ $('#form-datos').addEventListener('submit', async (e) => {
       pos_autopedido: ($('#d-pos-autopedido') && $('#d-pos-autopedido').value === '0') ? 0 : 1,
       pos_online_recoger: ($('#d-online-recoger') && $('#d-online-recoger').checked) ? 1 : 0,
       pos_online_domicilio: ($('#d-online-domicilio') && $('#d-online-domicilio').checked) ? 1 : 0,
+      bot_limite_pedidos: ($('#d-bot-limite') && $('#d-bot-limite').value.trim() !== '' && Number($('#d-bot-limite').value) > 0) ? Number($('#d-bot-limite').value) : null,
       tema: {
         ...(NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.tema),
         fondo: $('#d-color-fondo').value,

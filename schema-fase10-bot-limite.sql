@@ -1,0 +1,3 @@
+ALTER TABLE tenants ADD COLUMN bot_limite_pedidos INTEGER;
+ALTER TABLE tenants ADD COLUMN bot_pedidos_mes INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE tenants ADD COLUMN bot_mes TEXT;
