@@ -841,9 +841,16 @@ async function botWorkersAI(env, system, chatMessages) {
 async function botChat(slug, request, env) {
   // 1) Negocio + que sea modo POS con key
   const t = await env.DB.prepare(
-    "SELECT id, nombre, modo_pos, pos_api_key, pos_online_recoger, pos_online_domicilio, moneda, bot_limite_pedidos, bot_pedidos_mes, bot_mes FROM tenants WHERE id = ? AND activo = 1"
+    "SELECT id, nombre, modo_pos, pos_api_key, pos_online_recoger, pos_online_domicilio, moneda FROM tenants WHERE id = ? AND activo = 1"
   ).bind(slug).first();
   if (!t) return json({ error: "Negocio no encontrado" }, 404);
+  // Límite de pedidos del bot (columnas de fase 10). Se leen aparte y con protección:
+  // si esas columnas aún no existen en la base, el bot igual funciona (sin límite).
+  let botLim = { bot_limite_pedidos: null, bot_pedidos_mes: 0, bot_mes: null };
+  try {
+    const bl = await env.DB.prepare("SELECT bot_limite_pedidos, bot_pedidos_mes, bot_mes FROM tenants WHERE id = ?").bind(slug).first();
+    if (bl) botLim = bl;
+  } catch (_) { /* columnas no existen aún → sin límite */ }
   // Los DEMOS (id demo-*) usan el bot GRATIS (Workers AI) con el catálogo local, sin POS.
   const esDemo = /^demo-/.test(slug);
   if (!esDemo && (!t.modo_pos || !t.pos_api_key)) return json({ error: "no_pos" }, 400);
@@ -980,8 +987,8 @@ ${menuTxt}`;
   // 9) ¿Confirmar? → intentar meter el pedido REAL en el POS (canal "Fuera")
   //    Aquí también se aplica el LÍMITE DE PEDIDOS del plan del negocio.
   const mesActual = new Date().toISOString().slice(0, 7);               // "YYYY-MM"
-  const usoMes = (t.bot_mes === mesActual) ? (t.bot_pedidos_mes || 0) : 0;  // reinicia solo cada mes
-  const limite = (t.bot_limite_pedidos == null) ? null : Number(t.bot_limite_pedidos); // null = sin límite
+  const usoMes = (botLim.bot_mes === mesActual) ? (botLim.bot_pedidos_mes || 0) : 0;  // reinicia solo cada mes
+  const limite = (esDemo || botLim.bot_limite_pedidos == null) ? null : Number(botLim.bot_limite_pedidos); // demo o sin límite = null
   const sinCupo = (limite != null && usoMes >= limite);
 
   let pedido = null;
