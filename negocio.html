@@ -667,6 +667,13 @@
     color:#fff;
   }
 
+  /* Botón flotante de CHAT con IA — solo en los demos */
+  .demo-chat-fab{ position:fixed; left:16px; bottom:98px; z-index:60; display:none;
+    align-items:center; gap:7px; text-decoration:none; font-weight:800; font-size:13px;
+    color:#0b0b0f; background:var(--icono-color,#ff7fbf); padding:12px 16px; border-radius:999px;
+    box-shadow:0 10px 26px rgba(0,0,0,.45); }
+  .demo-chat-fab:active{ transform:scale(.96); }
+  body.es-demo .demo-chat-fab{ display:inline-flex; }
   /* Toast simple para el botón "Llamar mesero" */
   .toast{
     position:fixed; left:50%; bottom:100px; transform:translateX(-50%) translateY(20px);
@@ -965,6 +972,9 @@
     </div>
   </section>
 
+  <!-- Botón de chat con IA (solo demos) -->
+  <a class="demo-chat-fab" id="demoChatFab" href="#">🤖 Pedir con IA</a>
+
   <!-- BOTTOM NAV -->
   <nav class="bottom-nav">
     <button class="nav-item active" id="navInicioBtn">
@@ -1130,6 +1140,21 @@
       const pedidosBtn = document.getElementById('navPedidosBtn');
       if(inicioBtn) inicioBtn.style.display = bloquear ? 'none' : '';
       if(pedidosBtn) pedidosBtn.style.display = bloquear ? 'none' : '';
+
+      // ── DEMO (id demo-*): muestra TODA la experiencia sin depender del POS:
+      //    llamar al mesero (con animación), autopedido y chat con IA gratis.
+      const esDemo = /^demo-/.test(getTenantSlug());
+      window._esDemo = esDemo;
+      if (esDemo) {
+        if(hb) hb.style.display = '';
+        if(wc) wc.style.display = '';                 // botón "Llamar al mesero" visible
+        document.body.classList.remove('pos-sin-autopedido');   // autopedido activo
+        if(inicioBtn) inicioBtn.style.display = '';
+        if(pedidosBtn) pedidosBtn.style.display = '';
+        document.body.classList.add('es-demo');
+        const fab = document.getElementById('demoChatFab');
+        if (fab) fab.href = '/' + getTenantSlug() + '/chat';
+      }
     }
 
     function aplicarTenant(data) {
@@ -1734,6 +1759,7 @@
     const toast = document.getElementById('toast');
     let toastTimeout, llamandoTimeout;
     document.getElementById('callWaiterBtn').addEventListener('click', function(){
+      if (window._esDemo) { const t0 = document.getElementById('toastText'); if (t0) t0.textContent = '🛎️ ¡Mesero en camino! (demo)'; }
       toast.classList.add('show');
       clearTimeout(toastTimeout);
       toastTimeout = setTimeout(()=> toast.classList.remove('show'), 2400);

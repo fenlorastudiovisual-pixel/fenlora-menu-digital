@@ -844,7 +844,9 @@ async function botChat(slug, request, env) {
     "SELECT id, nombre, modo_pos, pos_api_key, pos_online_recoger, pos_online_domicilio, moneda, bot_limite_pedidos, bot_pedidos_mes, bot_mes FROM tenants WHERE id = ? AND activo = 1"
   ).bind(slug).first();
   if (!t) return json({ error: "Negocio no encontrado" }, 404);
-  if (!t.modo_pos || !t.pos_api_key) return json({ error: "no_pos" }, 400);
+  // Los DEMOS (id demo-*) usan el bot GRATIS (Workers AI) con el catálogo local, sin POS.
+  const esDemo = /^demo-/.test(slug);
+  if (!esDemo && (!t.modo_pos || !t.pos_api_key)) return json({ error: "no_pos" }, 400);
   if (!env.AI && !env.ANTHROPIC_API_KEY) return json({ error: "ia_sin_config", detalle: "Falta la IA: ni [ai] ni ANTHROPIC_API_KEY están configurados." }, 503);
 
   // 2) Cuerpo del request
@@ -853,13 +855,21 @@ async function botChat(slug, request, env) {
   if (!mensaje) return json({ error: "mensaje_vacio" }, 400);
   let historial = Array.isArray(body.historial) ? body.historial.slice(-BOT_MAX_TURNS) : [];
 
-  // 3) Catálogo REAL desde el POS
+  // 3) Catálogo: del POS si está enlazado; si es demo, del catálogo local (D1).
   let productos = [];
-  try {
-    const cat = await posRpc(env, "menu_catalogo", { p_api_key: t.pos_api_key });
-    productos = (cat && Array.isArray(cat.productos)) ? cat.productos : [];
-  } catch (e) {
-    return json({ error: "pos_error", detalle: String(e.message || e) }, 502);
+  const usarPos = t.modo_pos && t.pos_api_key;
+  if (usarPos) {
+    try {
+      const cat = await posRpc(env, "menu_catalogo", { p_api_key: t.pos_api_key });
+      productos = (cat && Array.isArray(cat.productos)) ? cat.productos : [];
+    } catch (e) {
+      return json({ error: "pos_error", detalle: String(e.message || e) }, 502);
+    }
+  } else {
+    const { results } = await env.DB.prepare(
+      "SELECT id, nombre, precio, categoria FROM productos WHERE tenant_id = ? AND activo = 1 ORDER BY categoria, orden, id"
+    ).bind(slug).all();
+    productos = (results || []).map(p => ({ id: p.id, nombre: p.nombre, precio: p.precio, categoria: p.categoria, disponible: true }));
   }
   const disponibles = productos.filter(p => p && p.disponible !== false && p.id != null);
   if (!disponibles.length) return json({ error: "sin_catalogo" }, 409);
@@ -870,8 +880,9 @@ async function botChat(slug, request, env) {
     `${i + 1}. ${p.nombre} — ${botMoneda(p.precio)} (${p.categoria || "General"})`
   ).join("\n");
 
-  const recoger = t.pos_online_recoger ? "sí" : "no";
-  const domicilio = t.pos_online_domicilio ? "sí" : "no";
+  // En un demo dejamos las dos opciones activas para mostrar la experiencia completa.
+  const recoger = (esDemo || t.pos_online_recoger) ? "sí" : "no";
+  const domicilio = (esDemo || t.pos_online_domicilio) ? "sí" : "no";
 
   // Info del negocio que el bot DEBE saber para responder dudas normales de un pedido.
   // (Por ahora valores por defecto sensatos para Colombia; luego se vuelven configurables por negocio.)
@@ -928,8 +939,14 @@ ${menuTxt}`;
   // 7) Llamar a la IA. Preferimos Claude (mejor mesero); si no hay key, usamos la IA
   //    incluida en Cloudflare (Workers AI) como respaldo. Ambas devuelven el mismo JSON.
   let parsed = null;
-  if (env.ANTHROPIC_API_KEY) parsed = await botClaude(env, sys, chatMessages);
-  if (!parsed && env.AI) parsed = await botWorkersAI(env, sys, chatMessages);
+  if (esDemo) {
+    // Demo: usa la IA GRATIS de Cloudflare (Workers AI); Claude solo como respaldo.
+    if (env.AI) parsed = await botWorkersAI(env, sys, chatMessages);
+    if (!parsed && env.ANTHROPIC_API_KEY) parsed = await botClaude(env, sys, chatMessages);
+  } else {
+    if (env.ANTHROPIC_API_KEY) parsed = await botClaude(env, sys, chatMessages);
+    if (!parsed && env.AI) parsed = await botWorkersAI(env, sys, chatMessages);
+  }
   if (!parsed) parsed = {};
 
   // 8) Validar items contra el catálogo REAL (por número) y recalcular total (regla de oro)
@@ -970,7 +987,11 @@ ${menuTxt}`;
   let pedido = null;
   let limiteAlcanzado = false;
   const quiereConfirmar = parsed.confirmar === true && carrito.length > 0 && entrega;
-  if (quiereConfirmar) {
+  if (quiereConfirmar && esDemo) {
+    // DEMO: no toca ningún POS real; simula el cierre para mostrar la experiencia completa.
+    pedido = { id: "demo", numero: "DEMO-" + Math.floor(Math.random() * 900 + 100), total, simulado: true };
+    respuesta = "¡Listo! 🎉 Tu pedido quedó tomado. (Es una DEMO: no se cobra ni se envía nada.) Así de fácil sería en tu propio negocio con Fenlora.";
+  } else if (quiereConfirmar) {
     const flagOk = (entrega === "recoger") ? t.pos_online_recoger : t.pos_online_domicilio;
     const faltaDir = (entrega === "domicilio") && !(direccion && direccion.trim());
     if (sinCupo) {
