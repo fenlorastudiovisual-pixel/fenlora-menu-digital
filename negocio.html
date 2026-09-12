@@ -685,7 +685,6 @@
     color:#0b0b0f; background:var(--icono-color,#ff7fbf); padding:12px 16px; border-radius:999px;
     box-shadow:0 10px 26px rgba(0,0,0,.45); }
   .demo-chat-fab:active{ transform:scale(.96); }
-  body.es-demo .demo-chat-fab{ display:inline-flex; }
   /* Toast simple para el botón "Llamar mesero" */
   .toast{
     position:fixed; left:50%; bottom:100px; transform:translateX(-50%) translateY(20px);
@@ -1185,17 +1184,21 @@
       const wc = document.getElementById('navCenterWrap');
       const inicioBtn = document.getElementById('navInicioBtn');
       const pedidosBtn = document.getElementById('navPedidosBtn');
-      if (hb) hb.style.display = '';   // la hamburguesa (ver carta) siempre está en el demo
+      const fab = document.getElementById('demoChatFab');
       if (modo === 'mesero') {
         document.body.classList.add('pos-sin-autopedido');   // oculta "+" y carrito
+        if (hb) hb.style.display = 'none';                    // MESERO: sin hamburguesa
         if (wc) wc.style.display = '';                        // muestra "Llamar al mesero"
         if (inicioBtn) inicioBtn.style.display = 'none';
         if (pedidosBtn) pedidosBtn.style.display = 'none';
+        if (fab) fab.style.display = 'none';                  // el bot IA NO va en mesero
       } else {
         document.body.classList.remove('pos-sin-autopedido'); // autopedido: "+" y carrito
+        if (hb) hb.style.display = '';                        // AUTOPEDIDO: con hamburguesa
         if (wc) wc.style.display = 'none';                    // sin botón de mesero
         if (inicioBtn) inicioBtn.style.display = '';
         if (pedidosBtn) pedidosBtn.style.display = '';
+        if (fab) fab.style.display = 'inline-flex';           // bot IA solo en autopedido
       }
       document.querySelectorAll('.demo-switch-btn').forEach(b => b.classList.toggle('on', b.dataset.modo === modo));
       try { localStorage.setItem('fendemo_modo_' + getTenantSlug(), modo); } catch(e){}

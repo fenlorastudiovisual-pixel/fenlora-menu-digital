@@ -65,4 +65,53 @@
     if (id && ICONOS[id]) return ICONOS[id].svg;
     return svg('<path d="M6 3v6a2 2 0 0 0 2 2M6 3v18M10 3v6a2 2 0 0 1-2 2"/><path d="M17 3c-1.66 0-3 1.79-3 4s1.34 4 3 4v9"/>');
   };
+  // Elige el id de ícono que MEJOR representa el nombre de una categoría.
+  window.iconoIdCategoria = function (nombre) {
+    var n = (nombre || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    var has = function () { for (var i = 0; i < arguments.length; i++) if (n.indexOf(arguments[i]) >= 0) return true; return false; };
+    if (has('espresso')) return 'espresso';
+    if (has('capuch', 'capuc', 'latte', 'cappu')) return 'latte';
+    if (has('aromatic', 'infusion', 'tisana') || n === 'te' || n === 'tes') return 'te';
+    if (has('chocolate', 'chocolat')) return 'chocolate';
+    if (has('filtrad', 'metodo', 'prensa', 'pour', 'grano', 'tinto', 'americano')) return 'grano';
+    if (has('calient', 'cafe')) return 'cafe';
+    if (has('frapp', 'granizad', 'frozen')) return 'granizado';
+    if (has('smoothie', 'batido', 'malteada', 'milkshake')) return 'smoothie';
+    if (has('limonad')) return 'limonada';
+    if (has('jugo', 'zumo', 'natural')) return 'jugo';
+    if (has('soda', 'gaseosa', 'refresco')) return 'soda';
+    if (has('agua')) return 'agua';
+    if (has('fria', 'frio', 'fresc', 'iced', 'hielo')) return 'frio';
+    if (has('cervez', 'micheld', 'michel', 'beer')) return 'cerveza';
+    if (has('vino')) return 'vino';
+    if (has('coctel', 'cocktail', 'trago', 'cantina')) return 'coctel';
+    if (has('shot')) return 'shot';
+    if (has('licor', 'aguardiente', 'ron', 'whisky', 'whiskey', 'tequila', 'destilad', 'botella')) return 'botella';
+    if (has('paleta')) return 'paleta';
+    if (has('copa', 'sundae')) return 'copa';
+    if (has('helad', 'nieve', 'gelato')) return 'helado';
+    if (has('cupcake', 'muffin')) return 'cupcake';
+    if (has('dona', 'donut')) return 'dona';
+    if (has('galleta', 'cookie')) return 'galleta';
+    if (has('postre', 'torta', 'pastel', 'ponque', 'cheesecake', 'dulce', 'reposteria')) return 'torta';
+    if (has('hamburg', 'burger')) return 'hamburguesa';
+    if (has('pizza')) return 'pizza';
+    if (has('perro', 'hotdog', 'hot dog', 'salchipap')) return 'perro';
+    if (has('taco', 'burrito', 'quesadill', 'mexican')) return 'taco';
+    if (has('sandwich', 'sanduch')) return 'sandwich';
+    if (has('pollo', 'alita', 'wings', 'broaster', 'apanad')) return 'pollo';
+    if (has('carne', 'parrilla', 'asado', 'lomo', 'churrasco')) return 'carne';
+    if (has('ensalada', 'saludable', 'veggie', 'vegetari')) return 'ensalada';
+    if (has('sopa', 'caldo', 'crema', 'ajiaco', 'sancoch')) return 'sopa';
+    if (has('waffle', 'wafle')) return 'waffle';
+    if (has('pan', 'bolleria', 'croissant', 'panaderia')) return 'pan';
+    if (has('desayuno', 'huevo', 'brunch')) return 'desayuno';
+    if (has('combo', 'para llevar', 'pa comer', 'para comer', 'comida', 'almuerzo', 'corrientazo')) return 'combo';
+    if (has('especial', 'favorito', 'destacad', 'promo', 'recomend', 'estrella')) return 'estrella';
+    return null;
+  };
+  // SVG del ícono de una categoría (por su nombre). Si no hay match: cubiertos.
+  window.iconoCategoriaSVG = function (nombre) {
+    return window.iconoMenuSVG(window.iconoIdCategoria(nombre));
+  };
 })();

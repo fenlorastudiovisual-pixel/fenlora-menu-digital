@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Menú completo</title>
 <script src="/carrito.js"></script>
+<script src="/iconos.js"></script>
 <style>
   :root{
     --bg:#faf3e8; --card:#fffdf9; --text:#33261c; --muted:#9a8471;
@@ -41,6 +42,10 @@
   /* Ícono neutro cuando el producto/categoría no tiene foto (mejor que una letra) */
   .ph{color:var(--muted);opacity:.55;}
   .bubble .ph{width:26px;height:26px;}
+  /* Categorías = ícono vectorial (no foto). Los productos sí llevan foto. */
+  .cat .bubble{background:var(--accent-soft) !important;}
+  .cat .bubble svg.cat-ic-svg{width:34px;height:34px;color:var(--accent);}
+  .cat.on .bubble svg.cat-ic-svg{color:var(--accent);}
   .foto .ph{width:44px;height:44px;}
   .ini .ph{width:22px;height:22px;}
 
@@ -228,11 +233,10 @@
     function pintarChips(){
       const wrap = document.getElementById('catChips');
       wrap.innerHTML = CATS.map(c => {
-        const img = imgCategoria(c.nombre, c.items);
-        const bubble = img ? `style="background-image:url('${img}')"` : '';
-        const cont = img ? '' : ICON_PH;
+        // La categoría se representa con un ÍCONO vectorial (no con foto de producto).
+        const ic = (window.iconoCategoriaSVG ? window.iconoCategoriaSVG(c.nombre) : ICON_PH).replace('<svg ', '<svg class="cat-ic-svg" ');
         return `<button class="cat ${c.nombre===CAT_ACTIVA?'on':''}" data-cat="${encodeURIComponent(c.nombre)}">
-          <span class="bubble" ${bubble}>${cont}</span><span>${c.nombre}</span></button>`;
+          <span class="bubble">${ic}</span><span>${c.nombre}</span></button>`;
       }).join('');
       wrap.querySelectorAll('.cat').forEach(b => b.addEventListener('click', () => {
         CAT_ACTIVA = decodeURIComponent(b.dataset.cat); pintarChips(); pintarCatalogo();
