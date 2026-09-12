@@ -517,9 +517,13 @@
             </div>
             <div class="row">
               <div><label>Precio</label><input id="p-precio" type="text" inputmode="numeric" placeholder="Ej: 10.000" required></div>
-              <div><label>Foto (opcional)</label><input id="p-foto" type="file" accept="image/*"></div>
+              <div><label>Foto: subir archivo (opcional)</label><input id="p-foto" type="file" accept="image/*"></div>
             </div>
-            <p class="hint">📐 Formato recomendado: foto <strong>cuadrada (1:1)</strong>, mínimo 500×500px. Si tu foto no es cuadrada, recórtala antes de subirla (en el celular: editar foto → recortar 1:1) para que se vea completa y pareja en "Nuestros Favoritos", como en la tarjeta de referencia.</p>
+            <div class="row">
+              <div style="flex:1;"><label>…o pega una URL de imagen (opcional)</label><input id="p-imagen-url" placeholder="https://.../foto.jpg"></div>
+              <div style="width:64px;"><label>Actual</label><img id="p-foto-preview" src="" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:8px;background:#111;" onerror="this.style.visibility='hidden'"></div>
+            </div>
+            <p class="hint">📐 Formato recomendado: foto <strong>cuadrada (1:1)</strong>, mínimo 500×500px. Puedes <strong>subir un archivo</strong> o <strong>pegar una URL</strong>. Si subes archivo, ese manda; si no, se usa la URL; si dejas ambos vacíos, se conserva la foto actual.</p>
             <div><label>Descripción (opcional)</label><input id="p-descripcion"></div>
             <div style="display:flex;align-items:center;gap:8px;">
               <input type="checkbox" id="p-destacado" style="width:auto;"> <label for="p-destacado" style="margin:0;">Mostrar en "Nuestros Favoritos" del home</label>
@@ -1365,6 +1369,8 @@ function editarProducto(id) {
   $('#p-descripcion').value = p.descripcion || '';
   $('#p-destacado').checked = !!p.destacado;
   $('#p-foto').value = '';
+  if ($('#p-imagen-url')) $('#p-imagen-url').value = p.imagen_url || '';
+  if ($('#p-foto-preview')) { $('#p-foto-preview').src = p.imagen_url || ''; $('#p-foto-preview').style.visibility = p.imagen_url ? 'visible' : 'hidden'; }
   $('#p-submit-btn').textContent = 'Guardar cambios';
   $('#p-cancelar-btn').style.display = 'inline-block';
   $('#form-producto').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1374,6 +1380,7 @@ function cancelarEdicionProducto() {
   EDITANDO_PRODUCTO_ID = null;
   $('#form-producto').reset();
   if (inputPrecio) inputPrecio.dataset.raw = '';
+  if ($('#p-foto-preview')) { $('#p-foto-preview').src = ''; $('#p-foto-preview').style.visibility = 'hidden'; }
   $('#p-submit-btn').textContent = 'Agregar producto';
   $('#p-cancelar-btn').style.display = 'none';
 }
@@ -1391,6 +1398,16 @@ function formatearPrecioInput(input) {
 const inputPrecio = document.getElementById('p-precio');
 if (inputPrecio) {
   inputPrecio.addEventListener('input', () => formatearPrecioInput(inputPrecio));
+}
+// Vista previa en vivo al pegar una URL de imagen de producto
+const inputImgUrl = document.getElementById('p-imagen-url');
+if (inputImgUrl) {
+  inputImgUrl.addEventListener('input', () => {
+    const pv = document.getElementById('p-foto-preview'); if (!pv) return;
+    const u = inputImgUrl.value.trim();
+    if (/^https?:\/\//i.test(u)) { pv.src = u; pv.style.visibility = 'visible'; }
+    else { pv.style.visibility = 'hidden'; }
+  });
 }
 function setPrecioInput(valorNumerico) {
   if (!inputPrecio) return;
@@ -1418,14 +1435,20 @@ $('#form-producto').addEventListener('submit', async (e) => {
   const productoPrevio = editando ? PRODUCTOS_CACHE.find(x => x.id === editando) : null;
 
   let imagen_url = productoPrevio ? productoPrevio.imagen_url : null;
+  const urlPegada = $('#p-imagen-url') ? $('#p-imagen-url').value.trim() : '';
   const file = $('#p-foto').files[0];
   if (file) {
+    // 1º) si subió un archivo, ese manda (se guarda en tu R2)
     const fd = new FormData();
     fd.append('file', file); fd.append('tenant_id', ACTIVO_ID); fd.append('carpeta', 'producto');
     const ru = await fetch('/admin/api/upload', { method: 'POST', body: fd });
     const du = await ru.json();
     if (!ru.ok) { msg.textContent = du.error || 'Error al subir la foto'; msg.className = 'msg err'; return; }
     imagen_url = du.url;
+  } else if (urlPegada) {
+    // 2º) si no, se usa la URL pegada
+    if (!/^https?:\/\//i.test(urlPegada)) { msg.textContent = 'La URL debe empezar por http:// o https://'; msg.className = 'msg err'; return; }
+    imagen_url = urlPegada;
   }
 
   const cuerpo = {

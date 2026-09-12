@@ -240,18 +240,19 @@ async function listTenants(env) {
 
 // ---------- /admin/api/resumen ----------
 async function getResumen(env) {
+  // El Resumen cuenta SOLO negocios reales (los demos = id demo-* no cuentan).
   const totales = await env.DB.prepare(`
     SELECT
-      (SELECT COUNT(*) FROM tenants) AS negocios_total,
-      (SELECT COUNT(*) FROM tenants WHERE activo = 1) AS negocios_activos,
-      (SELECT COUNT(*) FROM productos) AS productos_total,
-      (SELECT COUNT(*) FROM pedidos) AS pedidos_total,
-      (SELECT COUNT(*) FROM pedidos WHERE estado = 'pendiente_pago') AS pedidos_pendientes
+      (SELECT COUNT(*) FROM tenants WHERE id NOT LIKE 'demo-%') AS negocios_total,
+      (SELECT COUNT(*) FROM tenants WHERE id NOT LIKE 'demo-%' AND activo = 1) AS negocios_activos,
+      (SELECT COUNT(*) FROM productos WHERE tenant_id NOT LIKE 'demo-%') AS productos_total,
+      (SELECT COUNT(*) FROM pedidos WHERE tenant_id NOT LIKE 'demo-%') AS pedidos_total,
+      (SELECT COUNT(*) FROM pedidos WHERE tenant_id NOT LIKE 'demo-%' AND estado = 'pendiente_pago') AS pedidos_pendientes
   `).first();
 
   const { results: sinProductos } = await env.DB.prepare(`
     SELECT t.id, t.nombre FROM tenants t
-    WHERE t.activo = 1 AND (SELECT COUNT(*) FROM productos p WHERE p.tenant_id = t.id) = 0
+    WHERE t.activo = 1 AND t.id NOT LIKE 'demo-%' AND (SELECT COUNT(*) FROM productos p WHERE p.tenant_id = t.id) = 0
     ORDER BY t.creado_en DESC
   `).all();
 
