@@ -365,14 +365,37 @@ async function toggleDemo(id, request, env) {
   return json({ ok: true, es_demo: val });
 }
 
-// Productos de muestra para que cada demo generado NO salga vacío (editables luego).
-function demoSampleProducts(preset) {
+// Palabras clave de fotos por nicho (fotos reales temáticas para los demos).
+const NICHO_FOTOS = {
+  granizados:    ["slushie", "smoothie", "iced-drink", "milkshake"],
+  sushi:         ["sushi", "sashimi", "nigiri", "ramen"],
+  comida_rapida: ["burger", "fries", "hotdog", "fried-chicken"],
+  food_court:    ["pizza", "burger", "tacos", "noodles"],
+  tacos:         ["tacos", "burrito", "quesadilla", "nachos"],
+  food_truck:    ["street-food", "burger", "tacos", "hotdog"],
+  brunch_waffle: ["waffle", "pancakes", "brunch", "french-toast"],
+  bar_coctel:    ["cocktail", "beer", "wine", "whiskey"],
+  panaderia:     ["cake", "pastry", "cheesecake", "cupcake"],
+  heladeria:     ["ice-cream", "gelato", "popsicle", "sundae"],
+  cafeteria:     ["coffee", "latte", "cappuccino", "croissant"]
+};
+// Foto temática, estable (lock = misma foto siempre) y editable después.
+function demoFoto(nichoId, i) {
+  const ks = NICHO_FOTOS[nichoId] || ["food"];
+  const kw = ks[i % ks.length];
+  let h = 0; for (const c of nichoId) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
+  const lock = (h % 900) + i * 13 + 1;
+  return `https://loremflickr.com/640/480/${encodeURIComponent(kw)}?lock=${lock}`;
+}
+// Productos de muestra CON foto para que cada demo se vea completo y bonito.
+function demoSampleProducts(nichoId, preset) {
   const cats = (preset.contenido_ejemplo && preset.contenido_ejemplo.categorias) || ["Menú"];
   const plantillas = [
-    { suf: "de la casa", desc: "El favorito de la casa, listo para antojarte.", precio: 12000, dest: 1 },
-    { suf: "especial",   desc: "Nuestra versión especial, con el toque de la casa.", precio: 16000, dest: 0 }
+    { suf: "de la casa", desc: "El favorito de la casa, listo para antojarte.", precio: 12000 },
+    { suf: "especial",   desc: "Nuestra versión especial, con el toque de la casa.", precio: 16000 }
   ];
   const items = [];
+  let idx = 0;
   cats.slice(0, 3).forEach((cat, ci) => {
     plantillas.forEach((p, pi) => {
       items.push({
@@ -381,19 +404,39 @@ function demoSampleProducts(preset) {
         descripcion: p.desc,
         precio: p.precio + ci * 2000 + pi * 1000,
         destacado: (ci === 0 && pi === 0) ? 1 : 0,
-        orden: ci * 10 + pi
+        orden: ci * 10 + pi,
+        imagen_url: demoFoto(nichoId, idx++)
       });
     });
   });
   return items;
 }
+// Rellena fotos en productos de un demo que aún no tengan imagen (idempotente).
+async function asegurarFotosDemo(env, id, nichoId) {
+  const { results } = await env.DB.prepare(
+    "SELECT id FROM productos WHERE tenant_id = ? AND (imagen_url IS NULL OR imagen_url = '') ORDER BY orden, id"
+  ).bind(id).all();
+  if (!results || !results.length) return 0;
+  let i = 0;
+  await env.DB.batch(results.map(p =>
+    env.DB.prepare("UPDATE productos SET imagen_url = ? WHERE id = ?").bind(demoFoto(nichoId, i++), p.id)
+  ));
+  return results.length;
+}
 
 async function generarDemos(env) {
-  const creados = [];
+  const creados = [], actualizados = [];
   for (const [nichoId, preset] of Object.entries(NICHOS)) {
     const id = `demo-${nichoId.replace(/_/g, "-")}`;
     const existe = await env.DB.prepare("SELECT id FROM tenants WHERE id = ?").bind(id).first();
-    if (existe) continue;
+
+    if (existe) {
+      // Ya existía: nos aseguramos de que tenga es_demo=1 y fotos en sus productos
+      await env.DB.prepare("UPDATE tenants SET es_demo = 1 WHERE id = ?").bind(id).run();
+      const n = await asegurarFotosDemo(env, id, nichoId);
+      if (n) actualizados.push(id);
+      continue;
+    }
 
     const contenido = { ...preset.contenido_ejemplo, nombre_negocio: `Demo — ${preset.label}` };
     await env.DB.prepare(
@@ -404,19 +447,19 @@ async function generarDemos(env) {
       JSON.stringify(preset.tema), JSON.stringify(contenido), "COP"
     ).run();
 
-    // Sembramos productos de muestra para que el demo se vea completo
-    const prods = demoSampleProducts(preset);
+    // Productos de muestra CON foto temática
+    const prods = demoSampleProducts(nichoId, preset);
     if (prods.length) {
       await env.DB.batch(prods.map(pr =>
         env.DB.prepare(
-          `INSERT INTO productos (tenant_id, categoria, nombre, descripcion, precio, destacado, orden)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`
-        ).bind(id, pr.categoria, pr.nombre, pr.descripcion, pr.precio, pr.destacado, pr.orden)
+          `INSERT INTO productos (tenant_id, categoria, nombre, descripcion, precio, destacado, orden, imagen_url)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(id, pr.categoria, pr.nombre, pr.descripcion, pr.precio, pr.destacado, pr.orden, pr.imagen_url)
       ));
     }
     creados.push(id);
   }
-  return json({ creados });
+  return json({ creados, actualizados });
 }
 
 // ---------- /admin/api/cobranza ----------
