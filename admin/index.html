@@ -1516,7 +1516,7 @@ async function cargarDemos() {
       </div>
       <div class="metrics" style="margin-top:10px;flex-wrap:wrap;gap:8px;">
         <a href="/${d.id}" target="_blank" style="color:var(--accent);text-decoration:none;">Abrir ↗</a>
-        <button class="secondary small" onclick="seleccionarNegocio('${d.id}')">Editar</button>
+        <button class="secondary small" onclick="irANegocio('${d.id}')">Editar</button>
         <button class="secondary small" onclick="copiarLinkDemo('${d.id}')">Copiar link</button>
         <button class="secondary small" onclick="compartirDemoWhatsapp('${d.id}', '${d.nombre.replace(/'/g, "")}')">WhatsApp</button>
         <button class="secondary small" onclick="quitarDeDemos('${d.id}')">Quitar de demos</button>

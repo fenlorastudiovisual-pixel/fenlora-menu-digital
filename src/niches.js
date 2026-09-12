@@ -2,6 +2,16 @@
 // (de functions/_niches.js a src/niches.js) para que el Worker lo importe.
 
 export const NICHOS = {
+  restaurante: {
+    label: "Restaurante / Carta",
+    tema: { fondo: "#17130f", texto: "#f5efe6", acento1: "#c0392b", acento2: "#d4a24e", fuente: "Playfair Display" },
+    contenido_ejemplo: {
+      tagline: "COCINA DE AUTOR",
+      hero_titulo: "Platos que se disfrutan sin prisa",
+      categorias: ["Entradas", "Platos fuertes", "Almuerzos", "Parrilla", "Postres", "Bebidas"],
+      beneficios: ["Reserva tu mesa", "Domicilio", "Recoge en tienda", "Acumula puntos"]
+    }
+  },
   granizados: {
     label: "Granizados & Shots",
     tema: { fondo: "#0d0d0d", texto: "#ffffff", acento1: "#ff2fb0", acento2: "#00e5ff", fuente: "Poppins" },

@@ -367,6 +367,7 @@ async function toggleDemo(id, request, env) {
 
 // Palabras clave de fotos por nicho (fotos reales temáticas para los demos).
 const NICHO_FOTOS = {
+  restaurante:   ["steak", "pasta", "grilled-meat", "gourmet-food"],
   granizados:    ["slushie", "smoothie", "iced-drink", "milkshake"],
   sushi:         ["sushi", "sashimi", "nigiri", "ramen"],
   comida_rapida: ["burger", "fries", "hotdog", "fried-chicken"],
