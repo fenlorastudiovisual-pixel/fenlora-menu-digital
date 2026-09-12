@@ -1532,9 +1532,13 @@
         if (has('especial', 'favorito', 'destacad', 'promo', 'recomend', 'estrella')) return 'estrella';
         return null; // sin match → ícono genérico de cubiertos
       }
-      const _svgCat = (nombre) => (typeof window.iconoMenuSVG === 'function')
-        ? window.iconoMenuSVG(iconIdCat(nombre))
-        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v18M10 3v6a2 2 0 0 1-2 2M6 3v6a2 2 0 0 0 2 2M17 3c-1.7 0-3 1.8-3 4s1.3 4 3 4v9"/></svg>';
+      // Usa el buscador COMPLETO de iconos.js (window.iconoCategoriaSVG); si por algo no
+      // cargó, cae al buscador local básico de arriba.
+      const _svgCat = (nombre) => (typeof window.iconoCategoriaSVG === 'function')
+        ? window.iconoCategoriaSVG(nombre)
+        : ((typeof window.iconoMenuSVG === 'function')
+            ? window.iconoMenuSVG(iconIdCat(nombre))
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v18M10 3v6a2 2 0 0 1-2 2M6 3v6a2 2 0 0 0 2 2M17 3c-1.7 0-3 1.8-3 4s1.3 4 3 4v9"/></svg>');
       if (categoriasWrap) {
         // Fix: ahora SIEMPRE van todas en una sola fila, con el número
         // exacto de columnas = número de categorías reales (nunca queda

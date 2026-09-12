@@ -56,7 +56,30 @@
     pan:         { label: 'Pan / Panadería', svg: svg('<path d="M5 10a3.5 3.5 0 0 1 3.5-3.5h7A3.5 3.5 0 0 1 19 10c0 4-2 8-3 8H8c-1 0-3-4-3-8Z"/><path d="M9 9c.7 3 .7 6 0 9M13 9c.7 3 .7 6 0 9"/>') },
     desayuno:    { label: 'Desayuno / Huevo', svg: svg('<path d="M12 4c-3 0-6 3.5-6 7.5a6 6 0 0 0 12 0C18 7.5 15 4 12 4Z"/><circle cx="12" cy="11.5" r="2.6"/>') },
     combo:       { label: 'Combo / Para llevar', svg: svg('<path d="M6 8h12l-1 11.5a1.6 1.6 0 0 1-1.6 1.5H8.6A1.6 1.6 0 0 1 7 19.5L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>') },
-    estrella:    { label: 'Especial / Estrella', svg: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.6l1-5.8L3.5 9.7l5.9-.9L12 3.5Z"/>') }
+    estrella:    { label: 'Especial / Estrella', svg: svg('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.6l1-5.8L3.5 9.7l5.9-.9L12 3.5Z"/>') },
+
+    // ---------- Categorías extra (nichos completos) ----------
+    entrada:     { label: 'Entradas / Tapas', svg: svg('<circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="3.2"/><path d="M12 3.8v1.6M12 18.6v1.6M3.8 12h1.6M18.6 12h1.6"/>') },
+    bebida:      { label: 'Bebida', svg: svg('<path d="M8 4h8l-1 15a2 2 0 0 1-2 1.8h-2A2 2 0 0 1 9 19L8 4Z"/><path d="M7 4h10"/><path d="M9.5 9h5"/>') },
+    pescado:     { label: 'Pescado / Mariscos', svg: svg('<path d="M4 12c2.4-3.4 6.8-4.4 10.6-2.6 1.7.8 3.3 1.7 4.9 2.6-1.6.9-3.2 1.8-4.9 2.6C10.8 16.4 6.4 15.4 4 12Z"/><path d="M20 8.5 16.5 12 20 15.5"/><circle cx="8" cy="11" r=".7"/>') },
+    pasta:       { label: 'Pasta', svg: svg('<path d="M4 12h16a8 8 0 0 1-16 0Z"/><path d="M8 12c0-2 .8-3.2 1.8-4.2M12 12c0-2.2.8-3.4 1.9-4.4M16 12c0-1.6.6-2.7 1.4-3.5"/><path d="M15.5 6.2c.9-.5 1.9-.3 2.3.6"/>') },
+    arroz:       { label: 'Arroz', svg: svg('<path d="M4.5 12h15a7.5 7.5 0 0 1-15 0Z"/><path d="M3.5 12h17"/><circle cx="9" cy="9.4" r=".5"/><circle cx="12" cy="8.7" r=".5"/><circle cx="15" cy="9.4" r=".5"/><path d="M14 3.5l4.5 4.5M16 3l4.5 4.5"/>') },
+    topping:     { label: 'Toppings', svg: svg('<path d="M4 14a8 8 0 0 1 16 0Z"/><path d="M4 14h16"/><path d="M8 10.2l.8.9M12 9.2v1.3M15.2 10.2l-.8.9"/>') },
+    sushi:       { label: 'Sushi / Roll', svg: svg('<rect x="5.5" y="5.5" width="13" height="13" rx="6.5"/><circle cx="12" cy="12" r="2.6"/><path d="M12 5.6v2M12 16.4v2M5.6 12h2M16.4 12h2"/>') },
+    bowl:        { label: 'Bowl / Poke', svg: svg('<path d="M4 11h16a8 8 0 0 1-16 0Z"/><path d="M8 11a4 4 0 0 1 8 0"/><circle cx="10" cy="8.6" r=".8"/><circle cx="13.6" cy="8.9" r=".8"/>') },
+    ramen:       { label: 'Ramen / Sopa', svg: svg('<path d="M4 12h16a8 8 0 0 1-16 0Z"/><path d="M3 12h18"/><path d="M14 4.5l6 3"/><path d="M9 8c-.5.7-.5 1.5 0 2.2M12 7.5c-.5.7-.5 1.5 0 2.2"/>') },
+    papas:       { label: 'Papas fritas', svg: svg('<path d="M7 9h10l-1 9.2a2 2 0 0 1-2 1.8h-4a2 2 0 0 1-2-1.8L7 9Z"/><path d="M9.2 9V5M12 9V4M14.8 9V5"/>') },
+    alitas:      { label: 'Alitas / Pollo', svg: svg('<path d="M13.2 4a4.6 4.6 0 0 0-3.1 8L5.6 16.5a1.8 1.8 0 0 0 2.5 2.5l4.5-4.5A4.6 4.6 0 1 0 13.2 4Z"/><path d="M7.2 15.2 5.7 16.7"/>') },
+    burrito:     { label: 'Burrito', svg: svg('<path d="M6.5 5H15a4.2 4.2 0 0 1 0 9H8"/><path d="M6.5 5 4.3 8.2 6.5 11"/><path d="M18.7 9.6 20.4 12l-1.7 2.4"/>') },
+    quesadilla:  { label: 'Quesadilla', svg: svg('<path d="M4 8a10 10 0 0 0 16 0Z"/><path d="M8 8.5v3M12 8.5v3.8M16 8.5v3"/>') },
+    nachos:      { label: 'Nachos', svg: svg('<path d="M5 8l4 8 4-8ZM11 8l4 8 4-8Z"/><circle cx="9" cy="11" r=".5"/><circle cx="15" cy="11" r=".5"/>') },
+    arepa:       { label: 'Arepa', svg: svg('<circle cx="12" cy="12" r="8.2"/><path d="M4.2 12h15.6"/>') },
+    pancake:     { label: 'Pancakes', svg: svg('<ellipse cx="12" cy="8" rx="7" ry="2.4"/><path d="M5 8v3c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4V8"/><path d="M5 12v3c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4v-3"/><path d="M12 5.6V3.4"/>') },
+    croissant:   { label: 'Croissant / Hojaldre', svg: svg('<path d="M4.5 16.5c-1.3-5 2.7-9.5 7.5-9.5s8.8 4.5 7.5 9.5c-2.2-3.2-4.4-4.3-7.5-4.3s-5.3 1.1-7.5 4.3Z"/><path d="M4.5 16.5 3 19M19.5 16.5 21 19"/>') },
+    fruta:       { label: 'Fruta', svg: svg('<path d="M12 8.2c-1.1-2-3.1-2.6-4.7-1.6C5.7 7.6 5.7 10.2 6.8 13.2c.7 2 1.8 4 3.2 4s2-1 2-2 1 2 2 2 2.4-2 3.1-4c1.1-3 1.1-5.6-.5-6.6-1.6-1-3.6-.4-4.6 1.2Z"/><path d="M12 8.2V5c0-1 .9-2 2.1-2"/>') },
+    whisky:      { label: 'Whisky / Licor', svg: svg('<path d="M7 6h10l-1 12a2 2 0 0 1-2 1.8h-4A2 2 0 0 1 8 18L7 6Z"/><path d="M8 13h8"/><rect x="9.6" y="9.4" width="3" height="3" rx=".5"/>') },
+    picada:      { label: 'Picada / Tabla', svg: svg('<rect x="3" y="8" width="18" height="8.5" rx="2"/><circle cx="8" cy="12.3" r="1.5"/><circle cx="13" cy="11.4" r="1.4"/><circle cx="16.5" cy="13.4" r="1.2"/>') },
+    salsa:       { label: 'Salsa', svg: svg('<path d="M10 3h4v2.8l1 2V19a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2V7.8l1-2V3Z"/><path d="M9 12h6"/>') }
   };
 
   window.ICONOS_MENU = ICONOS;
@@ -66,48 +89,80 @@
     return svg('<path d="M6 3v6a2 2 0 0 0 2 2M6 3v18M10 3v6a2 2 0 0 1-2 2"/><path d="M17 3c-1.66 0-3 1.79-3 4s1.34 4 3 4v9"/>');
   };
   // Elige el id de ícono que MEJOR representa el nombre de una categoría.
+  // Orden: de lo más específico a lo más general (así "Cafés fríos" cae en frío, etc.).
   window.iconoIdCategoria = function (nombre) {
     var n = (nombre || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     var has = function () { for (var i = 0; i < arguments.length; i++) if (n.indexOf(arguments[i]) >= 0) return true; return false; };
+    // — Café / bebidas calientes —
+    if (has('granizad', 'cholado', 'raspado', 'frappe', 'frozen', 'slush')) return 'granizado';
+    if (has('malteada', 'milkshake', 'batido')) return 'smoothie';
     if (has('espresso')) return 'espresso';
-    if (has('capuch', 'capuc', 'latte', 'cappu')) return 'latte';
-    if (has('aromatic', 'infusion', 'tisana') || n === 'te' || n === 'tes') return 'te';
+    if (has('capuch', 'capuc', 'latte', 'cappu', 'macchiato', 'mocaccino', 'moka')) return 'latte';
+    if (has('aromatic', 'infusion', 'tisana', 'chai') || n === 'te' || n === 'tes' || n === 'tés') return 'te';
     if (has('chocolate', 'chocolat')) return 'chocolate';
-    if (has('filtrad', 'metodo', 'prensa', 'pour', 'grano', 'tinto', 'americano')) return 'grano';
-    if (has('calient', 'cafe')) return 'cafe';
-    if (has('frapp', 'granizad', 'frozen')) return 'granizado';
-    if (has('smoothie', 'batido', 'malteada', 'milkshake')) return 'smoothie';
+    if (has('cafe frio', 'cafes frios', 'iced', 'cold brew')) return 'frio';
+    if (has('filtrad', 'metodo', 'prensa', 'pour', 'chemex', 'v60', 'grano', 'tueste', 'origen')) return 'grano';
+    if (has('calient', 'cafe', 'tinto', 'americano', 'capsul')) return 'cafe';
+    // — Bebidas frías / alcohol —
     if (has('limonad')) return 'limonada';
+    if (has('michel', 'cervez', 'beer')) return 'cerveza';
+    if (has('vino', 'sangria', 'espumos')) return 'vino';
+    if (has('sin alcohol', 'mocktail', 'virgin', 'coctel', 'cocktail', 'trago', 'cantina', 'mojito', 'margarita', 'daiquiri', 'gin ', 'ginebra')) return 'coctel';
+    if (has('shot')) return 'shot';
+    if (has('aguardiente', 'whisky', 'whiskey', 'tequila', 'vodka', 'destilad', 'licor', 'botella', 'brandy', 'guaro') || n === 'ron' || n === 'rones' || has('ron ')) return 'whisky';
+    if (has('smoothie')) return 'smoothie';
     if (has('jugo', 'zumo', 'natural')) return 'jugo';
     if (has('soda', 'gaseosa', 'refresco')) return 'soda';
-    if (has('agua')) return 'agua';
-    if (has('fria', 'frio', 'fresc', 'iced', 'hielo')) return 'frio';
-    if (has('cervez', 'micheld', 'michel', 'beer')) return 'cerveza';
-    if (has('vino')) return 'vino';
-    if (has('coctel', 'cocktail', 'trago', 'cantina')) return 'coctel';
-    if (has('shot')) return 'shot';
-    if (has('licor', 'aguardiente', 'ron', 'whisky', 'whiskey', 'tequila', 'destilad', 'botella')) return 'botella';
-    if (has('paleta')) return 'paleta';
-    if (has('copa', 'sundae')) return 'copa';
-    if (has('helad', 'nieve', 'gelato')) return 'helado';
+    if (has('aguas') || n === 'agua') return 'agua';
+    if (has('fria', 'frio', 'fresc', 'hielo')) return 'frio';
+    // — Entradas / platos —
+    if (has('picada', 'tabla', 'charcuteria', 'picoteo')) return 'picada';
+    if (has('entrada', 'tapas', 'aperitivo', 'antipast')) return 'entrada';
+    if (has('ramen', 'fideo', 'noodle')) return 'ramen';
+    if (has('sopa', 'caldo', 'crema', 'ajiaco', 'sancoch', 'consome')) return 'sopa';
+    if (has('ensalada', 'saludable', 'veggie', 'vegetari', 'sin azucar', 'light', 'fit', 'keto')) return 'ensalada';
+    if (has('sashimi', 'ceviche', 'pescado', 'marisco', 'camaron', 'salmon', 'atun')) return 'pescado';
+    if (has('roll', 'nigiri', 'temaki', 'maki', 'sushi', 'handroll')) return 'sushi';
+    if (has('poke', 'bowl', 'tazon', 'buddha')) return 'bowl';
+    if (has('pasta', 'spaghetti', 'espagueti', 'lasagn', 'lasan', 'fetuccin', 'ravioli', 'macarr', 'canelon')) return 'pasta';
+    if (has('arroz', 'arroce', 'risotto', 'paella')) return 'arroz';
+    if (has('alita', 'alas', 'wings')) return 'alitas';
+    if (has('pollo', 'broaster', 'apanad')) return 'pollo';
+    if (has('platos fuertes', 'plato fuerte', 'principales', 'fuertes', 'especialidad', 'de la casa', 'a la carta')) return 'carne';
+    if (has('carne', 'asado', 'parrilla', 'lomo', 'churrasco', 'bife', 'costilla', 'punta') || n === 'res') return 'carne';
+    if (has('hamburg', 'burger', 'smash')) return 'hamburguesa';
+    if (has('pizza')) return 'pizza';
+    if (has('perro', 'hotdog', 'hot dog', 'choripan')) return 'perro';
+    if (has('empanada')) return 'combo';
+    if (has('salchipap', 'papas', 'fritas', 'french fries') || n === 'papa') return 'papas';
+    if (has('burrito')) return 'burrito';
+    if (has('quesadill')) return 'quesadilla';
+    if (has('nacho', 'totopo')) return 'nachos';
+    if (has('taco', 'birria')) return 'taco';
+    if (has('arepa')) return 'arepa';
+    if (has('sandwich', 'sanduch', 'wrap', 'baguette', 'salado')) return 'sandwich';
+    // — Dulces / desayuno —
+    if (has('waffle', 'wafle')) return 'waffle';
+    if (has('pancake', 'panqueque', 'hotcake', 'tostada', 'frances', 'french toast')) return 'pancake';
+    if (has('huevo', 'desayuno', 'brunch', 'omelet')) return 'desayuno';
+    if (has('croissant', 'hojaldre', 'danesa')) return 'croissant';
     if (has('cupcake', 'muffin')) return 'cupcake';
     if (has('dona', 'donut')) return 'dona';
-    if (has('galleta', 'cookie')) return 'galleta';
-    if (has('postre', 'torta', 'pastel', 'ponque', 'cheesecake', 'dulce', 'reposteria')) return 'torta';
-    if (has('hamburg', 'burger')) return 'hamburguesa';
-    if (has('pizza')) return 'pizza';
-    if (has('perro', 'hotdog', 'hot dog', 'salchipap')) return 'perro';
-    if (has('taco', 'burrito', 'quesadill', 'mexican')) return 'taco';
-    if (has('sandwich', 'sanduch')) return 'sandwich';
-    if (has('pollo', 'alita', 'wings', 'broaster', 'apanad')) return 'pollo';
-    if (has('carne', 'parrilla', 'asado', 'lomo', 'churrasco')) return 'carne';
-    if (has('ensalada', 'saludable', 'veggie', 'vegetari')) return 'ensalada';
-    if (has('sopa', 'caldo', 'crema', 'ajiaco', 'sancoch')) return 'sopa';
-    if (has('waffle', 'wafle')) return 'waffle';
-    if (has('pan', 'bolleria', 'croissant', 'panaderia')) return 'pan';
-    if (has('desayuno', 'huevo', 'brunch')) return 'desayuno';
-    if (has('combo', 'para llevar', 'pa comer', 'para comer', 'comida', 'almuerzo', 'corrientazo')) return 'combo';
-    if (has('especial', 'favorito', 'destacad', 'promo', 'recomend', 'estrella')) return 'estrella';
+    if (has('galleta', 'cookie', 'brownie')) return 'galleta';
+    if (has('paleta')) return 'paleta';
+    if (has('cono', 'barquillo')) return 'helado';
+    if (has('helad', 'nieve', 'gelato', 'sorbete')) return 'helado';
+    if (has('copa', 'sundae', 'vaso', 'banana split')) return 'copa';
+    if (has('cupcake', 'muffin')) return 'cupcake';
+    if (has('postre', 'torta', 'pastel', 'ponque', 'cheesecake', 'reposteria', 'tres leches', 'flan', 'dulce')) return 'torta';
+    if (n === 'pan' || n === 'panes' || has('panaderia', 'pandeb', 'mogolla', 'bunuelo')) return 'pan';
+    if (has('combo', 'para llevar', 'pa comer', 'para comer', 'almuerzo', 'corrientazo', 'ejecutivo', 'menu del dia', 'comida')) return 'combo';
+    if (has('fruta', 'frutal')) return 'fruta';
+    if (has('topping', 'adicion', 'extra')) return 'topping';
+    if (has('salsa', 'aderezo', 'dip')) return 'salsa';
+    if (has('bebida', 'liquido')) return 'bebida';
+    if (has('regalo', 'merch', 'souvenir', 'mercancia', 'accesorio')) return 'estrella';
+    if (has('especial', 'favorito', 'destacad', 'promo', 'recomend', 'estrella', 'clasico', 'premium', 'signature')) return 'estrella';
     return null;
   };
   // SVG del ícono de una categoría (por su nombre). Si no hay match: cubiertos.

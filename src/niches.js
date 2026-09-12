@@ -1,5 +1,8 @@
-// Catálogo de nichos preset — igual que antes, solo cambia de carpeta
-// (de functions/_niches.js a src/niches.js) para que el Worker lo importe.
+// Catálogo de nichos preset — cada nicho trae 10 categorías reales de su rubro,
+// para que los DEMOS se vean completos. Los íconos de cada categoría salen solos
+// (iconos.js → iconoIdCategoria), así que cualquier categoría nueva también recibe ícono.
+
+const BENEF = ["Delivery exprés", "Recoge tu pedido", "Pago seguro", "Acumula puntos"];
 
 export const NICHOS = {
   restaurante: {
@@ -8,7 +11,7 @@ export const NICHOS = {
     contenido_ejemplo: {
       tagline: "COCINA DE AUTOR",
       hero_titulo: "Platos que se disfrutan sin prisa",
-      categorias: ["Entradas", "Platos fuertes", "Almuerzos", "Parrilla", "Postres", "Bebidas"],
+      categorias: ["Entradas", "Sopas", "Ensaladas", "Carnes", "Pollo", "Pescados", "Pastas", "Arroces", "Postres", "Bebidas"],
       beneficios: ["Reserva tu mesa", "Domicilio", "Recoge en tienda", "Acumula puntos"]
     }
   },
@@ -18,8 +21,8 @@ export const NICHOS = {
     contenido_ejemplo: {
       tagline: "GRANIZADOS & SHOTS",
       hero_titulo: "FRÍOS. INTENSOS. EXPLOSIVOS.",
-      categorias: ["Granizados", "Shots"],
-      beneficios: ["Delivery exprés", "Recoge tu pedido", "Pago seguro", "Acumula puntos"]
+      categorias: ["Granizados", "Cholados", "Raspados", "Frappés", "Malteadas", "Shots", "Micheladas", "Limonadas", "Sodas", "Toppings"],
+      beneficios: BENEF
     }
   },
   sushi: {
@@ -28,8 +31,8 @@ export const NICHOS = {
     contenido_ejemplo: {
       tagline: "COCINA QUE SE DESCUBRE",
       hero_titulo: "SABORES AUTÉNTICOS. EXPERIENCIAS ÚNICAS.",
-      categorias: ["Rolls", "Sashimi", "Temakis", "Bowls", "Entradas", "Bebidas"],
-      beneficios: ["Delivery exprés", "Recoge tu pedido", "Pago seguro", "Acumula puntos"]
+      categorias: ["Entradas", "Rolls", "Rolls especiales", "Nigiri", "Sashimi", "Temaki", "Poke Bowls", "Ramen", "Combos", "Bebidas"],
+      beneficios: BENEF
     }
   },
   comida_rapida: {
@@ -38,7 +41,7 @@ export const NICHOS = {
     contenido_ejemplo: {
       tagline: "COCINA OCULTA & DELIVERY",
       hero_titulo: "Sabor sin salón, directo a tu puerta",
-      categorias: ["Burgers", "Bowls", "Tacos", "Wings", "Bebidas", "Postres"],
+      categorias: ["Hamburguesas", "Perros", "Salchipapas", "Alitas", "Papas", "Sándwiches", "Tacos", "Combos", "Postres", "Bebidas"],
       beneficios: ["Entrega rápida", "Retiro en punto", "Seguimiento en tiempo real", "Pago seguro"]
     }
   },
@@ -48,7 +51,7 @@ export const NICHOS = {
     contenido_ejemplo: {
       tagline: "PLAZA DE COMIDAS",
       hero_titulo: "Todo tu antojo en un solo lugar",
-      categorias: ["Hamburguesas", "Pizza", "Sushi", "Tacos", "Postres", "Café"],
+      categorias: ["Hamburguesas", "Pizza", "Sushi", "Tacos", "Pollo", "Asados", "Postres", "Helados", "Café", "Bebidas"],
       beneficios: ["Retiro en plaza", "Entrega rápida", "Promos todos los días", "Suma puntos"]
     }
   },
@@ -58,7 +61,7 @@ export const NICHOS = {
     contenido_ejemplo: {
       tagline: "TAQUERÍA & STREET FLAVOR",
       hero_titulo: "Tacos que alegran tu antojo",
-      categorias: ["Tacos", "Quesadillas", "Birria", "Combos", "Bebidas", "Postres"],
+      categorias: ["Tacos", "Burritos", "Quesadillas", "Nachos", "Birria", "Bowls", "Entradas", "Salsas", "Postres", "Bebidas"],
       beneficios: ["Retiro rápido", "Delivery", "Promos", "Puntos"]
     }
   },
@@ -68,7 +71,7 @@ export const NICHOS = {
     contenido_ejemplo: {
       tagline: "FOOD TRUCKS & STREET BITES",
       hero_titulo: "Sabor callejero, hecho para antojos reales",
-      categorias: ["Burgers", "Tacos", "Salchipapas", "Perros", "Bebidas", "Postres"],
+      categorias: ["Hamburguesas", "Perros", "Salchipapas", "Tacos", "Alitas", "Arepas", "Papas", "Combos", "Postres", "Bebidas"],
       beneficios: ["Envío rápido", "Retiro en punto", "Puntos", "Pago seguro"]
     }
   },
@@ -78,7 +81,7 @@ export const NICHOS = {
     contenido_ejemplo: {
       tagline: "WAFFLERÍA & BRUNCH",
       hero_titulo: "Momentos dulces, recién hechos",
-      categorias: ["Clásicos", "Frutales", "Chocolate", "Salados", "Bebidas", "Combos"],
+      categorias: ["Waffles", "Pancakes", "Tostadas francesas", "Huevos", "Bowls", "Croissants", "Frutas", "Café", "Jugos", "Bebidas"],
       beneficios: ["Envío rápido", "Retiro en tienda", "Puntos", "Pago seguro"]
     }
   },
@@ -88,7 +91,7 @@ export const NICHOS = {
     contenido_ejemplo: {
       tagline: "BUENOS TRAGOS, MEJORES MOMENTOS",
       hero_titulo: "Buenos momentos, mejores bebidas",
-      categorias: ["Cócteles", "Clásicos", "Cervezas", "Vinos", "Shots", "Picoteo"],
+      categorias: ["Cócteles", "Sin alcohol", "Cervezas", "Vinos", "Whisky", "Ron", "Aguardiente", "Shots", "Picadas", "Bebidas"],
       beneficios: ["Eventos y reservas", "Happy hour", "Acumula puntos", "Delivery"]
     }
   },
@@ -98,7 +101,7 @@ export const NICHOS = {
     contenido_ejemplo: {
       tagline: "REPOSTERÍA ARTESANAL",
       hero_titulo: "Hecho con amor, pensado para endulzar tus momentos",
-      categorias: ["Tortas", "Cheesecakes", "Cupcakes", "Galletas", "Postres en vaso", "Regalos"],
+      categorias: ["Panes", "Tortas", "Cheesecakes", "Cupcakes", "Galletas", "Postres en vaso", "Hojaldres", "Croissants", "Café", "Bebidas"],
       beneficios: ["Envíos a domicilio", "Retiro en tienda", "Empaques para regalo", "Pagos seguros"]
     }
   },
@@ -108,7 +111,7 @@ export const NICHOS = {
     contenido_ejemplo: {
       tagline: "HELADERÍA ARTESANAL",
       hero_titulo: "Hecho con amor, para momentos inolvidables",
-      categorias: ["Clásicos", "Premium", "Sin azúcar", "Cono o vaso", "Paletas", "Postres"],
+      categorias: ["Helados", "Conos", "Copas", "Malteadas", "Paletas", "Sundaes", "Waffles", "Toppings", "Postres", "Bebidas"],
       beneficios: ["Envío rápido", "Retiro en tienda", "Acumula puntos", "Pagos seguros"]
     }
   },
@@ -118,7 +121,7 @@ export const NICHOS = {
     contenido_ejemplo: {
       tagline: "CAFÉ DE ESPECIALIDAD",
       hero_titulo: "Disfruta lo simple, disfruta lo extraordinario",
-      categorias: ["Cafés", "Especiales", "Bebidas Frías", "Repostería", "Desayunos", "Merch"],
+      categorias: ["Cafés calientes", "Cafés fríos", "Espresso", "Filtrados", "Té e infusiones", "Chocolate", "Repostería", "Desayunos", "Sándwiches", "Bebidas"],
       beneficios: ["Envío exprés", "Retiro en tienda", "Granos premium", "Acumula puntos"]
     }
   }

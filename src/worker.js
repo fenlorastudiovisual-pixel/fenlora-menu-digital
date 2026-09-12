@@ -398,13 +398,13 @@ function demoSampleProducts(nichoId, preset) {
   ];
   const items = [];
   let idx = 0;
-  cats.slice(0, 3).forEach((cat, ci) => {
+  cats.forEach((cat, ci) => {   // TODAS las categorías del nicho (10), 2 productos c/u
     plantillas.forEach((p, pi) => {
       items.push({
         categoria: cat,
         nombre: `${cat} ${p.suf}`,
         descripcion: p.desc,
-        precio: p.precio + ci * 2000 + pi * 1000,
+        precio: p.precio + (ci % 6) * 1000 + pi * 1000,
         destacado: (ci === 0 && pi === 0) ? 1 : 0,
         orden: ci * 10 + pi,
         imagen_url: demoFoto(nichoId, idx++)
@@ -412,6 +412,20 @@ function demoSampleProducts(nichoId, preset) {
     });
   });
   return items;
+}
+// Siembra productos SOLO en las categorías del demo que aún no tienen ninguno.
+async function sembrarProductosFaltantes(env, id, nichoId, preset) {
+  const { results } = await env.DB.prepare("SELECT DISTINCT categoria FROM productos WHERE tenant_id = ?").bind(id).all();
+  const existentes = new Set((results || []).map(r => (r.categoria || "").toLowerCase()));
+  const faltan = demoSampleProducts(nichoId, preset).filter(p => !existentes.has((p.categoria || "").toLowerCase()));
+  if (!faltan.length) return 0;
+  await env.DB.batch(faltan.map(pr =>
+    env.DB.prepare(
+      `INSERT INTO productos (tenant_id, categoria, nombre, descripcion, precio, destacado, orden, imagen_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(id, pr.categoria, pr.nombre, pr.descripcion, pr.precio, pr.destacado, pr.orden, pr.imagen_url)
+  ));
+  return faltan.length;
 }
 // Rellena fotos en productos de un demo que aún no tengan imagen (idempotente).
 async function asegurarFotosDemo(env, id, nichoId) {
@@ -431,16 +445,25 @@ async function generarDemos(env) {
   for (const [nichoId, preset] of Object.entries(NICHOS)) {
     const id = `demo-${nichoId.replace(/_/g, "-")}`;
     const existe = await env.DB.prepare("SELECT id FROM tenants WHERE id = ?").bind(id).first();
+    const contenido = { ...preset.contenido_ejemplo, nombre_negocio: `Demo — ${preset.label}` };
 
     if (existe) {
-      // Ya existía: nos aseguramos de que tenga es_demo=1 y fotos en sus productos
-      await env.DB.prepare("UPDATE tenants SET es_demo = 1 WHERE id = ?").bind(id).run();
-      const n = await asegurarFotosDemo(env, id, nichoId);
-      if (n) actualizados.push(id);
+      // Ya existía (es un DEMO): refresca categorías al set nuevo (10) y REEMPLAZA
+      // sus productos de muestra por los nuevos con foto. (Solo afecta demos, no
+      // negocios reales; el botón solo toca los id demo-*.)
+      const prods0 = demoSampleProducts(nichoId, preset);
+      await env.DB.batch([
+        env.DB.prepare("UPDATE tenants SET contenido = ?, es_demo = 1 WHERE id = ?").bind(JSON.stringify(contenido), id),
+        env.DB.prepare("DELETE FROM productos WHERE tenant_id = ?").bind(id),
+        ...prods0.map(pr => env.DB.prepare(
+          `INSERT INTO productos (tenant_id, categoria, nombre, descripcion, precio, destacado, orden, imagen_url)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(id, pr.categoria, pr.nombre, pr.descripcion, pr.precio, pr.destacado, pr.orden, pr.imagen_url))
+      ]);
+      actualizados.push(id);
       continue;
     }
 
-    const contenido = { ...preset.contenido_ejemplo, nombre_negocio: `Demo — ${preset.label}` };
     await env.DB.prepare(
       `INSERT INTO tenants (id, nombre, nicho, whatsapp, logo_url, tema, contenido, moneda, es_demo)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`
@@ -449,7 +472,7 @@ async function generarDemos(env) {
       JSON.stringify(preset.tema), JSON.stringify(contenido), "COP"
     ).run();
 
-    // Productos de muestra CON foto temática
+    // Productos de muestra CON foto temática, en las 10 categorías
     const prods = demoSampleProducts(nichoId, preset);
     if (prods.length) {
       await env.DB.batch(prods.map(pr =>
@@ -874,9 +897,9 @@ async function botChat(slug, request, env) {
     }
   } else {
     const { results } = await env.DB.prepare(
-      "SELECT id, nombre, precio, categoria FROM productos WHERE tenant_id = ? AND activo = 1 ORDER BY categoria, orden, id"
+      "SELECT id, nombre, descripcion, precio, categoria FROM productos WHERE tenant_id = ? AND activo = 1 ORDER BY categoria, orden, id"
     ).bind(slug).all();
-    productos = (results || []).map(p => ({ id: p.id, nombre: p.nombre, precio: p.precio, categoria: p.categoria, disponible: true }));
+    productos = (results || []).map(p => ({ id: p.id, nombre: p.nombre, descripcion: p.descripcion, precio: p.precio, categoria: p.categoria, disponible: true }));
   }
   const disponibles = productos.filter(p => p && p.disponible !== false && p.id != null);
   if (!disponibles.length) return json({ error: "sin_catalogo" }, 409);
@@ -884,7 +907,7 @@ async function botChat(slug, request, env) {
   // 4) Menú compacto con índices CORTOS. Un número (1,2,3…) es muchísimo más
   //    fácil de copiar sin error para la IA que un UUID largo. Mapeamos de vuelta.
   const menuTxt = disponibles.map((p, i) =>
-    `${i + 1}. ${p.nombre} — ${botMoneda(p.precio)} (${p.categoria || "General"})`
+    `${i + 1}. ${p.nombre} (${p.categoria || "General"})${p.descripcion ? " — " + String(p.descripcion).slice(0, 120) : ""} — ${botMoneda(p.precio)}`
   ).join("\n");
 
   // En un demo dejamos las dos opciones activas para mostrar la experiencia completa.
@@ -908,6 +931,7 @@ TONO Y PERSONALIDAD:
 
 CÓMO TOMAR EL PEDIDO:
 - SOLO ofreces y agregas productos del CATÁLOGO de abajo. Nunca inventes productos ni precios.
+- Si el cliente pregunta qué lleva o cómo es un producto, descríbelo con la DESCRIPCIÓN que trae el catálogo (después del "—"). Si un producto no tiene descripción, dilo con naturalidad y ofrécele igual probarlo, sin inventar ingredientes.
 - El catálogo trae un número interno al inicio de cada línea. Ese número es SECRETO: úsalo solo en "items" (campo "n"). JAMÁS lo menciones al cliente; el cliente solo ve NOMBRES.
 - Si el cliente pide algo con una preferencia ("poco dulce", "sin azúcar", "bien caliente", "sin cebolla"), guárdala TAL CUAL en el campo "nota" de ese item, para que la cocina la vea.
 - NUNCA escribas precios ni el total en tu texto; el recuadro del pedido ya se los muestra. Solo di un precio si el cliente lo pregunta directamente.
