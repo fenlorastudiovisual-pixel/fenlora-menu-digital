@@ -1,0 +1,249 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Panel de pedidos</title>
+<link id="manifestLink" rel="manifest" href="">
+<style>
+  :root{ --bg:#0b0b0f; --card:#15151c; --card2:#1d1d27; --bord:#2a2a37; --txt:#f2f2f6; --txt2:#a7a7b4; --cy:#22d3f5; --pk:#ff2d87; --gr:#28c76f; --am:#ffb020; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body{ margin:0; background:var(--bg); color:var(--txt); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap{ max-width:760px; margin:0 auto; padding:14px 14px calc(28px + env(safe-area-inset-bottom)); }
+  /* Login */
+  .login{ min-height:100dvh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:20px; text-align:center; }
+  .login h1{ font-size:20px; margin:0; }
+  .login .sub{ color:var(--txt2); font-size:13.5px; margin-top:-6px; }
+  .pin-in{ letter-spacing:10px; font-size:26px; text-align:center; width:180px; padding:12px; border-radius:12px; border:1px solid var(--bord); background:var(--card); color:var(--txt); }
+  .btn{ border:none; border-radius:12px; padding:12px 18px; font-weight:800; font-size:14px; cursor:pointer; font-family:inherit; }
+  .btn.p{ background:var(--cy); color:#04121a; }
+  .btn.g{ background:var(--card2); color:var(--txt); border:1px solid var(--bord); }
+  .err{ color:var(--pk); font-size:13px; min-height:16px; }
+  /* Header */
+  .top{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .top h1{ font-size:18px; margin:0; }
+  .top .muted{ color:var(--txt2); font-size:12px; }
+  .push-btn{ font-size:12.5px; padding:9px 12px; }
+  /* Tabs */
+  .tabs{ display:flex; gap:6px; margin-bottom:12px; overflow:auto; }
+  .tab{ white-space:nowrap; padding:8px 12px; border-radius:999px; border:1px solid var(--bord); background:var(--card); color:var(--txt2); font-weight:700; font-size:12.5px; cursor:pointer; }
+  .tab.on{ background:var(--cy); color:#04121a; border-color:var(--cy); }
+  .tab .n{ background:rgba(0,0,0,.18); border-radius:999px; padding:0 6px; margin-left:5px; font-size:11px; }
+  /* Order cards */
+  .ped{ background:var(--card); border:1px solid var(--bord); border-radius:14px; padding:12px 13px; margin-bottom:10px; }
+  .ped.new{ animation:flash 1.1s ease 3; border-color:var(--cy); }
+  @keyframes flash{ 0%,100%{ box-shadow:0 0 0 0 rgba(34,211,245,0); } 50%{ box-shadow:0 0 0 4px rgba(34,211,245,.35); } }
+  .ped-h{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .ped-h b{ font-size:15px; }
+  .ped-time{ color:var(--txt2); font-size:12px; }
+  .ped-badge{ font-size:11px; font-weight:800; padding:2px 8px; border-radius:999px; }
+  .b-nuevo{ background:rgba(255,45,135,.16); color:#ff6aa6; }
+  .b-preparando{ background:rgba(255,176,32,.16); color:var(--am); }
+  .b-listo{ background:rgba(40,199,111,.16); color:var(--gr); }
+  .b-entregado{ background:rgba(167,167,180,.16); color:var(--txt2); }
+  .ped-items{ margin:8px 0 4px; font-size:13.5px; line-height:1.5; }
+  .ped-items .it{ display:flex; gap:8px; }
+  .ped-items .q{ color:var(--cy); font-weight:800; min-width:24px; }
+  .ped-nota{ color:var(--am); font-size:12.5px; margin-top:4px; }
+  .ped-tot{ font-weight:800; margin-top:6px; }
+  .ped-acts{ display:flex; gap:7px; margin-top:10px; flex-wrap:wrap; }
+  .ped-acts .btn{ flex:1; min-width:120px; padding:10px; font-size:13px; }
+  .empty{ color:var(--txt2); text-align:center; padding:34px 12px; font-size:13.5px; }
+  .hidden{ display:none!important; }
+  .toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--cy); color:#04121a; font-weight:800; padding:11px 16px; border-radius:12px; font-size:13px; opacity:0; transition:.2s; z-index:50; }
+  .toast.on{ opacity:1; }
+</style>
+
+<!-- ══════════ LOGIN ══════════ -->
+<div class="login" id="loginView">
+  <div style="font-size:34px">🛎️</div>
+  <h1 id="loginTitle">Panel de pedidos</h1>
+  <div class="sub" id="loginSub">Cargando…</div>
+  <input class="pin-in hidden" id="pinInput" type="tel" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
+  <input class="pin-in hidden" id="pinInput2" type="tel" inputmode="numeric" maxlength="4" placeholder="repite" autocomplete="off">
+  <button class="btn p hidden" id="pinBtn">Entrar</button>
+  <div class="err" id="loginErr"></div>
+</div>
+
+<!-- ══════════ PANEL ══════════ -->
+<div class="wrap hidden" id="panelView">
+  <div class="top">
+    <div><h1 id="negNombre">Mi negocio</h1><div class="muted" id="estadoLinea">Escuchando pedidos…</div></div>
+    <button class="btn g push-btn" id="pushBtn" onclick="activarPush()">🔔 Avisos al celular</button>
+  </div>
+  <div class="tabs" id="tabs">
+    <div class="tab on" data-f="activos">Activos <span class="n" id="nAct">0</span></div>
+    <div class="tab" data-f="nuevo">🆕 Nuevos <span class="n" id="nNue">0</span></div>
+    <div class="tab" data-f="preparando">👩‍🍳 Preparando <span class="n" id="nPre">0</span></div>
+    <div class="tab" data-f="listo">✅ Listos <span class="n" id="nLis">0</span></div>
+    <div class="tab" data-f="entregado">📦 Entregados</div>
+  </div>
+  <div id="board"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const SLUG = (function(){ const p=location.pathname.split('/').filter(Boolean); return decodeURIComponent(p[0]||''); })();
+  const TOK_K='fenlora_panel_tok_'+SLUG, PIN_K='fenlora_panel_pin_'+SLUG;
+  let TOKEN='', PIN='', NOMBRE='', FILTRO='activos', PEDIDOS=[], _vistos=new Set(), _primera=true, _timer=null;
+
+  // token del enlace (?k=) o del guardado previo
+  (function(){
+    const u=new URLSearchParams(location.search).get('k');
+    if(u){ TOKEN=u; try{ localStorage.setItem(TOK_K,u); }catch(e){} }
+    else { try{ TOKEN=localStorage.getItem(TOK_K)||''; }catch(e){} }
+    try{ PIN=localStorage.getItem(PIN_K)||''; }catch(e){}
+    // manifest para "agregar a inicio" (instalable)
+    if(TOKEN){ const ml=document.getElementById('manifestLink'); if(ml) ml.href='/'+SLUG+'/panel/manifest?k='+encodeURIComponent(TOKEN); }
+  })();
+
+  function toast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('on'); setTimeout(()=>el.classList.remove('on'),2200); }
+  function beep(){
+    try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+      const ctx=window._ac||(window._ac=new AC()); if(ctx.state==='suspended')ctx.resume().catch(()=>{});
+      const b=(t,f)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=f;o.connect(g);g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.0001,ctx.currentTime+t);g.gain.exponentialRampToValueAtTime(0.4,ctx.currentTime+t+0.02);g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+t+0.4);
+        o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+0.42);};
+      b(0,880);b(0.42,1175);b(0.84,880);
+    }catch(e){}
+  }
+  async function api(ruta, extra){
+    const body=Object.assign({ token:TOKEN, pin:PIN }, extra||{});
+    const r=await fetch('/panel/'+SLUG+'/'+ruta, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    let d={}; try{ d=await r.json(); }catch(e){}
+    return { ok:r.ok, status:r.status, d };
+  }
+
+  // ─── LOGIN ───
+  async function arranque(){
+    const sub=document.getElementById('loginSub'), err=document.getElementById('loginErr');
+    if(!TOKEN){ sub.textContent='Abre el enlace que te enviaron para entrar a tu panel.'; return; }
+    const {ok,d}=await api('login',{});   // sin PIN: nos dice si ya hay PIN
+    if(!ok){ sub.textContent='Este enlace no es válido. Pídele a Fenlora que te reenvíe tu acceso.'; return; }
+    NOMBRE=d.nombre||'Mi negocio';
+    document.getElementById('loginTitle').textContent=NOMBRE;
+    // ¿ya tenemos un PIN guardado que sirva? intenta entrar directo
+    if(PIN){ const v=await api('pedidos',{}); if(v.ok){ entrar(); return; } PIN=''; try{localStorage.removeItem(PIN_K);}catch(e){} }
+    if(d.tienePin){ pedirPin('entrar'); } else { pedirPin('crear'); }
+  }
+  let _pinModo='entrar';
+  function pedirPin(modo){
+    _pinModo=modo;
+    document.getElementById('loginSub').textContent = modo==='crear' ? 'Crea tu PIN de 4 dígitos para tu panel (no lo olvides).' : 'Ingresa tu PIN de 4 dígitos.';
+    const i1=document.getElementById('pinInput'), i2=document.getElementById('pinInput2'), b=document.getElementById('pinBtn');
+    i1.classList.remove('hidden'); b.classList.remove('hidden'); b.textContent = modo==='crear'?'Crear PIN':'Entrar';
+    i2.classList.toggle('hidden', modo!=='crear');
+    i1.value=''; i2.value=''; i1.focus();
+  }
+  document.getElementById('pinBtn').addEventListener('click', enviarPin);
+  document.getElementById('pinInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ if(_pinModo==='crear'){document.getElementById('pinInput2').focus();} else enviarPin(); } });
+  document.getElementById('pinInput2').addEventListener('keydown', e=>{ if(e.key==='Enter') enviarPin(); });
+  async function enviarPin(){
+    const err=document.getElementById('loginErr'); err.textContent='';
+    const p1=(document.getElementById('pinInput').value||'').trim();
+    if(!/^\d{4}$/.test(p1)){ err.textContent='El PIN debe ser de 4 números.'; return; }
+    if(_pinModo==='crear'){
+      const p2=(document.getElementById('pinInput2').value||'').trim();
+      if(p1!==p2){ err.textContent='Los dos PIN no coinciden.'; return; }
+      const {ok,d}=await api('login',{ pin:p1, crear:true });
+      if(!ok){ err.textContent=(d&&d.error==='pin')?'No se pudo crear el PIN.':'No se pudo crear el PIN.'; return; }
+      PIN=p1; try{localStorage.setItem(PIN_K,p1);}catch(e){} beep(); entrar();
+    } else {
+      const {ok,d}=await api('login',{ pin:p1 });
+      if(!ok){ err.textContent='PIN incorrecto.'; return; }
+      PIN=p1; try{localStorage.setItem(PIN_K,p1);}catch(e){} beep(); entrar();
+    }
+  }
+  function entrar(){
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('panelView').classList.remove('hidden');
+    document.getElementById('negNombre').textContent=NOMBRE;
+    document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{ FILTRO=t.dataset.f; document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===t)); render(); }));
+    refrescarEstadoPush();
+    cargar(); _timer=setInterval(cargar, 8000);
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) cargar(); });
+  }
+
+  // ─── PEDIDOS ───
+  async function cargar(){
+    const {ok,d}=await api('pedidos',{});
+    if(!ok) return;
+    const lista=(d&&d.pedidos)||[];
+    // detecta pedidos NUEVOS (no vistos) que estén en 'nuevo'
+    let hayNuevo=false;
+    lista.forEach(p=>{ if(!_vistos.has(p.id)){ if(!_primera && p.estado_prep==='nuevo') hayNuevo=true; _vistos.add(p.id); p._new=!_primera; } });
+    PEDIDOS=lista;
+    if(hayNuevo){ beep(); try{if(navigator.vibrate)navigator.vibrate([250,120,250]);}catch(e){} toast('🛎️ ¡Nuevo pedido!'); }
+    _primera=false;
+    render();
+  }
+  const ESTLBL={ nuevo:['🆕 Nuevo','b-nuevo'], preparando:['👩‍🍳 Preparando','b-preparando'], listo:['✅ Listo','b-listo'], entregado:['📦 Entregado','b-entregado'] };
+  function fmt(v){ try{ return '$ '+Number(v||0).toLocaleString('es-CO'); }catch(e){ return '$'+v; } }
+  function hace(ts){ if(!ts)return''; const d=new Date(ts.replace(' ','T')+(ts.endsWith('Z')?'':'Z')); const m=Math.max(0,Math.floor((Date.now()-d.getTime())/60000)); return m<1?'ahora':('hace '+m+' min'); }
+  function render(){
+    const cont=(f)=>PEDIDOS.filter(p=> f==='activos' ? p.estado_prep!=='entregado' : p.estado_prep===f);
+    document.getElementById('nAct').textContent=cont('activos').length;
+    document.getElementById('nNue').textContent=cont('nuevo').length;
+    document.getElementById('nPre').textContent=cont('preparando').length;
+    document.getElementById('nLis').textContent=cont('listo').length;
+    const board=document.getElementById('board');
+    const lista=cont(FILTRO);
+    if(!lista.length){ board.innerHTML='<div class="empty">No hay pedidos aquí ahora mismo.<br>Cuando un cliente pida desde tu menú, aparece al instante. 🛎️</div>'; return; }
+    board.innerHTML=lista.map(p=>{
+      const items=(p.items||[]).map(it=>`<div class="it"><span class="q">${it.cantidad}×</span><span>${(it.nombre||'')}${it.notas?(' · <i style="color:var(--txt2)">'+it.notas+'</i>'):''}</span></div>`).join('');
+      const el=ESTLBL[p.estado_prep]||ESTLBL.nuevo;
+      const acts=[];
+      if(p.estado_prep==='nuevo') acts.push(`<button class="btn p" onclick="mover(${p.id},'preparando')">Empezar 👩‍🍳</button>`);
+      if(p.estado_prep==='preparando') acts.push(`<button class="btn p" onclick="mover(${p.id},'listo')">Marcar listo ✅</button>`);
+      if(p.estado_prep==='listo') acts.push(`<button class="btn p" onclick="mover(${p.id},'entregado')">Entregado 📦</button>`);
+      if(p.estado_prep!=='entregado' && p.estado_prep!=='nuevo') acts.push(`<button class="btn g" onclick="mover(${p.id},'nuevo')">↩︎</button>`);
+      return `<div class="ped ${p._new?'new':''}">
+        <div class="ped-h"><b>Pedido #${p.id}</b><span class="ped-badge ${el[1]}">${el[0]}</span></div>
+        <div class="ped-time">${hace(p.creado_en)}</div>
+        <div class="ped-items">${items}</div>
+        ${p.cliente_nota?`<div class="ped-nota">📝 ${p.cliente_nota}</div>`:''}
+        <div class="ped-tot">${fmt(p.total)}</div>
+        <div class="ped-acts">${acts.join('')}</div>
+      </div>`;
+    }).join('');
+  }
+  async function mover(id, estado){
+    // Optimista: pinta el cambio ya y confirma en el server.
+    const p=PEDIDOS.find(x=>x.id===id); if(p){ p.estado_prep=estado; p._new=false; render(); }
+    const {ok}=await api('estado',{ id, estado_prep:estado });
+    if(!ok){ toast('No se pudo actualizar'); cargar(); }
+  }
+
+  // ─── PUSH (avisos al celular aunque cierre el panel) ───
+  function _u8(b64){ const pad='='.repeat((4-b64.length%4)%4); const s=(b64+pad).replace(/-/g,'+').replace(/_/g,'/'); const r=atob(s); const o=new Uint8Array(r.length); for(let i=0;i<r.length;i++)o[i]=r.charCodeAt(i); return o; }
+  async function refrescarEstadoPush(){
+    try{
+      if(!('serviceWorker' in navigator)||!('PushManager' in window)){ const b=document.getElementById('pushBtn'); if(b){b.textContent='Sin avisos en este navegador'; b.disabled=true;} return; }
+      const reg=await navigator.serviceWorker.getRegistration('/'+SLUG+'/panel');
+      const sub=reg && await reg.pushManager.getSubscription();
+      if(sub){ const b=document.getElementById('pushBtn'); if(b){b.textContent='✅ Avisos activados'; b.disabled=true;} }
+    }catch(e){}
+  }
+  async function activarPush(){
+    const b=document.getElementById('pushBtn'); const set=(t,d)=>{ if(b){b.textContent=t; b.disabled=!!d;} };
+    try{
+      if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){ set('Sin avisos en este navegador',true); return; }
+      set('Activando…',true);
+      const perm=await Notification.requestPermission();
+      if(perm!=='granted'){ set('🔔 Permiso denegado — reintenta',false); return; }
+      const reg=await navigator.serviceWorker.register('/panel-sw.js',{ scope:'/'+SLUG+'/panel' });
+      await navigator.serviceWorker.ready.catch(()=>{});
+      const kr=await fetch('/avisos/vapidkey').then(r=>r.json()).catch(()=>({}));
+      if(!kr||!kr.key){ set('No se pudo activar (config)',false); return; }
+      let sub=await reg.pushManager.getSubscription();
+      if(!sub){ sub=await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:_u8(kr.key) }); }
+      const {ok}=await api('push-sub',{ endpoint:sub.endpoint });
+      if(!ok) throw new Error('no');
+      set('✅ Avisos activados',true); toast('Te avisaremos al celular');
+    }catch(e){ set('🔔 Avisos al celular',false); }
+  }
+
+  arranque();
+</script>

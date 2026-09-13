@@ -615,7 +615,7 @@ async function deleteProduct(id, env) {
 // ---------- /menu/:slug/pedido (público) ----------
 // BLINDADO: el servidor recalcula precios y total desde la base. NO confía en el
 // precio ni el total que manda el navegador (evita "pedido por $0").
-async function crearPedido(slug, request, env) {
+async function crearPedido(slug, request, env, ctx) {
   const tenant = await env.DB.prepare("SELECT id, modo_pos, pos_api_key, pos_autopedido, pos_online_recoger, pos_online_domicilio FROM tenants WHERE id = ? AND activo = 1").bind(slug).first();
   if (!tenant) return json({ error: "Negocio no encontrado" }, 404);
 
@@ -697,6 +697,9 @@ async function crearPedido(slug, request, env) {
   const r = await env.DB.prepare(
     `INSERT INTO pedidos (tenant_id, items, total, cliente_nota) VALUES (?, ?, ?, ?)`
   ).bind(slug, JSON.stringify(itemsSeguros), total, nota).run();
+
+  // Le avisa al dueño (push) que entró un pedido nuevo, sin demorar la respuesta.
+  try { if (ctx && ctx.waitUntil) ctx.waitUntil(notificarPanelNuevoPedido(slug, env)); } catch (_) {}
 
   return json({ id: r.meta.last_row_id, total }, 201);
 }
@@ -836,6 +839,129 @@ async function tickPedidosListos(env) {
       }
     } catch (_) {}
   }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// PANEL DEL DUEÑO (negocios sin POS) · recibe y gestiona sus autopedidos.
+// Acceso: enlace secreto (panel_token) + PIN (hash). Todo por POST.
+// ════════════════════════════════════════════════════════════════════
+async function sha256hex(txt) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(txt));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+function _panelToken() {
+  const a = new Uint8Array(18); crypto.getRandomValues(a);
+  return [...a].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+// Verifica token (+PIN si ya existe). Devuelve {tenant} o {err:Response}.
+async function panelAuth(slug, body, env, opts) {
+  opts = opts || {};
+  const t = await env.DB.prepare(
+    "SELECT id, nombre, panel_token, panel_pin_hash FROM tenants WHERE id=? AND activo=1"
+  ).bind(slug).first();
+  if (!t || !t.panel_token || !body || t.panel_token !== body.token) return { err: json({ error: "no_autorizado" }, 401) };
+  if (!opts.skipPin && t.panel_pin_hash) {
+    const pin = (body.pin != null ? String(body.pin) : "");
+    const h = await sha256hex(slug + ":" + pin);
+    if (h !== t.panel_pin_hash) return { err: json({ error: "pin" }, 401) };
+  }
+  return { tenant: t };
+}
+// POST /panel/:slug/login  → valida token; crea o verifica PIN.
+async function panelLogin(slug, request, env) {
+  let body = {}; try { body = await request.json(); } catch {}
+  const a = await panelAuth(slug, body, env, { skipPin: true });
+  if (a.err) return a.err;
+  const t = a.tenant;
+  // ¿Están creando el PIN por primera vez?
+  if (body.crear) {
+    const pin = (body.pin != null ? String(body.pin) : "");
+    if (!/^\d{4}$/.test(pin)) return json({ error: "pin_invalido" }, 400);
+    if (t.panel_pin_hash) return json({ error: "ya_tiene_pin" }, 409);
+    const h = await sha256hex(slug + ":" + pin);
+    await env.DB.prepare("UPDATE tenants SET panel_pin_hash=? WHERE id=?").bind(h, t.id).run();
+    return json({ ok: true, nombre: t.nombre, tienePin: true });
+  }
+  // ¿Enviaron PIN para entrar?
+  if (body.pin != null && String(body.pin) !== "") {
+    if (!t.panel_pin_hash) return json({ error: "sin_pin" }, 409);
+    const h = await sha256hex(slug + ":" + String(body.pin));
+    if (h !== t.panel_pin_hash) return json({ error: "pin" }, 401);
+    return json({ ok: true, nombre: t.nombre, tienePin: true });
+  }
+  // Sin PIN: solo dice si el negocio ya tiene PIN definido.
+  return json({ ok: true, nombre: t.nombre, tienePin: !!t.panel_pin_hash });
+}
+// POST /panel/:slug/pedidos  → lista de autopedidos (autónomos) recientes.
+async function panelPedidos(slug, request, env) {
+  let body = {}; try { body = await request.json(); } catch {}
+  const a = await panelAuth(slug, body, env);
+  if (a.err) return a.err;
+  const { results } = await env.DB.prepare(
+    "SELECT id, items, total, cliente_nota, estado_prep, creado_en FROM pedidos WHERE tenant_id=? ORDER BY creado_en DESC LIMIT 60"
+  ).bind(slug).all();
+  const pedidos = (results || []).map(p => { let it = []; try { it = JSON.parse(p.items); } catch (_) {} return { ...p, items: it }; });
+  return json({ ok: true, pedidos });
+}
+// POST /panel/:slug/estado  → cambia el estado de preparación de un pedido.
+async function panelEstado(slug, request, env) {
+  let body = {}; try { body = await request.json(); } catch {}
+  const a = await panelAuth(slug, body, env);
+  if (a.err) return a.err;
+  const id = parseInt(body.id, 10);
+  const est = String(body.estado_prep || "");
+  const validos = new Set(["nuevo", "preparando", "listo", "entregado"]);
+  if (!id || !validos.has(est)) return json({ error: "datos_invalidos" }, 400);
+  await env.DB.prepare("UPDATE pedidos SET estado_prep=? WHERE id=? AND tenant_id=?").bind(est, id, slug).run();
+  return json({ ok: true });
+}
+// POST /panel/:slug/push-sub  → guarda la suscripción push del celular del dueño.
+async function panelPushSub(slug, request, env) {
+  let body = {}; try { body = await request.json(); } catch {}
+  const a = await panelAuth(slug, body, env);
+  if (a.err) return a.err;
+  const endpoint = (body.endpoint != null ? String(body.endpoint) : "").trim();
+  if (!endpoint || !/^https:\/\//.test(endpoint)) return json({ error: "datos_invalidos" }, 400);
+  try {
+    await env.DB.prepare("INSERT OR IGNORE INTO panel_subs (slug, endpoint) VALUES (?, ?)").bind(slug, endpoint).run();
+    return json({ ok: true });
+  } catch (e) { return json({ error: "db_error", detalle: String(e.message || e) }, 500); }
+}
+// Le toca el timbre al dueño cuando entra un pedido nuevo (push sin payload).
+async function notificarPanelNuevoPedido(slug, env) {
+  if (!env.VAPID_PRIVATE_JWK || !env.VAPID_PUBLIC) return;
+  let subs = [];
+  try { const { results } = await env.DB.prepare("SELECT endpoint FROM panel_subs WHERE slug=?").bind(slug).all(); subs = results || []; }
+  catch (_) { return; }
+  for (const s of subs) {
+    try {
+      const st = await enviarPush(s.endpoint, env);
+      if (st === 404 || st === 410) { await env.DB.prepare("DELETE FROM panel_subs WHERE endpoint=?").bind(s.endpoint).run().catch(() => {}); }
+    } catch (_) {}
+  }
+}
+// Manifest dinámico para "agregar a inicio" (instalable) del panel del dueño.
+async function panelManifest(slug, url, env) {
+  const t = await env.DB.prepare("SELECT nombre FROM tenants WHERE id=? AND activo=1").bind(slug).first();
+  const nombre = (t && t.nombre) || "Panel de pedidos";
+  const k = url.searchParams.get("k") || "";
+  const start = "/" + slug + "/panel" + (k ? ("?k=" + encodeURIComponent(k)) : "");
+  const m = {
+    name: nombre + " · Pedidos", short_name: nombre.slice(0, 12) || "Pedidos",
+    start_url: start, scope: "/" + slug + "/panel", display: "standalone",
+    background_color: "#0b0b0f", theme_color: "#0b0b0f",
+    icons: [{ src: "/logo.png", sizes: "192x192", type: "image/png" }, { src: "/logo.png", sizes: "512x512", type: "image/png" }]
+  };
+  return new Response(JSON.stringify(m), { headers: { "Content-Type": "application/manifest+json", "Access-Control-Allow-Origin": "*" } });
+}
+// POST /admin/api/tenants/:id/panel-link → genera (si falta) y devuelve el
+// enlace del panel del dueño, para enviárselo al cliente. (Solo tú, el dev.)
+async function panelLink(id, origin, env) {
+  const t = await env.DB.prepare("SELECT id, panel_token, panel_pin_hash FROM tenants WHERE id=?").bind(id).first();
+  if (!t) return json({ error: "No encontrado" }, 404);
+  let token = t.panel_token;
+  if (!token) { token = _panelToken(); await env.DB.prepare("UPDATE tenants SET panel_token=? WHERE id=?").bind(token, id).run(); }
+  return json({ ok: true, link: origin + "/" + id + "/panel?k=" + token, tienePin: !!t.panel_pin_hash });
 }
 
 // ────────────────────────────────────────────────────────────────────
@@ -1200,7 +1326,7 @@ async function getMenuPublico(slug, env) {
 }
 
 // ---------- Enrutador (devuelve Response; la seguridad de cabeceras se aplica afuera) ----------
-async function route(request, env) {
+async function route(request, env, ctx) {
   const url = new URL(request.url);
   const path = url.pathname;
   const method = request.method;
@@ -1310,10 +1436,36 @@ async function route(request, env) {
     return await updatePedidoEstado(decodeURIComponent(pedidoMatch[1]), request, env);
   }
 
+  const panelLinkMatch = path.match(/^\/admin\/api\/tenants\/([^/]+)\/panel-link$/);
+  if (panelLinkMatch && method === "POST") {
+    return await panelLink(decodeURIComponent(panelLinkMatch[1]), url.origin, env);
+  }
+
   // ── Endpoints públicos del menú ──
   const crearPedidoMatch = path.match(/^\/menu\/([^/]+)\/pedido$/);
   if (crearPedidoMatch && method === "POST") {
-    return await crearPedido(decodeURIComponent(crearPedidoMatch[1]), request, env);
+    return await crearPedido(decodeURIComponent(crearPedidoMatch[1]), request, env, ctx);
+  }
+
+  // ── PANEL DEL DUEÑO (negocios sin POS): API por POST con token+PIN ──
+  const panelApi = path.match(/^\/panel\/([^/]+)\/(login|pedidos|estado|push-sub)$/);
+  if (panelApi && method === "POST") {
+    const s = decodeURIComponent(panelApi[1]);
+    if (panelApi[2] === "login")    return await panelLogin(s, request, env);
+    if (panelApi[2] === "pedidos")  return await panelPedidos(s, request, env);
+    if (panelApi[2] === "estado")   return await panelEstado(s, request, env);
+    if (panelApi[2] === "push-sub") return await panelPushSub(s, request, env);
+  }
+  // Manifest instalable del panel del dueño.
+  const panelMan = path.match(/^\/([^/]+)\/panel\/manifest$/);
+  if (panelMan && method === "GET" && !RESERVADOS.has(panelMan[1])) {
+    return await panelManifest(decodeURIComponent(panelMan[1]), url, env);
+  }
+  // Página del panel del dueño: /<slug>/panel → sirve panel.html
+  const panelPage = path.match(/^\/([^/]+)\/panel$/);
+  if (panelPage && method === "GET" && !RESERVADOS.has(panelPage[1])) {
+    const plantilla = await env.ASSETS.fetch(new URL("/panel.html", request.url));
+    return new Response(plantilla.body, plantilla);
   }
 
   const meseroMatch = path.match(/^\/menu\/([^/]+)\/mesero$/);
@@ -1375,9 +1527,9 @@ async function route(request, env) {
 
 // ---------- Router principal ----------
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     try {
-      const resp = await route(request, env);
+      const resp = await route(request, env, ctx);
       return harden(resp);
     } catch (err) {
       return harden(json({ error: "Error interno", detalle: String(err) }, 500));

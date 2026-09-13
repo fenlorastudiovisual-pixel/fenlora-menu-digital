@@ -211,6 +211,7 @@
         <div class="detalle-acciones">
           <a id="detalle-ver-sitio" target="_blank">Ver sitio ↗</a>
           <button class="secondary small" id="detalle-whatsapp">Enviar link por WhatsApp</button>
+          <button class="secondary small" id="detalle-panel">🔗 Panel del dueño</button>
           <button class="secondary small" id="detalle-suspender">Suspender</button>
           <button class="danger small" id="detalle-eliminar">Eliminar</button>
           <button class="secondary small" id="detalle-cerrar" onclick="cerrarEditor()">✕ Cerrar</button>
@@ -1172,6 +1173,24 @@ $('#detalle-whatsapp').addEventListener('click', () => {
   const link = `${location.origin}/${ACTIVO_ID}`;
   const mensaje = encodeURIComponent(`Hola ${t.nombre}! Aquí tienes el link de tu menú digital: ${link}`);
   window.open(`https://wa.me/${t.whatsapp}?text=${mensaje}`, '_blank');
+});
+
+$('#detalle-panel').addEventListener('click', async () => {
+  if (!ACTIVO_ID) return;
+  const t = TENANTS.find(x => x.id === ACTIVO_ID);
+  try {
+    const r = await fetch(`/admin/api/tenants/${encodeURIComponent(ACTIVO_ID)}/panel-link`, { method: 'POST' });
+    const d = await r.json();
+    if (!d || !d.link) { alert('No se pudo generar el enlace del panel.'); return; }
+    const nota = d.tienePin ? 'Ya tiene PIN creado.' : 'La primera vez le pedirá crear un PIN de 4 dígitos.';
+    const msg = `PANEL DE PEDIDOS de ${t ? t.nombre : ''} (para el dueño, negocios sin POS):\n\n${d.link}\n\n${nota}\nEn el celular puede usar "Agregar a inicio" para dejarlo como app.`;
+    if (t && t.whatsapp && confirm(msg + `\n\n¿Enviarlo por WhatsApp a ${t.whatsapp}?`)) {
+      const wa = encodeURIComponent(`Hola ${t.nombre}! Este es tu PANEL DE PEDIDOS para ver los pedidos de tu menú digital: ${d.link}  (la primera vez crea tu PIN de 4 dígitos, y puedes "Agregarlo a inicio" para tenerlo como app)`);
+      window.open(`https://wa.me/${t.whatsapp}?text=${wa}`, '_blank');
+    } else {
+      prompt('Copia el enlace del panel del dueño:', d.link);
+    }
+  } catch (e) { alert('No se pudo generar el enlace del panel.'); }
 });
 
 $('#detalle-suspender').addEventListener('click', async () => {
