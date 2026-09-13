@@ -66,3 +66,10 @@ const Carrito = {
     try { const m = new URLSearchParams(location.search).get('mesa'); if (m) this.setMesa(slug, m); } catch (e) {}
   }
 };
+
+// IMPORTANTE: `const Carrito` NO se cuelga solo de `window`. Varias páginas
+// (negocio.html, menu.html, checkout.html) preguntan `if (window.Carrito && ...)`
+// para saber si hay mesa/carrito; sin esta línea ese chequeo daba SIEMPRE falso
+// y, por ejemplo, el botón "Llamar al mesero" nunca aparecía en la mesa (QR).
+try { window.Carrito = Carrito; } catch (e) {}
+try { window.formatearPrecio = formatearPrecio; } catch (e) {}
