@@ -389,16 +389,19 @@ function demoFoto(nichoId, i) {
   const lock = (h % 900) + i * 13 + 1;
   return `https://loremflickr.com/640/480/${encodeURIComponent(kw)}?lock=${lock}`;
 }
-// Productos de muestra CON foto para que cada demo se vea completo y bonito.
-function demoSampleProducts(nichoId, preset) {
-  const cats = (preset.contenido_ejemplo && preset.contenido_ejemplo.categorias) || ["Menú"];
+// Cuántas categorías muestra cada demo (para que se vea real, no vacío).
+const DEMO_CATS = 5;
+// Productos de muestra CON foto. `cats` = lista de categorías a sembrar.
+function demoSampleProducts(nichoId, cats) {
+  cats = (cats && cats.length) ? cats : ["Menú"];
   const plantillas = [
     { suf: "de la casa", desc: "El favorito de la casa, listo para antojarte.", precio: 12000 },
-    { suf: "especial",   desc: "Nuestra versión especial, con el toque de la casa.", precio: 16000 }
+    { suf: "especial",   desc: "Nuestra versión especial, con el toque de la casa.", precio: 16000 },
+    { suf: "premium",    desc: "La opción premium, para los que quieren más.", precio: 20000 }
   ];
   const items = [];
   let idx = 0;
-  cats.forEach((cat, ci) => {   // TODAS las categorías del nicho (10), 2 productos c/u
+  cats.forEach((cat, ci) => {   // 3 productos por categoría
     plantillas.forEach((p, pi) => {
       items.push({
         categoria: cat,
@@ -412,20 +415,6 @@ function demoSampleProducts(nichoId, preset) {
     });
   });
   return items;
-}
-// Siembra productos SOLO en las categorías del demo que aún no tienen ninguno.
-async function sembrarProductosFaltantes(env, id, nichoId, preset) {
-  const { results } = await env.DB.prepare("SELECT DISTINCT categoria FROM productos WHERE tenant_id = ?").bind(id).all();
-  const existentes = new Set((results || []).map(r => (r.categoria || "").toLowerCase()));
-  const faltan = demoSampleProducts(nichoId, preset).filter(p => !existentes.has((p.categoria || "").toLowerCase()));
-  if (!faltan.length) return 0;
-  await env.DB.batch(faltan.map(pr =>
-    env.DB.prepare(
-      `INSERT INTO productos (tenant_id, categoria, nombre, descripcion, precio, destacado, orden, imagen_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(id, pr.categoria, pr.nombre, pr.descripcion, pr.precio, pr.destacado, pr.orden, pr.imagen_url)
-  ));
-  return faltan.length;
 }
 // Rellena fotos en productos de un demo que aún no tengan imagen (idempotente).
 async function asegurarFotosDemo(env, id, nichoId) {
@@ -445,13 +434,14 @@ async function generarDemos(env) {
   for (const [nichoId, preset] of Object.entries(NICHOS)) {
     const id = `demo-${nichoId.replace(/_/g, "-")}`;
     const existe = await env.DB.prepare("SELECT id FROM tenants WHERE id = ?").bind(id).first();
-    const contenido = { ...preset.contenido_ejemplo, nombre_negocio: `Demo — ${preset.label}` };
+    // El demo muestra las primeras 5 categorías del nicho (para verse real, no vacío).
+    const cats5 = (preset.contenido_ejemplo.categorias || []).slice(0, DEMO_CATS);
+    const contenido = { ...preset.contenido_ejemplo, categorias: cats5, nombre_negocio: `Demo — ${preset.label}` };
 
     if (existe) {
-      // Ya existía (es un DEMO): refresca categorías al set nuevo (10) y REEMPLAZA
-      // sus productos de muestra por los nuevos con foto. (Solo afecta demos, no
-      // negocios reales; el botón solo toca los id demo-*.)
-      const prods0 = demoSampleProducts(nichoId, preset);
+      // Ya existía (es un DEMO): refresca categorías a las 5 y REEMPLAZA sus productos
+      // de muestra. (Solo afecta demos id demo-*, nunca negocios reales.)
+      const prods0 = demoSampleProducts(nichoId, cats5);
       await env.DB.batch([
         env.DB.prepare("UPDATE tenants SET contenido = ?, es_demo = 1 WHERE id = ?").bind(JSON.stringify(contenido), id),
         env.DB.prepare("DELETE FROM productos WHERE tenant_id = ?").bind(id),
@@ -472,8 +462,8 @@ async function generarDemos(env) {
       JSON.stringify(preset.tema), JSON.stringify(contenido), "COP"
     ).run();
 
-    // Productos de muestra CON foto temática, en las 10 categorías
-    const prods = demoSampleProducts(nichoId, preset);
+    // Productos de muestra CON foto temática, en las 5 categorías
+    const prods = demoSampleProducts(nichoId, cats5);
     if (prods.length) {
       await env.DB.batch(prods.map(pr =>
         env.DB.prepare(

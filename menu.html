@@ -233,8 +233,9 @@
     function pintarChips(){
       const wrap = document.getElementById('catChips');
       wrap.innerHTML = CATS.map(c => {
-        // La categoría se representa con un ÍCONO vectorial (no con foto de producto).
-        const ic = (window.iconoCategoriaSVG ? window.iconoCategoriaSVG(c.nombre) : ICON_PH).replace('<svg ', '<svg class="cat-ic-svg" ');
+        // La categoría se representa con un ÍCONO vectorial (respeta el elegido en el admin).
+        const cfgIc = (TENANT_DATA && TENANT_DATA.contenido && TENANT_DATA.contenido.categorias_iconos) || null;
+        const ic = (window.iconoCategoriaSVGCfg ? window.iconoCategoriaSVGCfg(c.nombre, cfgIc) : ICON_PH).replace('<svg ', '<svg class="cat-ic-svg" ');
         return `<button class="cat ${c.nombre===CAT_ACTIVA?'on':''}" data-cat="${encodeURIComponent(c.nombre)}">
           <span class="bubble">${ic}</span><span>${c.nombre}</span></button>`;
       }).join('');

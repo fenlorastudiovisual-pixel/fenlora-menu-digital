@@ -169,4 +169,15 @@
   window.iconoCategoriaSVG = function (nombre) {
     return window.iconoMenuSVG(window.iconoIdCategoria(nombre));
   };
+  // Igual, pero respeta un ícono elegido a mano en el admin (cfg = {categoria: id}).
+  window.iconoIdCategoriaCfg = function (nombre, cfg) {
+    if (cfg && typeof cfg === 'object') {
+      var id = cfg[nombre];
+      if (id && ICONOS[id]) return id;
+    }
+    return window.iconoIdCategoria(nombre);
+  };
+  window.iconoCategoriaSVGCfg = function (nombre, cfg) {
+    return window.iconoMenuSVG(window.iconoIdCategoriaCfg(nombre, cfg));
+  };
 })();

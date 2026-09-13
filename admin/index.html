@@ -72,6 +72,12 @@
   .subtab{background:none;border:none;color:var(--muted);padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;}
   .subtab.active{color:var(--accent);border-color:var(--accent);}
   .subpanel{display:none;} .subpanel.active{display:block;}
+  /* Selector de íconos por categoría */
+  .cat-ic-row{display:flex;align-items:center;gap:10px;margin:7px 0;flex-wrap:wrap;}
+  .cat-ic-box{width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;background:var(--panel2);border:1px solid var(--line);border-radius:9px;flex:none;}
+  .cat-ic-box svg.cat-ic-prev{width:22px;height:22px;color:var(--accent);}
+  .cat-ic-row .cat-ic-name{min-width:130px;font-weight:600;}
+  .cat-ic-row select{max-width:230px;}
 
   table{width:100%;border-collapse:collapse;}
   th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);font-size:13px;}
@@ -125,6 +131,7 @@
   .preview-actions button{font-size:11.5px;padding:6px 10px;}
   .preview-label{text-align:center;color:var(--muted);font-size:11.5px;margin-bottom:8px;}
 </style>
+<script src="/iconos.js"></script>
 </head>
 <body>
 <header>
@@ -504,6 +511,13 @@
       </div>
 
       <div id="sub-productos" class="subpanel">
+        <div class="seccion" id="cat-iconos-wrap">
+          <h3>🎨 Ícono de cada categoría</h3>
+          <p class="hint">Cada categoría toma un ícono automáticamente según su nombre. Si quieres otro, elígelo en la lista y guarda. Aplica a este menú.</p>
+          <div id="cat-iconos"><p class="empty">Elige un negocio para ver sus categorías.</p></div>
+          <button type="button" onclick="guardarIconosCat()" style="margin-top:10px;">Guardar íconos</button>
+          <div class="msg" id="cat-iconos-msg"></div>
+        </div>
         <div id="pos-productos-aviso" class="seccion" style="display:none;border:1px solid var(--line);background:rgba(255,180,0,.06);">
           <h3>🔌 Productos gestionados por el POS</h3>
           <p class="hint" style="margin:0;">Este negocio es <strong>"Con POS"</strong>: su catálogo (productos, precios, disponibilidad) se alimenta del sistema POS de Fenlora por API. Por eso la edición manual de productos está desactivada aquí, para evitar que dos fuentes se pisen. <br><em>La conexión con el POS todavía está pendiente de enchufar.</em> Si necesitas manejar los productos desde este panel, cambia el "Tipo de negocio" en la pestaña Datos.</p>
@@ -556,7 +570,7 @@
         Un negocio de muestra por cada nicho del catálogo, con URL fija (<code>/demo-&lt;nicho&gt;</code>),
         para mandarle el link a un prospecto y que vea cómo se vería su rubro sin crear nada real todavía.
       </p>
-      <button class="secondary" id="btnGenerarDemos">Generar demos que falten</button>
+      <button class="secondary" id="btnGenerarDemos">Generar / actualizar demos</button>
       <div class="msg" id="demos-msg"></div>
       <div id="demo-picker"></div>
     </div>
@@ -986,6 +1000,7 @@ async function seleccionarNegocio(id) {
   const r = await fetch(`/admin/api/tenants/${encodeURIComponent(id)}`);
   const t = await r.json();
   NEGOCIO_ACTUAL = t; // guardamos el objeto completo (incluye "contenido") para no pisarlo al guardar
+  PRODUCTOS_CACHE = []; renderIconosCat();  // arranca el selector de íconos (se refina al cargar productos)
 
   $('#panel-detalle').style.display = 'block';
   $('#detalle-nombre').textContent = t.nombre;
@@ -1344,6 +1359,7 @@ async function cargarProductos(tenantId) {
   const { productos } = await r.json();
   PRODUCTOS_CACHE = productos;
   pintarDestacados();
+  renderIconosCat();
 
   if (!productos.length) { wrap.innerHTML = '<p class="empty">Este negocio todavía no tiene productos.</p>'; return; }
 
@@ -1515,6 +1531,66 @@ async function actualizarEstadoPedido(id, estado) {
     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado })
   });
   cargarPedidos(ACTIVO_ID);
+}
+
+// ---------------- ÍCONOS DE CATEGORÍA ----------------
+function _catList() {
+  const cont = (NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.contenido) || {};
+  const seen = new Set(), cats = [];
+  (cont.categorias || []).forEach(c => { if (c && !seen.has(c)) { seen.add(c); cats.push(c); } });
+  (PRODUCTOS_CACHE || []).forEach(p => { const c = p.categoria; if (c && !seen.has(c)) { seen.add(c); cats.push(c); } });
+  return cats;
+}
+function renderIconosCat() {
+  const wrap = document.getElementById('cat-iconos'); if (!wrap) return;
+  if (!NEGOCIO_ACTUAL) { wrap.innerHTML = '<p class="empty">Elige un negocio para ver sus categorías.</p>'; return; }
+  const overrides = (NEGOCIO_ACTUAL.contenido && NEGOCIO_ACTUAL.contenido.categorias_iconos) || {};
+  const cats = _catList();
+  if (!cats.length) { wrap.innerHTML = '<p class="empty">Agrega productos o categorías para elegir sus íconos.</p>'; return; }
+  const ICS = window.ICONOS_MENU || {};
+  const optsHtml = (sel) => {
+    let o = '<option value="">(automático)</option>';
+    Object.keys(ICS).forEach(id => { o += '<option value="' + id + '"' + (sel === id ? ' selected' : '') + '>' + (ICS[id].label || id) + '</option>'; });
+    return o;
+  };
+  wrap.innerHTML = cats.map(c => {
+    const cur = overrides[c] || '';
+    const svg = (window.iconoCategoriaSVGCfg ? window.iconoCategoriaSVGCfg(c, overrides) : '').replace('<svg ', '<svg class="cat-ic-prev" ');
+    const key = encodeURIComponent(c);
+    return '<div class="cat-ic-row">'
+      + '<span class="cat-ic-box" data-catbox="' + key + '">' + svg + '</span>'
+      + '<span class="cat-ic-name">' + c + '</span>'
+      + '<select data-caticon="' + key + '" onchange="_previewCatIcon(this)">' + optsHtml(cur) + '</select>'
+      + '</div>';
+  }).join('');
+}
+function _previewCatIcon(sel) {
+  const cat = decodeURIComponent(sel.dataset.caticon);
+  const box = document.querySelector('.cat-ic-box[data-catbox="' + encodeURIComponent(cat) + '"]');
+  if (!box) return;
+  const id = sel.value;
+  const svg = id
+    ? (window.iconoMenuSVG ? window.iconoMenuSVG(id) : '')
+    : (window.iconoCategoriaSVG ? window.iconoCategoriaSVG(cat) : '');
+  box.innerHTML = svg.replace('<svg ', '<svg class="cat-ic-prev" ');
+}
+async function guardarIconosCat() {
+  if (!ACTIVO_ID || !NEGOCIO_ACTUAL) return;
+  const msg = document.getElementById('cat-iconos-msg'); if (msg) { msg.textContent = ''; msg.className = 'msg'; }
+  const map = {};
+  document.querySelectorAll('[data-caticon]').forEach(sel => {
+    const cat = decodeURIComponent(sel.dataset.caticon);
+    if (sel.value) map[cat] = sel.value;   // solo guardamos los que fijaste a mano
+  });
+  const contenido = { ...(NEGOCIO_ACTUAL.contenido || {}), categorias_iconos: map };
+  try {
+    const r = await fetch('/admin/api/tenants/' + encodeURIComponent(ACTIVO_ID), {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contenido })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    NEGOCIO_ACTUAL.contenido = contenido;
+    if (msg) { msg.textContent = 'Íconos guardados ✓'; msg.className = 'msg ok'; }
+  } catch (e) { if (msg) { msg.textContent = 'No se pudo guardar: ' + (e.message || e); msg.className = 'msg err'; } }
 }
 
 // ---------------- DEMOS ----------------
