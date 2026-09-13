@@ -760,6 +760,26 @@ async function llamarMesero(slug, request, env) {
   }
 }
 
+// ---------- /menu/:slug/estado?pedido=<clave> (público, solo modo POS) ----------
+// El cliente consulta si su pedido online ya está listo. Devuelve también el
+// "punto de recogida" configurado en el menú (Barra/Caja/…) para el aviso.
+async function estadoPedido(slug, url, env) {
+  const t = await env.DB.prepare("SELECT id, modo_pos, pos_api_key, contenido FROM tenants WHERE id = ? AND activo = 1").bind(slug).first();
+  if (!t) return json({ error: "Negocio no encontrado" }, 404);
+  if (!t.modo_pos || !t.pos_api_key) return json({ error: "no_pos" }, 400);
+  const clave = (url.searchParams.get("pedido") || "").trim();
+  if (!clave) return json({ error: "falta_pedido" }, 400);
+  let recogida = "la caja";
+  try { const c = t.contenido ? JSON.parse(t.contenido) : {}; if (c && c.recogida_texto) recogida = String(c.recogida_texto).slice(0, 40); } catch (_) {}
+  try {
+    const r = await posRpc(env, "menu_estado_pedido", { p_api_key: t.pos_api_key, p_clave: clave });
+    const d = (r && typeof r === "object") ? r : {};
+    return json({ estado: d.estado || "recibido", listo: !!d.listo, entregado: !!d.entregado, existe: d.existe !== false, recogida });
+  } catch (e) {
+    return json({ error: "pos_error", detalle: String(e.message || e) }, 502);
+  }
+}
+
 // ────────────────────────────────────────────────────────────────────
 // CEREBRO DEL BOT (IA) · POST /menu/:slug/bot
 // El cliente escribe libre; una IA (Cloudflare Workers AI) entiende el
@@ -1241,6 +1261,12 @@ async function route(request, env) {
   const meseroMatch = path.match(/^\/menu\/([^/]+)\/mesero$/);
   if (meseroMatch && method === "POST") {
     return await llamarMesero(decodeURIComponent(meseroMatch[1]), request, env);
+  }
+
+  // ── Estado de un pedido online (¿ya está listo?) ──
+  const estadoMatch = path.match(/^\/menu\/([^/]+)\/estado$/);
+  if (estadoMatch && method === "GET") {
+    return await estadoPedido(decodeURIComponent(estadoMatch[1]), url, env);
   }
 
   // ── Cerebro del bot (IA) ──
