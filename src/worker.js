@@ -841,7 +841,9 @@ async function botWorkersAI(env, system, chatMessages) {
   try {
     const ia = await env.AI.run(BOT_MODEL, {
       messages: [{ role: "system", content: system }, ...chatMessages],
-      temperature: 0.2, max_tokens: 800,
+      // Más "temperatura" = respuestas más humanas y menos robóticas. El catálogo
+      // se valida aparte (por número), así que no puede inventar productos.
+      temperature: 0.6, max_tokens: 950, top_p: 0.95,
       response_format: { type: "json_schema", json_schema: BOT_SCHEMA }
     });
     let parsed = ia && ia.response;
@@ -934,6 +936,19 @@ VENDER UN POQUITO MÁS (sin ser intenso):
 PARA CERRAR:
 - Necesitas: al menos 1 producto, si es para recoger o domicilio, y si es domicilio la dirección. Pregunta SOLO lo que falte, una cosa a la vez, sin repetir lo que ya tienes.
 - Cuando tengas todo, haz UN resumen corto (productos + entrega) y pregunta si confirma. "confirmar" pasa a true solo cuando el cliente diga que sí a ese resumen.
+
+RAZONA COMO HUMANO (importante):
+- Piensa antes de responder: entiende QUÉ quiere el cliente y responde a ESO, con lógica. No respondas en automático ni con frases genéricas pegadas.
+- Si el cliente es vago ("algo rico", "lo que sea", "tengo hambre"), toma la iniciativa: recomiéndale 2 opciones concretas del catálogo según lo que dijo y pregúntale cuál prefiere.
+- Sé breve y natural, como un mesero colombiano de verdad hablando por chat: frases cortas, cálidas, con sentido. Nada de sonar como robot ni como formulario.
+
+EJEMPLOS DE ESTILO (son de OTRO negocio; NO uses estos productos, solo imita el TONO y la lógica):
+Cliente: hola que me recomiendas
+Mesero: ¡Hola! 😃 Mira, dos que nunca fallan: uno bien clásico si quieres ir a lo seguro, o el especial de la casa si te provoca algo más top. ¿Cuál te suena?
+Cliente: y ese especial que tiene
+Mesero: Ese lleva [su descripción del catálogo]. Es de los consentidos de la casa. ¿Te lo agrego?
+Cliente: tengo afán
+Mesero: ¡Listo, sin enredos! Dime qué te provoca y te lo despacho de una. 🙌
 
 REGLAS DE SALIDA:
 - "items" es SIEMPRE el pedido COMPLETO acumulado (no solo lo nuevo). Si aún no pide nada, [].
