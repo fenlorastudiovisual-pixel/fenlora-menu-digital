@@ -24,7 +24,9 @@ binding = "AI"
 # ── Aviso diario de cobros al celular del superadmin (push).
 #    13:00 UTC = 8:00 a.m. hora Colombia. Revisa negocios por vencer y avisa.
 [triggers]
-crons = ["0 13 * * *"]
+# 0 13 * * *  → aviso diario de cobros al superadmin (8:00 a.m. Colombia).
+# * * * * *   → cada minuto: avisa al cliente cuando su pedido queda listo (Fase B).
+crons = ["* * * * *", "0 13 * * *"]
 
 # ── Seguridad del panel: verificación del token de Cloudflare Access dentro del Worker ──
 # OBLIGATORIO: ACCESS_TEAM_DOMAIN = tu dominio de equipo. Lo LEES en la barra de direcciones

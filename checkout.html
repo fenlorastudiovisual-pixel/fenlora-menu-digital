@@ -320,7 +320,8 @@
               <div class="ped-track-dot"></div>
               <div class="ped-track-txt" id="pedidoTrackTxt">${esDom ? 'Preparando tu pedido…' : 'Preparando tu pedido…'}</div>
             </div>
-            <p class="ped-track-hint">Deja esta pantalla abierta y te avisamos aquí mismo con una alerta cuando esté listo. 🔔</p>
+            <p class="ped-track-hint">Te avisamos aquí mismo con una alerta cuando esté listo. Y si activas el botón de abajo, también te llega al celular <b>aunque cierres esta pantalla</b>. 🔔</p>
+            <button id="pushBtn" class="cta" style="margin-bottom:8px" onclick="activarAvisoPush('${pedidoId}')">🔔 Avísame aunque cierre esto</button>
             <a class="cta" href="/${SLUG}">VOLVER AL MENÚ</a>
           </div>`;
         iniciarSeguimiento(pedidoId, esDom);
@@ -395,6 +396,42 @@
       };
       tick();
       _seguirTimer=setInterval(tick, 6000);   // revisa cada 6 segundos
+    }
+    // ── AVISO PUSH (FASE B): le llega al celular aunque cierre el menú ──
+    function _urlB64ToU8(base64String){
+      const padding='='.repeat((4 - base64String.length % 4) % 4);
+      const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+      const raw=atob(base64); const out=new Uint8Array(raw.length);
+      for(let i=0;i<raw.length;i++) out[i]=raw.charCodeAt(i);
+      return out;
+    }
+    async function activarAvisoPush(clave){
+      const btn=document.getElementById('pushBtn');
+      const setTxt=(t,dis)=>{ if(btn){ btn.textContent=t; btn.disabled=!!dis; } };
+      try{
+        if(!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)){
+          setTxt('Tu navegador no soporta avisos 😕', true); return;
+        }
+        setTxt('Activando…', true);
+        const perm = await Notification.requestPermission();
+        if(perm!=='granted'){ setTxt('🔔 Activa los avisos (permiso denegado)', false); return; }
+        const reg = await navigator.serviceWorker.register('/sw.js');
+        await navigator.serviceWorker.ready;
+        const kr = await fetch('/avisos/vapidkey').then(r=>r.json()).catch(()=>({}));
+        const pub = kr && kr.key;
+        if(!pub){ setTxt('No se pudo activar (config) ', false); return; }
+        let sub = await reg.pushManager.getSubscription();
+        if(!sub){ sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:_urlB64ToU8(pub) }); }
+        const resp = await fetch(`/menu/${SLUG}/push-pedido`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ clave, endpoint: sub.endpoint })
+        });
+        if(!resp.ok) throw new Error('no_guardo');
+        setTxt('✅ Te avisaremos al celular cuando esté listo', true);
+        if(btn) btn.style.opacity='.9';
+      }catch(e){
+        setTxt('🔔 Avísame aunque cierre esto', false);
+      }
     }
     function mostrarAlertaListo(recogida, esDom){
       _beepListo();

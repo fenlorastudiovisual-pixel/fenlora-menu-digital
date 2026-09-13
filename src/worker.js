@@ -780,6 +780,64 @@ async function estadoPedido(slug, url, env) {
   }
 }
 
+// ---------- /menu/:slug/push-pedido (público) ----------
+// Guarda la suscripción push del celular del cliente asociada a su pedido,
+// para avisarle cuando esté listo AUNQUE haya cerrado el menú. Sin payload:
+// solo guardamos el endpoint (el mensaje lo pone fijo el Service Worker).
+async function guardarPushPedido(slug, request, env) {
+  const t = await env.DB.prepare("SELECT id, modo_pos, pos_api_key FROM tenants WHERE id = ? AND activo = 1").bind(slug).first();
+  if (!t) return json({ error: "Negocio no encontrado" }, 404);
+  if (!t.modo_pos || !t.pos_api_key) return json({ error: "no_pos" }, 400);
+  let body = {}; try { body = await request.json(); } catch {}
+  const clave = (body.clave != null ? String(body.clave) : "").trim();
+  const endpoint = (body.endpoint != null ? String(body.endpoint) : "").trim();
+  if (!clave || !endpoint || !/^https:\/\//.test(endpoint)) return json({ error: "datos_invalidos" }, 400);
+  try {
+    await env.DB.prepare(
+      "INSERT OR IGNORE INTO push_pedidos (slug, clave, endpoint) VALUES (?, ?, ?)"
+    ).bind(slug, clave, endpoint).run();
+    return json({ ok: true });
+  } catch (e) {
+    return json({ error: "db_error", detalle: String(e.message || e) }, 500);
+  }
+}
+
+// Cron (cada minuto): revisa los pedidos con aviso push pendiente; cuando el
+// POS dice que están "listos", le manda el timbre al celular del cliente.
+async function tickPedidosListos(env) {
+  if (!env.VAPID_PRIVATE_JWK || !env.VAPID_PUBLIC) return;
+  // Expira los que ya llevan más de 3 horas sin resolverse (deja de consultarlos).
+  try { await env.DB.prepare("UPDATE push_pedidos SET entregado=2 WHERE entregado=0 AND creado < datetime('now','-3 hours')").run(); } catch (_) {}
+  let pend = [];
+  try {
+    const { results } = await env.DB.prepare("SELECT DISTINCT slug, clave FROM push_pedidos WHERE entregado=0").all();
+    pend = results || [];
+  } catch (_) { return; }
+  for (const row of pend) {
+    try {
+      const t = await env.DB.prepare("SELECT pos_api_key, modo_pos FROM tenants WHERE id=? AND activo=1").bind(row.slug).first();
+      if (!t || !t.modo_pos || !t.pos_api_key) continue;
+      const r = await posRpc(env, "menu_estado_pedido", { p_api_key: t.pos_api_key, p_clave: row.clave });
+      const d = (r && typeof r === "object") ? r : {};
+      const listo = d.listo === true || d.estado === "listo";
+      const terminado = d.entregado === true || d.estado === "entregado" || d.existe === false;
+      if (listo) {
+        const subs = await env.DB.prepare("SELECT endpoint FROM push_pedidos WHERE slug=? AND clave=? AND entregado=0").bind(row.slug, row.clave).all();
+        for (const s of (subs.results || [])) {
+          try {
+            const st = await enviarPush(s.endpoint, env);
+            if (st === 404 || st === 410) { await env.DB.prepare("DELETE FROM push_pedidos WHERE endpoint=?").bind(s.endpoint).run().catch(() => {}); }
+          } catch (_) {}
+        }
+        await env.DB.prepare("UPDATE push_pedidos SET entregado=1 WHERE slug=? AND clave=?").bind(row.slug, row.clave).run().catch(() => {});
+      } else if (terminado) {
+        // ya se entregó/cerró sin que alcanzáramos a avisar: deja de consultar.
+        await env.DB.prepare("UPDATE push_pedidos SET entregado=1 WHERE slug=? AND clave=?").bind(row.slug, row.clave).run().catch(() => {});
+      }
+    } catch (_) {}
+  }
+}
+
 // ────────────────────────────────────────────────────────────────────
 // CEREBRO DEL BOT (IA) · POST /menu/:slug/bot
 // El cliente escribe libre; una IA (Cloudflare Workers AI) entiende el
@@ -1269,6 +1327,11 @@ async function route(request, env) {
     return await estadoPedido(decodeURIComponent(estadoMatch[1]), url, env);
   }
 
+  const pushPedidoMatch = path.match(/^\/menu\/([^/]+)\/push-pedido$/);
+  if (pushPedidoMatch && method === "POST") {
+    return await guardarPushPedido(decodeURIComponent(pushPedidoMatch[1]), request, env);
+  }
+
   // ── Cerebro del bot (IA) ──
   const botMatch = path.match(/^\/menu\/([^/]+)\/bot$/);
   if (botMatch && method === "POST") {
@@ -1325,8 +1388,14 @@ export default {
   async scheduled(event, env, ctx) {
     ctx.waitUntil((async () => {
       try {
-        const r = await posRpc(env, "avisos_por_vencer", { p_dias: 3 });
-        if (r && r.n && r.n > 0) await dispararAvisos(env);
+        if (event.cron === "0 13 * * *") {
+          // Cron diario 13:00 UTC: avisa al superadmin de cobros por vencer.
+          const r = await posRpc(env, "avisos_por_vencer", { p_dias: 3 });
+          if (r && r.n && r.n > 0) await dispararAvisos(env);
+        } else {
+          // Cron cada minuto: avisa al cliente cuando su pedido queda listo.
+          await tickPedidosListos(env);
+        }
       } catch (_) {}
     })());
   }
