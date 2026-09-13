@@ -959,15 +959,12 @@ ${menuTxt}`;
 
   // 7) Llamar a la IA. Preferimos Claude (mejor mesero); si no hay key, usamos la IA
   //    incluida en Cloudflare (Workers AI) como respaldo. Ambas devuelven el mismo JSON.
+  // Mismo cerebro para TODOS (incluidos los demos): Claude si hay key (mejor mesero),
+  // y la IA gratis de Cloudflare solo como respaldo. Así los demos responden igual de bien
+  // que dulce-cafe. El costo por conversación de demo es mínimo.
   let parsed = null;
-  if (esDemo) {
-    // Demo: usa la IA GRATIS de Cloudflare (Workers AI); Claude solo como respaldo.
-    if (env.AI) parsed = await botWorkersAI(env, sys, chatMessages);
-    if (!parsed && env.ANTHROPIC_API_KEY) parsed = await botClaude(env, sys, chatMessages);
-  } else {
-    if (env.ANTHROPIC_API_KEY) parsed = await botClaude(env, sys, chatMessages);
-    if (!parsed && env.AI) parsed = await botWorkersAI(env, sys, chatMessages);
-  }
+  if (env.ANTHROPIC_API_KEY) parsed = await botClaude(env, sys, chatMessages);
+  if (!parsed && env.AI) parsed = await botWorkersAI(env, sys, chatMessages);
   if (!parsed) parsed = {};
 
   // 8) Validar items contra el catálogo REAL (por número) y recalcular total (regla de oro)
