@@ -292,6 +292,26 @@
                     <p class="hint" style="margin-top:6px">Cantidad de pedidos que el bot puede tomar al mes para este negocio. Al llegar al tope, el bot deja de cerrar pedidos hasta el otro mes (o hasta que subas el plan). El contador se reinicia solo cada mes. Déjalo vacío para ilimitado.</p>
                   </div>
                 </div>
+                <div class="row">
+                  <div>
+                    <label>🤖 Bot de pedidos por chat — negocios SIN POS</label>
+                    <label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;margin-top:4px">
+                      <input id="d-bot-activo" type="checkbox" style="width:auto"> Activar el bot de pedidos por chat en este negocio
+                    </label>
+                    <p class="hint" style="margin-top:6px">Para negocios que NO usan el POS. Con esto activado, su menú muestra el botón "🤖 Pedir con IA" y el pedido que cierre el bot le llega al <strong>Panel del dueño</strong>. (En negocios "Con POS" el bot ya funciona con el catálogo del POS.)</p>
+                  </div>
+                </div>
+                <div class="row">
+                  <div>
+                    <label>📲 API de WhatsApp (opcional) <span style="color:#8a8a95;font-weight:400">— por si NO quieren el WhatsApp nativo</span></label>
+                    <label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;margin:4px 0 8px">
+                      <input id="d-wa-api-activo" type="checkbox" style="width:auto"> Usar la API de WhatsApp Business en vez del enlace nativo (wa.me)
+                    </label>
+                    <input id="d-wa-phone-id" placeholder="Phone Number ID (de Meta / WhatsApp Business API)">
+                    <input id="d-wa-token" placeholder="Token de acceso (permanente)" style="margin-top:8px">
+                    <p class="hint" style="margin-top:6px">Por ahora esto solo <strong>guarda</strong> las credenciales; el envío automático se cablea después (cuando el negocio tenga su cuenta de Meta aprobada). Al activarse enviará el pedido al negocio y la confirmación al cliente por WhatsApp.</p>
+                  </div>
+                </div>
                 <p class="hint">Cambia qué se muestra en el home y de dónde salen los productos. "Autónomo · Ambos" es el valor de siempre — no cambia nada si no lo tocas. "Con POS" oculta la hamburguesa, resalta "Llamar al mesero" y bloquea la edición manual de productos (vienen del POS por API).</p>
                 <div class="row">
                   <div>
@@ -1021,6 +1041,10 @@ async function seleccionarNegocio(id) {
   if ($('#d-online-domicilio')) $('#d-online-domicilio').checked = !!(t.pos_online_domicilio);
   if ($('#d-recogida')) $('#d-recogida').value = (t.contenido && t.contenido.recogida_texto) || '';
   if ($('#d-bot-limite')) $('#d-bot-limite').value = (t.bot_limite_pedidos == null) ? '' : t.bot_limite_pedidos;
+  if ($('#d-bot-activo')) $('#d-bot-activo').checked = !!(t.bot_activo);
+  if ($('#d-wa-api-activo')) $('#d-wa-api-activo').checked = !!(t.wa_api_activo);
+  if ($('#d-wa-phone-id')) $('#d-wa-phone-id').value = t.wa_api_phone_id || '';
+  if ($('#d-wa-token')) $('#d-wa-token').value = t.wa_api_token || '';
   if ($('#d-bot-uso')) {
     var _mesAct = new Date().toISOString().slice(0,7);
     var _uso = (t.bot_mes === _mesAct) ? (t.bot_pedidos_mes || 0) : 0;
@@ -1328,6 +1352,10 @@ $('#form-datos').addEventListener('submit', async (e) => {
       pos_online_recoger: ($('#d-online-recoger') && $('#d-online-recoger').checked) ? 1 : 0,
       pos_online_domicilio: ($('#d-online-domicilio') && $('#d-online-domicilio').checked) ? 1 : 0,
       bot_limite_pedidos: ($('#d-bot-limite') && $('#d-bot-limite').value.trim() !== '' && Number($('#d-bot-limite').value) > 0) ? Number($('#d-bot-limite').value) : null,
+      bot_activo: ($('#d-bot-activo') && $('#d-bot-activo').checked) ? 1 : 0,
+      wa_api_activo: ($('#d-wa-api-activo') && $('#d-wa-api-activo').checked) ? 1 : 0,
+      wa_api_phone_id: ($('#d-wa-phone-id') ? $('#d-wa-phone-id').value.trim() : '') || null,
+      wa_api_token: ($('#d-wa-token') ? $('#d-wa-token').value.trim() : '') || null,
       tema: {
         ...(NEGOCIO_ACTUAL && NEGOCIO_ACTUAL.tema),
         fondo: $('#d-color-fondo').value,

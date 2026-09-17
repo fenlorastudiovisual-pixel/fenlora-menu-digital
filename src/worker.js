@@ -316,10 +316,16 @@ async function updateTenant(id, request, env) {
   const bot_limite_pedidos = (body.bot_limite_pedidos !== undefined)
     ? ((body.bot_limite_pedidos === null || body.bot_limite_pedidos === "" || Number(body.bot_limite_pedidos) <= 0) ? null : parseInt(body.bot_limite_pedidos, 10))
     : (row.bot_limite_pedidos == null ? null : row.bot_limite_pedidos);
+  // Bot de pedidos por chat para negocios SIN POS (on/off).
+  const bot_activo = (body.bot_activo != null) ? (body.bot_activo ? 1 : 0) : (row.bot_activo ? 1 : 0);
+  // Espacio para la API de WhatsApp (por ahora solo se guarda; el envío se cablea después).
+  const wa_api_phone_id = (body.wa_api_phone_id !== undefined) ? (body.wa_api_phone_id || null) : (row.wa_api_phone_id || null);
+  const wa_api_token = (body.wa_api_token !== undefined) ? (body.wa_api_token || null) : (row.wa_api_token || null);
+  const wa_api_activo = (body.wa_api_activo != null) ? (body.wa_api_activo ? 1 : 0) : (row.wa_api_activo ? 1 : 0);
 
   await env.DB.prepare(
-    `UPDATE tenants SET nombre=?, whatsapp=?, logo_url=?, tema=?, contenido=?, activo=?, pago_url=?, moneda=?, precio_mensual=?, dia_cobro=?, modo_pos=?, pos_api_key=?, pos_autopedido=?, pos_online_recoger=?, pos_online_domicilio=?, bot_limite_pedidos=? WHERE id=?`
-  ).bind(nombre, whatsapp, logo_url, tema, contenido, activo, pago_url, moneda, precio_mensual, dia_cobro, modo_pos, pos_api_key, pos_autopedido, pos_online_recoger, pos_online_domicilio, bot_limite_pedidos, id).run();
+    `UPDATE tenants SET nombre=?, whatsapp=?, logo_url=?, tema=?, contenido=?, activo=?, pago_url=?, moneda=?, precio_mensual=?, dia_cobro=?, modo_pos=?, pos_api_key=?, pos_autopedido=?, pos_online_recoger=?, pos_online_domicilio=?, bot_limite_pedidos=?, bot_activo=?, wa_api_phone_id=?, wa_api_token=?, wa_api_activo=? WHERE id=?`
+  ).bind(nombre, whatsapp, logo_url, tema, contenido, activo, pago_url, moneda, precio_mensual, dia_cobro, modo_pos, pos_api_key, pos_autopedido, pos_online_recoger, pos_online_domicilio, bot_limite_pedidos, bot_activo, wa_api_phone_id, wa_api_token, wa_api_activo, id).run();
 
   return json({ ok: true });
 }
@@ -1093,10 +1099,10 @@ async function botWorkersAI(env, system, chatMessages) {
   } catch (e) { console.warn("WorkersAI fail:", String(e)); return null; }
 }
 
-async function botChat(slug, request, env) {
+async function botChat(slug, request, env, ctx) {
   // 1) Negocio + que sea modo POS con key
   const t = await env.DB.prepare(
-    "SELECT id, nombre, modo_pos, pos_api_key, pos_online_recoger, pos_online_domicilio, moneda FROM tenants WHERE id = ? AND activo = 1"
+    "SELECT id, nombre, modo_pos, pos_api_key, pos_online_recoger, pos_online_domicilio, moneda, bot_activo FROM tenants WHERE id = ? AND activo = 1"
   ).bind(slug).first();
   if (!t) return json({ error: "Negocio no encontrado" }, 404);
   // Límite de pedidos del bot (columnas de fase 10). Se leen aparte y con protección:
@@ -1108,7 +1114,9 @@ async function botChat(slug, request, env) {
   } catch (_) { /* columnas no existen aún → sin límite */ }
   // Los DEMOS (id demo-*) usan el bot GRATIS (Workers AI) con el catálogo local, sin POS.
   const esDemo = /^demo-/.test(slug);
-  if (!esDemo && (!t.modo_pos || !t.pos_api_key)) return json({ error: "no_pos" }, 400);
+  const usarPos = !!(t.modo_pos && t.pos_api_key);
+  const botAutonomo = !esDemo && !usarPos && !!t.bot_activo;   // negocio sin POS con el bot encendido
+  if (!esDemo && !usarPos && !botAutonomo) return json({ error: "bot_off" }, 400);
   if (!env.AI && !env.ANTHROPIC_API_KEY) return json({ error: "ia_sin_config", detalle: "Falta la IA: ni [ai] ni ANTHROPIC_API_KEY están configurados." }, 503);
 
   // 2) Cuerpo del request
@@ -1117,9 +1125,8 @@ async function botChat(slug, request, env) {
   if (!mensaje) return json({ error: "mensaje_vacio" }, 400);
   let historial = Array.isArray(body.historial) ? body.historial.slice(-BOT_MAX_TURNS) : [];
 
-  // 3) Catálogo: del POS si está enlazado; si es demo, del catálogo local (D1).
+  // 3) Catálogo: del POS si está enlazado; si es demo o autónomo, del catálogo local (D1).
   let productos = [];
-  const usarPos = t.modo_pos && t.pos_api_key;
   if (usarPos) {
     try {
       const cat = await posRpc(env, "menu_catalogo", { p_api_key: t.pos_api_key });
@@ -1143,8 +1150,8 @@ async function botChat(slug, request, env) {
   ).join("\n");
 
   // En un demo dejamos las dos opciones activas para mostrar la experiencia completa.
-  const recoger = (esDemo || t.pos_online_recoger) ? "sí" : "no";
-  const domicilio = (esDemo || t.pos_online_domicilio) ? "sí" : "no";
+  const recoger = (esDemo || botAutonomo || t.pos_online_recoger) ? "sí" : "no";
+  const domicilio = (esDemo || botAutonomo || t.pos_online_domicilio) ? "sí" : "no";
 
   // Info del negocio que el bot DEBE saber para responder dudas normales de un pedido.
   // (Por ahora valores por defecto sensatos para Colombia; luego se vuelven configurables por negocio.)
@@ -1264,6 +1271,29 @@ ${menuTxt}`;
     // DEMO: no toca ningún POS real; simula el cierre para mostrar la experiencia completa.
     pedido = { id: "demo", numero: "DEMO-" + Math.floor(Math.random() * 900 + 100), total, simulado: true };
     respuesta = "¡Listo! 🎉 Tu pedido quedó tomado. (Es una DEMO: no se cobra ni se envía nada.) Así de fácil sería en tu propio negocio con Fenlora.";
+  } else if (quiereConfirmar && botAutonomo) {
+    // NEGOCIO SIN POS: el pedido del bot entra al PANEL DEL DUEÑO (tabla pedidos).
+    if (sinCupo) {
+      limiteAlcanzado = true;
+      respuesta = "¡Gracias por tu pedido! 🙏 En este momento no puedo cerrarlo por el chat. Por favor escríbenos directamente y con gusto te lo tomamos.";
+    } else {
+      try {
+        const notaTxt = carrito.filter(c => c.nota).map(c => `${c.nombre}: ${c.nota}`).join(" · ").slice(0, MAX_NOTA) || null;
+        const itemsSeguros = carrito.map(c => ({ producto_id: c.producto_id, nombre: c.nombre, precio: c.precio, cantidad: c.cantidad, notas: c.nota || "" }));
+        const nota2 = [notaTxt, cliente ? ("Cliente: " + cliente) : null, telefono ? ("Tel: " + telefono) : null, entrega === "domicilio" && direccion ? ("Dirección: " + direccion) : (entrega ? ("Entrega: " + entrega) : null)].filter(Boolean).join(" · ").slice(0, MAX_NOTA) || null;
+        const hoy = fechaColombia();
+        let numDia = 1;
+        try { const cc = await env.DB.prepare("SELECT COUNT(*) AS n FROM pedidos WHERE tenant_id=? AND dia=?").bind(slug, hoy).first(); numDia = ((cc && cc.n) || 0) + 1; } catch (_) {}
+        const rr = await env.DB.prepare(
+          "INSERT INTO pedidos (tenant_id, items, total, cliente_nota, num_dia, dia) VALUES (?, ?, ?, ?, ?, ?)"
+        ).bind(slug, JSON.stringify(itemsSeguros), total, nota2, numDia, hoy).run();
+        pedido = { id: rr.meta.last_row_id, numero: numDia, total };
+        try { if (ctx && ctx.waitUntil) ctx.waitUntil(notificarPanelNuevoPedido(slug, env)); else await notificarPanelNuevoPedido(slug, env); } catch (_) {}
+        try { await env.DB.prepare("UPDATE tenants SET bot_pedidos_mes = ?, bot_mes = ? WHERE id = ?").bind(usoMes + 1, mesActual, t.id).run(); } catch (_) {}
+      } catch (e) {
+        respuesta += `\n\n(No pude registrar el pedido: ${String(e.message || e)})`;
+      }
+    }
   } else if (quiereConfirmar) {
     const flagOk = (entrega === "recoger") ? t.pos_online_recoger : t.pos_online_domicilio;
     const faltaDir = (entrega === "domicilio") && !(direccion && direccion.trim());
@@ -1312,7 +1342,7 @@ ${menuTxt}`;
 
 async function getMenuPublico(slug, env) {
   const row = await env.DB.prepare(
-    "SELECT nombre, nicho, whatsapp, logo_url, tema, contenido, pago_url, moneda, modo_pos, pos_api_key, pos_autopedido, pos_online_recoger, pos_online_domicilio FROM tenants WHERE id = ? AND activo = 1"
+    "SELECT nombre, nicho, whatsapp, logo_url, tema, contenido, pago_url, moneda, modo_pos, pos_api_key, pos_autopedido, pos_online_recoger, pos_online_domicilio, bot_activo FROM tenants WHERE id = ? AND activo = 1"
   ).bind(slug).first();
   if (!row) return json({ error: "Negocio no encontrado" }, 404);
 
@@ -1320,6 +1350,7 @@ async function getMenuPublico(slug, env) {
     nombre: row.nombre, nicho: row.nicho, whatsapp: row.whatsapp, logo_url: row.logo_url,
     tema: JSON.parse(row.tema), contenido: JSON.parse(row.contenido),
     pago_url: row.pago_url, moneda: row.moneda || "COP",
+    bot_activo: (row.bot_activo ? 1 : 0),
     // 1 = el cliente puede pedir desde la mesa (autopedido) · 0 = solo ver carta + llamar al mesero
     pos_autopedido: (row.pos_autopedido == null ? 1 : (row.pos_autopedido ? 1 : 0)),
     // Pedidos online (sin mesa): recoger / domicilio, activables por separado.
@@ -1528,7 +1559,7 @@ async function route(request, env, ctx) {
   // ── Cerebro del bot (IA) ──
   const botMatch = path.match(/^\/menu\/([^/]+)\/bot$/);
   if (botMatch && method === "POST") {
-    return await botChat(decodeURIComponent(botMatch[1]), request, env);
+    return await botChat(decodeURIComponent(botMatch[1]), request, env, ctx);
   }
 
   const menuMatch = path.match(/^\/menu\/([^/]+)$/);

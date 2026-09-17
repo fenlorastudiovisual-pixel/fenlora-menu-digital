@@ -1207,6 +1207,14 @@
     function aplicarTenant(data) {
       TENANT_DATA = data;
       try{ _aplicarModo(data.modo==='pos', data); }catch(e){}
+      // Bot de pedidos por chat en negocios SIN POS (autónomos): si está activado
+      // en el admin, mostramos el botón flotante "Pedir con IA" (mismo del demo).
+      try{
+        if (data.bot_activo && !/^demo-/.test(getTenantSlug())) {
+          const fab = document.getElementById('demoChatFab');
+          if (fab) { fab.href = '/' + getTenantSlug() + '/chat'; fab.style.display = 'inline-flex'; }
+        }
+      }catch(e){}
       document.title = `${data.nombre} — ${data.contenido.tagline || ''}`;
       document.querySelectorAll('.tenant-logo').forEach(img => {
         if (data.logo_url) { img.src = data.logo_url; img.style.display = ''; }
