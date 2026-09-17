@@ -221,7 +221,6 @@
       <div class="subtabs">
         <button class="subtab active" data-sub="datos">Datos</button>
         <button class="subtab" data-sub="productos">Productos</button>
-        <button class="subtab" data-sub="pedidos">Pedidos</button>
       </div>
 
       <div id="sub-datos" class="subpanel active">
@@ -561,9 +560,6 @@
         </div>
       </div>
 
-      <div id="sub-pedidos" class="subpanel">
-        <div id="pedidos-wrap"><p class="empty">Elige un negocio primero.</p></div>
-      </div>
     </div>
   </section>
 
@@ -1134,7 +1130,6 @@ async function seleccionarNegocio(id) {
   const esPOS = (t.contenido && t.contenido.modo_negocio) === 'pos';
   aplicarModoPOSproductos(esPOS);
   if (!esPOS) cargarProductos(id);
-  cargarPedidos(id);
 }
 
 // Cuando el negocio es "Con POS", su catálogo viene del sistema POS por API,

@@ -694,15 +694,22 @@ async function crearPedido(slug, request, env, ctx) {
 
   const nota = typeof (body && body.cliente_nota) === "string" ? body.cliente_nota.slice(0, MAX_NOTA) : null;
 
+  // Número del día (se reinicia cada día, hora Colombia) → el panel muestra #1, #2, …
+  const hoy = fechaColombia();
+  let numDia = 1;
+  try { const c = await env.DB.prepare("SELECT COUNT(*) AS n FROM pedidos WHERE tenant_id=? AND dia=?").bind(slug, hoy).first(); numDia = ((c && c.n) || 0) + 1; } catch (_) {}
+
   const r = await env.DB.prepare(
-    `INSERT INTO pedidos (tenant_id, items, total, cliente_nota) VALUES (?, ?, ?, ?)`
-  ).bind(slug, JSON.stringify(itemsSeguros), total, nota).run();
+    `INSERT INTO pedidos (tenant_id, items, total, cliente_nota, num_dia, dia) VALUES (?, ?, ?, ?, ?, ?)`
+  ).bind(slug, JSON.stringify(itemsSeguros), total, nota, numDia, hoy).run();
 
   // Le avisa al dueño (push) que entró un pedido nuevo, sin demorar la respuesta.
   try { if (ctx && ctx.waitUntil) ctx.waitUntil(notificarPanelNuevoPedido(slug, env)); } catch (_) {}
 
-  return json({ id: r.meta.last_row_id, total }, 201);
+  return json({ id: r.meta.last_row_id, num_dia: numDia, total }, 201);
 }
+// Fecha del día en Colombia (UTC-5), formato YYYY-MM-DD.
+function fechaColombia() { return new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10); }
 
 // ---------- /admin/api/tenants/:id/pedidos ----------
 async function listPedidos(tenantId, env) {
@@ -788,9 +795,10 @@ async function estadoPedido(slug, url, env) {
 // para avisarle cuando esté listo AUNQUE haya cerrado el menú. Sin payload:
 // solo guardamos el endpoint (el mensaje lo pone fijo el Service Worker).
 async function guardarPushPedido(slug, request, env) {
-  const t = await env.DB.prepare("SELECT id, modo_pos, pos_api_key FROM tenants WHERE id = ? AND activo = 1").bind(slug).first();
+  // Sirve para negocios Con POS (pedido online) y sin POS (autopedido): en ambos
+  // el cliente puede recibir el aviso "tu pedido está listo".
+  const t = await env.DB.prepare("SELECT id FROM tenants WHERE id = ? AND activo = 1").bind(slug).first();
   if (!t) return json({ error: "Negocio no encontrado" }, 404);
-  if (!t.modo_pos || !t.pos_api_key) return json({ error: "no_pos" }, 400);
   let body = {}; try { body = await request.json(); } catch {}
   const clave = (body.clave != null ? String(body.clave) : "").trim();
   const endpoint = (body.endpoint != null ? String(body.endpoint) : "").trim();
@@ -898,13 +906,13 @@ async function panelPedidos(slug, request, env) {
   const a = await panelAuth(slug, body, env);
   if (a.err) return a.err;
   const { results } = await env.DB.prepare(
-    "SELECT id, items, total, cliente_nota, estado_prep, creado_en FROM pedidos WHERE tenant_id=? ORDER BY creado_en DESC LIMIT 60"
+    "SELECT id, num_dia, items, total, cliente_nota, estado_prep, creado_en FROM pedidos WHERE tenant_id=? ORDER BY creado_en DESC LIMIT 60"
   ).bind(slug).all();
   const pedidos = (results || []).map(p => { let it = []; try { it = JSON.parse(p.items); } catch (_) {} return { ...p, items: it }; });
   return json({ ok: true, pedidos });
 }
 // POST /panel/:slug/estado  → cambia el estado de preparación de un pedido.
-async function panelEstado(slug, request, env) {
+async function panelEstado(slug, request, env, ctx) {
   let body = {}; try { body = await request.json(); } catch {}
   const a = await panelAuth(slug, body, env);
   if (a.err) return a.err;
@@ -913,7 +921,35 @@ async function panelEstado(slug, request, env) {
   const validos = new Set(["nuevo", "preparando", "listo", "entregado"]);
   if (!id || !validos.has(est)) return json({ error: "datos_invalidos" }, 400);
   await env.DB.prepare("UPDATE pedidos SET estado_prep=? WHERE id=? AND tenant_id=?").bind(est, id, slug).run();
+  // Cuando el dueño marca LISTO → avísale al cliente que ya puede recogerlo.
+  if (est === "listo") {
+    try { if (ctx && ctx.waitUntil) ctx.waitUntil(notificarClienteListo(slug, String(id), env)); else await notificarClienteListo(slug, String(id), env); } catch (_) {}
+  }
   return json({ ok: true });
+}
+// Aviso push al CLIENTE (negocio sin POS) cuando su pedido queda listo.
+async function notificarClienteListo(slug, clave, env) {
+  if (!env.VAPID_PRIVATE_JWK || !env.VAPID_PUBLIC) return;
+  let subs = [];
+  try { const { results } = await env.DB.prepare("SELECT endpoint FROM push_pedidos WHERE slug=? AND clave=? AND entregado=0").bind(slug, clave).all(); subs = results || []; }
+  catch (_) { return; }
+  for (const s of subs) {
+    try { const st = await enviarPush(s.endpoint, env); if (st === 404 || st === 410) { await env.DB.prepare("DELETE FROM push_pedidos WHERE endpoint=?").bind(s.endpoint).run().catch(() => {}); } } catch (_) {}
+  }
+  try { await env.DB.prepare("UPDATE push_pedidos SET entregado=1 WHERE slug=? AND clave=?").bind(slug, clave).run(); } catch (_) {}
+}
+// GET /menu/:slug/estado-local?pedido=<id> → estado de un autopedido (negocio sin POS).
+async function estadoPedidoLocal(slug, url, env) {
+  const t = await env.DB.prepare("SELECT id, contenido FROM tenants WHERE id=? AND activo=1").bind(slug).first();
+  if (!t) return json({ error: "Negocio no encontrado" }, 404);
+  const id = parseInt(url.searchParams.get("pedido"), 10);
+  if (!id) return json({ error: "falta_pedido" }, 400);
+  let recogida = "la caja";
+  try { const c = t.contenido ? JSON.parse(t.contenido) : {}; if (c && c.recogida_texto) recogida = String(c.recogida_texto).slice(0, 40); } catch (_) {}
+  const p = await env.DB.prepare("SELECT estado_prep FROM pedidos WHERE id=? AND tenant_id=?").bind(id, slug).first();
+  if (!p) return json({ estado: "entregado", listo: true, entregado: true, existe: false, recogida });
+  const est = p.estado_prep || "nuevo";
+  return json({ estado: est, listo: est === "listo", entregado: est === "entregado", existe: true, recogida });
 }
 // POST /panel/:slug/push-sub  → guarda la suscripción push del celular del dueño.
 async function panelPushSub(slug, request, env) {
@@ -1453,7 +1489,7 @@ async function route(request, env, ctx) {
     const s = decodeURIComponent(panelApi[1]);
     if (panelApi[2] === "login")    return await panelLogin(s, request, env);
     if (panelApi[2] === "pedidos")  return await panelPedidos(s, request, env);
-    if (panelApi[2] === "estado")   return await panelEstado(s, request, env);
+    if (panelApi[2] === "estado")   return await panelEstado(s, request, env, ctx);
     if (panelApi[2] === "push-sub") return await panelPushSub(s, request, env);
   }
   // Manifest instalable del panel del dueño.
@@ -1477,6 +1513,11 @@ async function route(request, env, ctx) {
   const estadoMatch = path.match(/^\/menu\/([^/]+)\/estado$/);
   if (estadoMatch && method === "GET") {
     return await estadoPedido(decodeURIComponent(estadoMatch[1]), url, env);
+  }
+
+  const estadoLocalMatch = path.match(/^\/menu\/([^/]+)\/estado-local$/);
+  if (estadoLocalMatch && method === "GET") {
+    return await estadoPedidoLocal(decodeURIComponent(estadoLocalMatch[1]), url, env);
   }
 
   const pushPedidoMatch = path.match(/^\/menu\/([^/]+)\/push-pedido$/);

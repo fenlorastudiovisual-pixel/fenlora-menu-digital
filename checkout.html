@@ -291,7 +291,7 @@
         }
 
         Carrito.vaciar(SLUG);
-        mostrarConfirmacion(data.id, total, { online: !!tipoOnline, tipo: tipoOnline, numero: data.numero });
+        mostrarConfirmacion(data.id, total, { online: !!tipoOnline, tipo: tipoOnline, numero: data.numero || data.num_dia, pos: esPos });
       } catch (err) {
         _reset();
         const m = String(err.message||'');
@@ -343,26 +343,27 @@
         return;
       }
 
+      // ── Negocio SIN POS (autónomo): pedido guardado; mostramos seguimiento
+      //    para que el cliente sepa cuándo el dueño lo marca listo (con push). ──
       const tienePago = !!TENANT?.pago_url;
       const tieneWhatsapp = !!TENANT?.whatsapp;
-
+      const numMostrar = extra?.numero || pedidoId;
       document.getElementById('contenido').innerHTML = `
         <div class="confirmacion">
-          <h2>¡Pedido #${pedidoId} registrado!</h2>
-          <p>
-            Total: <strong>${formatearPrecio(total, moneda)}</strong><br><br>
-            ${tieneWhatsapp
-              ? 'Te abrimos WhatsApp en una pestaña nueva con tu pedido ya escrito — solo dale enviar.'
-              : (tienePago
-                  ? 'Te abrimos la página de pago en una pestaña nueva. Cuando termines, muestra la confirmación en caja o a tu mesero.'
-                  : 'Acércate a caja o avisa a tu mesero para completar el pago de tu pedido.')}
-          </p>
-          ${tienePago && !tieneWhatsapp ? `<a class="cta" href="${TENANT.pago_url}" target="_blank">IR A PAGAR</a>` : `<a class="cta" href="/${SLUG}">VOLVER AL INICIO</a>`}
+          <h2>¡Pedido #${numMostrar} recibido! 🛎️</h2>
+          <p>Total: <strong>${formatearPrecio(total, moneda)}</strong></p>
+          <div id="pedidoTrack" class="ped-track">
+            <div class="ped-track-dot"></div>
+            <div class="ped-track-txt" id="pedidoTrackTxt">Esperando que el negocio confirme tu pedido…</div>
+          </div>
+          <p class="ped-track-hint">Te avisamos aquí cuando esté listo. Activa el botón para que también te llegue al celular <b>aunque cierres esto</b>. 🔔</p>
+          <button id="pushBtn" class="cta" style="margin-bottom:8px" onclick="activarAvisoPush('${pedidoId}')">🔔 Avísame aunque cierre esto</button>
+          ${tieneWhatsapp
+              ? '<p class="ped-track-hint">También te abrimos WhatsApp con tu pedido — dale enviar para confirmarlo con el negocio.</p>'
+              : (tienePago ? `<a class="cta" href="${TENANT.pago_url}" target="_blank">IR A PAGAR</a>` : '')}
+          <a class="cta" href="/${SLUG}" style="background:transparent;border:1px solid var(--cy,#22d3f5)">VOLVER AL MENÚ</a>
         </div>`;
-
-      if (tienePago && !tieneWhatsapp) {
-        setTimeout(() => window.open(TENANT.pago_url, '_blank'), 400);
-      }
+      iniciarSeguimiento(pedidoId, false, true);   // true = negocio sin POS (estado local)
     }
 
     // ── Seguimiento del pedido: consulta el estado y avisa cuando esté listo ──
@@ -377,12 +378,13 @@
         b(0,880);b(0.45,1175);b(0.9,880);
       }catch(e){}
     }
-    function iniciarSeguimiento(clave, esDom){
+    function iniciarSeguimiento(clave, esDom, local){
       if(!clave) return;
+      const ruta = local ? 'estado-local' : 'estado';
       let avisado=false, fallos=0;
       const tick=async()=>{
         try{
-          const r=await fetch(`/menu/${SLUG}/estado?pedido=${encodeURIComponent(clave)}`,{cache:'no-store'});
+          const r=await fetch(`/menu/${SLUG}/${ruta}?pedido=${encodeURIComponent(clave)}`,{cache:'no-store'});
           if(!r.ok){ fallos++; if(fallos>8){clearInterval(_seguirTimer);} return; }
           fallos=0;
           const d=await r.json();
