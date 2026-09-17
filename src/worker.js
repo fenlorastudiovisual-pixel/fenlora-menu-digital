@@ -324,8 +324,17 @@ async function updateTenant(id, request, env) {
   const wa_api_activo = (body.wa_api_activo != null) ? (body.wa_api_activo ? 1 : 0) : (row.wa_api_activo ? 1 : 0);
 
   await env.DB.prepare(
-    `UPDATE tenants SET nombre=?, whatsapp=?, logo_url=?, tema=?, contenido=?, activo=?, pago_url=?, moneda=?, precio_mensual=?, dia_cobro=?, modo_pos=?, pos_api_key=?, pos_autopedido=?, pos_online_recoger=?, pos_online_domicilio=?, bot_limite_pedidos=?, bot_activo=?, wa_api_phone_id=?, wa_api_token=?, wa_api_activo=? WHERE id=?`
-  ).bind(nombre, whatsapp, logo_url, tema, contenido, activo, pago_url, moneda, precio_mensual, dia_cobro, modo_pos, pos_api_key, pos_autopedido, pos_online_recoger, pos_online_domicilio, bot_limite_pedidos, bot_activo, wa_api_phone_id, wa_api_token, wa_api_activo, id).run();
+    `UPDATE tenants SET nombre=?, whatsapp=?, logo_url=?, tema=?, contenido=?, activo=?, pago_url=?, moneda=?, precio_mensual=?, dia_cobro=?, modo_pos=?, pos_api_key=?, pos_autopedido=?, pos_online_recoger=?, pos_online_domicilio=?, bot_limite_pedidos=? WHERE id=?`
+  ).bind(nombre, whatsapp, logo_url, tema, contenido, activo, pago_url, moneda, precio_mensual, dia_cobro, modo_pos, pos_api_key, pos_autopedido, pos_online_recoger, pos_online_domicilio, bot_limite_pedidos, id).run();
+
+  // Columnas de fase 15 (bot_activo + API de WhatsApp) se escriben APARTE y
+  // PROTEGIDAS: si la migración aún no se aplicó, el guardado NO se rompe;
+  // simplemente esos campos no se guardan hasta correr la migración.
+  try {
+    await env.DB.prepare(
+      `UPDATE tenants SET bot_activo=?, wa_api_phone_id=?, wa_api_token=?, wa_api_activo=? WHERE id=?`
+    ).bind(bot_activo, wa_api_phone_id, wa_api_token, wa_api_activo, id).run();
+  } catch (e) { console.warn("fase15 no aplicada aún (bot_activo/wa_api_*):", String(e.message || e)); }
 
   return json({ ok: true });
 }
@@ -700,22 +709,29 @@ async function crearPedido(slug, request, env, ctx) {
 
   const nota = typeof (body && body.cliente_nota) === "string" ? body.cliente_nota.slice(0, MAX_NOTA) : null;
 
-  // Número del día (se reinicia cada día, hora Colombia) → el panel muestra #1, #2, …
-  const hoy = fechaColombia();
-  let numDia = 1;
-  try { const c = await env.DB.prepare("SELECT COUNT(*) AS n FROM pedidos WHERE tenant_id=? AND dia=?").bind(slug, hoy).first(); numDia = ((c && c.n) || 0) + 1; } catch (_) {}
-
-  const r = await env.DB.prepare(
-    `INSERT INTO pedidos (tenant_id, items, total, cliente_nota, num_dia, dia) VALUES (?, ?, ?, ?, ?, ?)`
-  ).bind(slug, JSON.stringify(itemsSeguros), total, nota, numDia, hoy).run();
+  const { id, numDia } = await _insertPedidoLocal(env, slug, itemsSeguros, total, nota);
 
   // Le avisa al dueño (push) que entró un pedido nuevo, sin demorar la respuesta.
   try { if (ctx && ctx.waitUntil) ctx.waitUntil(notificarPanelNuevoPedido(slug, env)); } catch (_) {}
 
-  return json({ id: r.meta.last_row_id, num_dia: numDia, total }, 201);
+  return json({ id, num_dia: numDia, total }, 201);
 }
 // Fecha del día en Colombia (UTC-5), formato YYYY-MM-DD.
 function fechaColombia() { return new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10); }
+// Inserta un pedido autónomo con número del día (fase 14). PROTEGIDO: si esas
+// columnas no existen aún, guarda igual (sin num_dia/dia) y usa el id como número.
+async function _insertPedidoLocal(env, slug, itemsSeguros, total, nota) {
+  const hoy = fechaColombia();
+  let numDia = 1;
+  try { const c = await env.DB.prepare("SELECT COUNT(*) AS n FROM pedidos WHERE tenant_id=? AND dia=?").bind(slug, hoy).first(); numDia = ((c && c.n) || 0) + 1; } catch (_) {}
+  try {
+    const r = await env.DB.prepare("INSERT INTO pedidos (tenant_id, items, total, cliente_nota, num_dia, dia) VALUES (?, ?, ?, ?, ?, ?)").bind(slug, JSON.stringify(itemsSeguros), total, nota, numDia, hoy).run();
+    return { id: r.meta.last_row_id, numDia };
+  } catch (_) {
+    const r = await env.DB.prepare("INSERT INTO pedidos (tenant_id, items, total, cliente_nota) VALUES (?, ?, ?, ?)").bind(slug, JSON.stringify(itemsSeguros), total, nota).run();
+    return { id: r.meta.last_row_id, numDia: r.meta.last_row_id };
+  }
+}
 
 // ---------- /admin/api/tenants/:id/pedidos ----------
 async function listPedidos(tenantId, env) {
@@ -911,9 +927,17 @@ async function panelPedidos(slug, request, env) {
   let body = {}; try { body = await request.json(); } catch {}
   const a = await panelAuth(slug, body, env);
   if (a.err) return a.err;
-  const { results } = await env.DB.prepare(
-    "SELECT id, num_dia, items, total, cliente_nota, estado_prep, creado_en FROM pedidos WHERE tenant_id=? ORDER BY creado_en DESC LIMIT 60"
-  ).bind(slug).all();
+  let results;
+  try {
+    ({ results } = await env.DB.prepare(
+      "SELECT id, num_dia, items, total, cliente_nota, estado_prep, creado_en FROM pedidos WHERE tenant_id=? ORDER BY creado_en DESC LIMIT 60"
+    ).bind(slug).all());
+  } catch (_) {
+    // fase 14 no aplicada (sin num_dia): igual devolvemos los pedidos.
+    ({ results } = await env.DB.prepare(
+      "SELECT id, items, total, cliente_nota, estado_prep, creado_en FROM pedidos WHERE tenant_id=? ORDER BY creado_en DESC LIMIT 60"
+    ).bind(slug).all());
+  }
   const pedidos = (results || []).map(p => { let it = []; try { it = JSON.parse(p.items); } catch (_) {} return { ...p, items: it }; });
   return json({ ok: true, pedidos });
 }
@@ -1102,7 +1126,7 @@ async function botWorkersAI(env, system, chatMessages) {
 async function botChat(slug, request, env, ctx) {
   // 1) Negocio + que sea modo POS con key
   const t = await env.DB.prepare(
-    "SELECT id, nombre, modo_pos, pos_api_key, pos_online_recoger, pos_online_domicilio, moneda, bot_activo FROM tenants WHERE id = ? AND activo = 1"
+    "SELECT id, nombre, modo_pos, pos_api_key, pos_online_recoger, pos_online_domicilio, moneda FROM tenants WHERE id = ? AND activo = 1"
   ).bind(slug).first();
   if (!t) return json({ error: "Negocio no encontrado" }, 404);
   // Límite de pedidos del bot (columnas de fase 10). Se leen aparte y con protección:
@@ -1115,7 +1139,10 @@ async function botChat(slug, request, env, ctx) {
   // Los DEMOS (id demo-*) usan el bot GRATIS (Workers AI) con el catálogo local, sin POS.
   const esDemo = /^demo-/.test(slug);
   const usarPos = !!(t.modo_pos && t.pos_api_key);
-  const botAutonomo = !esDemo && !usarPos && !!t.bot_activo;   // negocio sin POS con el bot encendido
+  // bot_activo (fase 15) leído PROTEGIDO: si la columna no existe, asume apagado.
+  let botFlag = 0;
+  try { const bf = await env.DB.prepare("SELECT bot_activo FROM tenants WHERE id = ?").bind(slug).first(); botFlag = (bf && bf.bot_activo) ? 1 : 0; } catch (_) {}
+  const botAutonomo = !esDemo && !usarPos && !!botFlag;   // negocio sin POS con el bot encendido
   if (!esDemo && !usarPos && !botAutonomo) return json({ error: "bot_off" }, 400);
   if (!env.AI && !env.ANTHROPIC_API_KEY) return json({ error: "ia_sin_config", detalle: "Falta la IA: ni [ai] ni ANTHROPIC_API_KEY están configurados." }, 503);
 
@@ -1281,13 +1308,8 @@ ${menuTxt}`;
         const notaTxt = carrito.filter(c => c.nota).map(c => `${c.nombre}: ${c.nota}`).join(" · ").slice(0, MAX_NOTA) || null;
         const itemsSeguros = carrito.map(c => ({ producto_id: c.producto_id, nombre: c.nombre, precio: c.precio, cantidad: c.cantidad, notas: c.nota || "" }));
         const nota2 = [notaTxt, cliente ? ("Cliente: " + cliente) : null, telefono ? ("Tel: " + telefono) : null, entrega === "domicilio" && direccion ? ("Dirección: " + direccion) : (entrega ? ("Entrega: " + entrega) : null)].filter(Boolean).join(" · ").slice(0, MAX_NOTA) || null;
-        const hoy = fechaColombia();
-        let numDia = 1;
-        try { const cc = await env.DB.prepare("SELECT COUNT(*) AS n FROM pedidos WHERE tenant_id=? AND dia=?").bind(slug, hoy).first(); numDia = ((cc && cc.n) || 0) + 1; } catch (_) {}
-        const rr = await env.DB.prepare(
-          "INSERT INTO pedidos (tenant_id, items, total, cliente_nota, num_dia, dia) VALUES (?, ?, ?, ?, ?, ?)"
-        ).bind(slug, JSON.stringify(itemsSeguros), total, nota2, numDia, hoy).run();
-        pedido = { id: rr.meta.last_row_id, numero: numDia, total };
+        const ins = await _insertPedidoLocal(env, slug, itemsSeguros, total, nota2);
+        pedido = { id: ins.id, numero: ins.numDia, total };
         try { if (ctx && ctx.waitUntil) ctx.waitUntil(notificarPanelNuevoPedido(slug, env)); else await notificarPanelNuevoPedido(slug, env); } catch (_) {}
         try { await env.DB.prepare("UPDATE tenants SET bot_pedidos_mes = ?, bot_mes = ? WHERE id = ?").bind(usoMes + 1, mesActual, t.id).run(); } catch (_) {}
       } catch (e) {
@@ -1342,15 +1364,20 @@ ${menuTxt}`;
 
 async function getMenuPublico(slug, env) {
   const row = await env.DB.prepare(
-    "SELECT nombre, nicho, whatsapp, logo_url, tema, contenido, pago_url, moneda, modo_pos, pos_api_key, pos_autopedido, pos_online_recoger, pos_online_domicilio, bot_activo FROM tenants WHERE id = ? AND activo = 1"
+    "SELECT nombre, nicho, whatsapp, logo_url, tema, contenido, pago_url, moneda, modo_pos, pos_api_key, pos_autopedido, pos_online_recoger, pos_online_domicilio FROM tenants WHERE id = ? AND activo = 1"
   ).bind(slug).first();
   if (!row) return json({ error: "Negocio no encontrado" }, 404);
+
+  // bot_activo (fase 15) se lee PROTEGIDO: si la columna aún no existe, el menú
+  // no se cae — simplemente asume 0 (bot apagado).
+  let botActivo = 0;
+  try { const b = await env.DB.prepare("SELECT bot_activo FROM tenants WHERE id = ?").bind(slug).first(); botActivo = (b && b.bot_activo) ? 1 : 0; } catch (_) {}
 
   const base = {
     nombre: row.nombre, nicho: row.nicho, whatsapp: row.whatsapp, logo_url: row.logo_url,
     tema: JSON.parse(row.tema), contenido: JSON.parse(row.contenido),
     pago_url: row.pago_url, moneda: row.moneda || "COP",
-    bot_activo: (row.bot_activo ? 1 : 0),
+    bot_activo: botActivo,
     // 1 = el cliente puede pedir desde la mesa (autopedido) · 0 = solo ver carta + llamar al mesero
     pos_autopedido: (row.pos_autopedido == null ? 1 : (row.pos_autopedido ? 1 : 0)),
     // Pedidos online (sin mesa): recoger / domicilio, activables por separado.
