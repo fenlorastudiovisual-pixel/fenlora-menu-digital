@@ -389,11 +389,19 @@
           fallos=0;
           const d=await r.json();
           const txt=document.getElementById('pedidoTrackTxt');
+          // ENTREGADO → mensaje de despedida y paramos de consultar.
+          if(d.entregado || d.estado==='entregado'){
+            if(txt) txt.textContent='¡Que lo disfrutes! Fue un gusto atenderte 🙌';
+            clearInterval(_seguirTimer); return;
+          }
+          // LISTO → mostramos la alerta UNA vez, pero SEGUIMOS consultando para
+          // detectar cuando lo marquen "entregado".
+          if(d.listo || d.estado==='listo'){
+            if(txt) txt.textContent='¡Tu pedido está listo! 🎉';
+            if(!avisado){ avisado=true; mostrarAlertaListo(d.recogida||'la caja', esDom); }
+            return;
+          }
           if(d.estado==='preparando' && txt) txt.textContent='¡Manos a la obra! Preparando tu pedido…';
-          if((d.listo||d.estado==='listo') && !avisado){
-            avisado=true; clearInterval(_seguirTimer);
-            mostrarAlertaListo(d.recogida||'la caja', esDom);
-          } else if(d.entregado){ clearInterval(_seguirTimer); if(txt)txt.textContent='Pedido entregado. ¡Gracias! 🙌'; }
         }catch(e){ fallos++; if(fallos>8){clearInterval(_seguirTimer);} }
       };
       tick();
