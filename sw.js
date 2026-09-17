@@ -17,7 +17,8 @@ self.addEventListener('push', function (event) {
     vibrate: [300, 120, 300, 120, 300],
     tag: 'pedido-listo',
     renotify: true,
-    requireInteraction: true
+    requireInteraction: true,
+    silent: false
   };
   event.waitUntil(self.registration.showNotification(titulo, opciones));
 });

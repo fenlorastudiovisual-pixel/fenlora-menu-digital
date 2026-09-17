@@ -15,7 +15,8 @@ self.addEventListener('push', function (event) {
     vibrate: [250, 120, 250, 120, 250],
     tag: 'panel-nuevo-pedido',
     renotify: true,
-    requireInteraction: true
+    requireInteraction: true,
+    silent: false
   }));
 });
 
